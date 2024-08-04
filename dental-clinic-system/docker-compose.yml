@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres-clinic
+    environment:
+      POSTGRES_USER: clinicuser
+      POSTGRES_PASSWORD: clinicpassword
+      POSTGRES_DB: clinicdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  postgres-data:
