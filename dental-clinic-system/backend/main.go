@@ -1,13 +1,15 @@
 package main
 
 import (
-    "log"
-    "net/http"
-    "github.com/gorilla/mux"
-    "gorm.io/driver/postgres"
-    "gorm.io/gorm"
-    "dental-clinic-system/handlers"
-    "dental-clinic-system/models"
+	"dental-clinic-system/handlers"
+	"dental-clinic-system/models"
+	"dental-clinic-system/routes"
+	"log"
+	"net/http"
+
+	"github.com/gorilla/mux"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 var db *gorm.DB
@@ -47,12 +49,9 @@ func main() {
     procedureHandler := &handlers.ProcedureHandler{DB: db}
     userHandler := &handlers.UserHandler{DB: db}
 
+
     // Patient Routes
-    router.HandleFunc("/patients", patientHandler.GetPatients).Methods("GET")
-    router.HandleFunc("/patients/{id}", patientHandler.GetPatient).Methods("GET")
-    router.HandleFunc("/patients", patientHandler.CreatePatient).Methods("POST")
-    router.HandleFunc("/patients/{id}", patientHandler.UpdatePatient).Methods("PUT")
-    router.HandleFunc("/patients/{id}", patientHandler.DeletePatient).Methods("DELETE")
+    routes.RegisterRoutes(router,patientHandler)
 
     // Clinic Routes
     router.HandleFunc("/clinics", clinicHandler.GetClinics).Methods("GET")
