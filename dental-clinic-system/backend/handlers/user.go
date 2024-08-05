@@ -3,7 +3,7 @@ package handlers
 import (
     "encoding/json"
     "net/http"
-    "golang.org/x/crypto/bcrypt"
+    "github.com/gorilla/mux"
     "gorm.io/gorm"
     "dental-clinic-system/models"
 )
@@ -12,33 +12,58 @@ type UserHandler struct {
     DB *gorm.DB
 }
 
-func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
-    var user models.User
-    json.NewDecoder(r.Body).Decode(&user)
-    hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-    if err != nil {
-        http.Error(w, "Failed to hash password", http.StatusInternalServerError)
+func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
+    var users []models.User
+    if result := h.DB.Find(&users); result.Error != nil {
+        http.Error(w, result.Error.Error(), http.StatusInternalServerError)
         return
     }
-    user.Password = string(hashedPassword)
-    h.DB.Create(&user)
+    json.NewEncoder(w).Encode(users)
+}
+
+func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+    params := mux.Vars(r)
+    var user models.User
+    if result := h.DB.First(&user, params["id"]); result.Error != nil {
+        http.Error(w, result.Error.Error(), http.StatusNotFound)
+        return
+    }
     json.NewEncoder(w).Encode(user)
 }
 
-func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
-    var requestUser models.User
-    json.NewDecoder(r.Body).Decode(&requestUser)
+func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
     var user models.User
-    h.DB.Where("email = ?", requestUser.Email).First(&user)
-    if user.ID == 0 {
-        http.Error(w, "User not found", http.StatusUnauthorized)
+    if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
         return
     }
-    err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(requestUser.Password))
-    if err != nil {
-        http.Error(w, "Invalid password", http.StatusUnauthorized)
+    if result := h.DB.Create(&user); result.Error != nil {
+        http.Error(w, result.Error.Error(), http.StatusInternalServerError)
         return
     }
-    // Token generation (JWT or similar) should be done here
     json.NewEncoder(w).Encode(user)
+}
+
+func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+    params := mux.Vars(r)
+    var user models.User
+    if result := h.DB.First(&user, params["id"]); result.Error != nil {
+        http.Error(w, result.Error.Error(), http.StatusNotFound)
+        return
+    }
+    if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+    h.DB.Save(&user)
+    json.NewEncoder(w).Encode(user)
+}
+
+func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+    params := mux.Vars(r)
+    if result := h.DB.Delete(&models.User{}, params["id"]); result.Error != nil {
+        http.Error(w, result.Error.Error(), http.StatusNotFound)
+        return
+    }
+    w.WriteHeader(http.StatusNoContent)
 }

@@ -1,8 +1,8 @@
 package routes
 
 import (
-    "github.com/gorilla/mux"
     "dental-clinic-system/handlers"
+    "github.com/gorilla/mux"
 )
 
 func RegisterProcedureRoutes(router *mux.Router, handler *handlers.ProcedureHandler) {

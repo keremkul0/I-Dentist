@@ -1,11 +1,15 @@
 package routes
 
 import (
-    "github.com/gorilla/mux"
-    "dental-clinic-system/handlers"
+	"dental-clinic-system/handlers"
+
+	"github.com/gorilla/mux"
 )
 
 func RegisterUserRoutes(router *mux.Router, handler *handlers.UserHandler) {
-    router.HandleFunc("/register", handler.Register).Methods("POST")
-    router.HandleFunc("/login", handler.Login).Methods("POST")
+	router.HandleFunc("/users", handler.GetUsers).Methods("GET")
+	router.HandleFunc("/users/{id}", handler.GetUser).Methods("GET")
+	router.HandleFunc("/users", handler.CreateUser).Methods("POST")
+	router.HandleFunc("/users/{id}", handler.UpdateUser).Methods("PUT")
+	router.HandleFunc("/users/{id}", handler.DeleteUser).Methods("DELETE")
 }

@@ -1,83 +1,65 @@
 package main
 
 import (
-	"dental-clinic-system/handlers"
-	"dental-clinic-system/models"
-	"dental-clinic-system/routes"
 	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	"dental-clinic-system/handlers"
+	"dental-clinic-system/models"
+	"dental-clinic-system/routes"
 )
 
-var db *gorm.DB
-var err error
-
-func init() {
-    dsn := "host=localhost user=clinicuser password=clinicpassword dbname=clinicdb port=5432 sslmode=disable TimeZone=Asia/Shanghai"
-    db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    // Automigrate models
-    db.AutoMigrate(
-        &models.Patient{}, 
-        &models.Clinic{}, 
-        &models.Doctor{}, 
-        &models.Assistant{}, 
-        &models.Secretary{}, 
-        &models.Appointment{}, 
-        &models.Role{}, 
-        &models.User{}, 
-        &models.Procedure{},
-    )
-}
-
 func main() {
-    router := mux.NewRouter()
+	dsn := "host=localhost user=clinicuser password=clinicpassword dbname=clinicdb port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    patientHandler := &handlers.PatientHandler{DB: db}
-    clinicHandler := &handlers.ClinicHandler{DB: db}
-    doctorHandler := &handlers.DoctorHandler{DB: db}
-    assistantHandler := &handlers.AssistantHandler{DB: db}
-    secretaryHandler := &handlers.SecretaryHandler{DB: db}
-    appointmentHandler := &handlers.AppointmentHandler{DB: db}
-    roleHandler := &handlers.RoleHandler{DB: db}
-    procedureHandler := &handlers.ProcedureHandler{DB: db}
-    userHandler := &handlers.UserHandler{DB: db}
+	db.AutoMigrate(&models.Clinic{}, &models.Appointment{}, &models.User{}, &models.Role{}, &models.Doctor{}, &models.Assistant{}, &models.Secretary{}, &models.Procedure{})
 
+	router := mux.NewRouter()
 
-    // Patient Routes
-    routes.RegisterpatientsRoutes(router,patientHandler)
+	// Patients Handler
+	patientHendler := &handlers.PatientHandler{DB: db}
+	routes.RegisterpatientsRoutes(router, patientHendler)
+	// Clinic Handler
+	clinicHandler := &handlers.ClinicHandler{DB: db}
+	routes.RegisterClinicRoutes(router, clinicHandler)
 
-    // Clinic Routes
-    routes.RegisterClinicRoutes(router,clinicHandler)
+	// Appointment Handler
+	appointmentHandler := &handlers.AppointmentHandler{DB: db}
+	routes.RegisterAppointmentRoutes(router, appointmentHandler)
 
-    // Doctor Routes
-    routes.RegisterDoctorRoutes(router,doctorHandler)
+	// User Handler
+	userHandler := &handlers.UserHandler{DB: db}
+	routes.RegisterUserRoutes(router, userHandler)
 
-    // Assistant Routes
-    routes.RegisterAssistantRoutes(router,assistantHandler)
+	// Role Handler
+	roleHandler := &handlers.RoleHandler{DB: db}
+	routes.RegisterRoleRoutes(router, roleHandler)
 
-    // Secretary Routes
-    routes.RegisterSecretaryRoutes(router,secretaryHandler)
+	// Doctor Handler
+	doctorHandler := &handlers.DoctorHandler{DB: db}
+	routes.RegisterDoctorRoutes(router, doctorHandler)
 
-    // Role Routes
-    routes.RegisterRoleRoutes(router,roleHandler)
+	// Assistant Handler
+	assistantHandler := &handlers.AssistantHandler{DB: db}
+	routes.RegisterAssistantRoutes(router, assistantHandler)
 
-    // Procedure Routes
-    routes.RegisterProcedureRoutes(router,procedureHandler)
+	// Secretary Handler
+	secretaryHandler := &handlers.SecretaryHandler{DB: db}
+	routes.RegisterSecretaryRoutes(router, secretaryHandler)
 
-    // User Routes
-    routes.RegisterUserRoutes(router,userHandler)
+	// Procedure Handler
+	procedureHandler := &handlers.ProcedureHandler{DB: db}
+	routes.RegisterProcedureRoutes(router, procedureHandler)
 
-    // Appointment Routes
-    routes.RegisterAppointmentRoutes(router,appointmentHandler)
-    
+	log.Println("Starting server on :8080")
+	log.Fatal(http.ListenAndServe(":8080", router))
 
-    log.Println("Server started at :8080")
-    log.Fatal(http.ListenAndServe(":8080", router))
 }
