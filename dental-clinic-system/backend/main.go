@@ -51,57 +51,32 @@ func main() {
 
 
     // Patient Routes
-    routes.RegisterRoutes(router,patientHandler)
+    routes.RegisterpatientsRoutes(router,patientHandler)
 
     // Clinic Routes
-    router.HandleFunc("/clinics", clinicHandler.GetClinics).Methods("GET")
-    router.HandleFunc("/clinics/{id}", clinicHandler.GetClinic).Methods("GET")
-    router.HandleFunc("/clinics", clinicHandler.CreateClinic).Methods("POST")
-    router.HandleFunc("/clinics/{id}", clinicHandler.UpdateClinic).Methods("PUT")
-    router.HandleFunc("/clinics/{id}", clinicHandler.DeleteClinic).Methods("DELETE")
+    routes.RegisterClinicRoutes(router,clinicHandler)
 
     // Doctor Routes
-    router.HandleFunc("/doctors", doctorHandler.GetDoctors).Methods("GET")
-    router.HandleFunc("/doctors/{id}", doctorHandler.GetDoctor).Methods("GET")
-    router.HandleFunc("/doctors", doctorHandler.CreateDoctor).Methods("POST")
-    router.HandleFunc("/doctors/{id}", doctorHandler.UpdateDoctor).Methods("PUT")
-    router.HandleFunc("/doctors/{id}", doctorHandler.DeleteDoctor).Methods("DELETE")
+    routes.RegisterDoctorRoutes(router,doctorHandler)
 
     // Assistant Routes
-    router.HandleFunc("/assistants", assistantHandler.GetAssistants).Methods("GET")
-    router.HandleFunc("/assistants/{id}", assistantHandler.GetAssistant).Methods("GET")
-    router.HandleFunc("/assistants", assistantHandler.CreateAssistant).Methods("POST")
-    router.HandleFunc("/assistants/{id}", assistantHandler.UpdateAssistant).Methods("PUT")
-    router.HandleFunc("/assistants/{id}", assistantHandler.DeleteAssistant).Methods("DELETE")
+    routes.RegisterAssistantRoutes(router,assistantHandler)
 
     // Secretary Routes
-    router.HandleFunc("/secretaries", secretaryHandler.GetSecretaries).Methods("GET")
-    router.HandleFunc("/secretaries/{id}", secretaryHandler.GetSecretary).Methods("GET")
-    router.HandleFunc("/secretaries", secretaryHandler.CreateSecretary).Methods("POST")
-    router.HandleFunc("/secretaries/{id}", secretaryHandler.UpdateSecretary).Methods("PUT")
-    router.HandleFunc("/secretaries/{id}", secretaryHandler.DeleteSecretary).Methods("DELETE")
+    routes.RegisterSecretaryRoutes(router,secretaryHandler)
 
     // Role Routes
-    router.HandleFunc("/roles", roleHandler.GetRoles).Methods("GET")
-    router.HandleFunc("/roles", roleHandler.CreateRole).Methods("POST")
+    routes.RegisterRoleRoutes(router,roleHandler)
 
     // Procedure Routes
-    router.HandleFunc("/procedures", procedureHandler.GetProcedures).Methods("GET")
-    router.HandleFunc("/procedures/{id}", procedureHandler.GetProcedure).Methods("GET")
-    router.HandleFunc("/procedures", procedureHandler.CreateProcedure).Methods("POST")
-    router.HandleFunc("/procedures/{id}", procedureHandler.UpdateProcedure).Methods("PUT")
-    router.HandleFunc("/procedures/{id}", procedureHandler.DeleteProcedure).Methods("DELETE")
+    routes.RegisterProcedureRoutes(router,procedureHandler)
 
     // User Routes
-    router.HandleFunc("/register", userHandler.Register).Methods("POST")
-    router.HandleFunc("/login", userHandler.Login).Methods("POST")
+    routes.RegisterUserRoutes(router,userHandler)
 
     // Appointment Routes
-    router.HandleFunc("/appointments", appointmentHandler.GetAppointments).Methods("GET")
-    router.HandleFunc("/appointments/{id}", appointmentHandler.GetAppointment).Methods("GET")
-    router.HandleFunc("/appointments", appointmentHandler.CreateAppointment).Methods("POST")
-    router.HandleFunc("/appointments/{id}", appointmentHandler.UpdateAppointment).Methods("PUT")
-    router.HandleFunc("/appointments/{id}", appointmentHandler.DeleteAppointment).Methods("DELETE")
+    routes.RegisterAppointmentRoutes(router,appointmentHandler)
+    
 
     log.Println("Server started at :8080")
     log.Fatal(http.ListenAndServe(":8080", router))

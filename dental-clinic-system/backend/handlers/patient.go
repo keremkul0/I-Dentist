@@ -36,8 +36,6 @@ func (h *PatientHandler) CreatePatient(w http.ResponseWriter, r *http.Request) {
 func (h *PatientHandler) UpdatePatient(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	var patient models.Patient
-	patient.Name = params["name"]
-    
 	h.DB.First(&patient, params["id"])
 	json.NewDecoder(r.Body).Decode(&patient)
 	h.DB.Save(&patient)
