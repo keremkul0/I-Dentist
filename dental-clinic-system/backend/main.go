@@ -20,46 +20,51 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Gerekli migrasyonları çalıştırıyoruz
 	db.AutoMigrate(&models.Clinic{}, &models.Appointment{}, &models.User{}, &models.Role{}, &models.Doctor{}, &models.Assistant{}, &models.Secretary{}, &models.Procedure{})
 
 	router := mux.NewRouter()
 
-	// Patients Handler
-	patientHendler := &handlers.PatientHandler{DB: db}
-	routes.RegisterpatientsRoutes(router, patientHendler)
+	// Auth Handler
+	authHandler := &handlers.AuthHandler{DB: db}
+	routes.RegisterAuthRoutes(router, authHandler)
+
+	// Auth Middleware
+	securedRouter := router.PathPrefix("/api").Subrouter()
+	securedRouter.Use(authHandler.AuthMiddleware)
+
 	// Clinic Handler
 	clinicHandler := &handlers.ClinicHandler{DB: db}
-	routes.RegisterClinicRoutes(router, clinicHandler)
+	routes.RegisterClinicRoutes(securedRouter, clinicHandler)
 
 	// Appointment Handler
 	appointmentHandler := &handlers.AppointmentHandler{DB: db}
-	routes.RegisterAppointmentRoutes(router, appointmentHandler)
+	routes.RegisterAppointmentRoutes(securedRouter, appointmentHandler)
 
 	// User Handler
 	userHandler := &handlers.UserHandler{DB: db}
-	routes.RegisterUserRoutes(router, userHandler)
+	routes.RegisterUserRoutes(securedRouter, userHandler)
 
 	// Role Handler
 	roleHandler := &handlers.RoleHandler{DB: db}
-	routes.RegisterRoleRoutes(router, roleHandler)
+	routes.RegisterRoleRoutes(securedRouter, roleHandler)
 
 	// Doctor Handler
 	doctorHandler := &handlers.DoctorHandler{DB: db}
-	routes.RegisterDoctorRoutes(router, doctorHandler)
+	routes.RegisterDoctorRoutes(securedRouter, doctorHandler)
 
 	// Assistant Handler
 	assistantHandler := &handlers.AssistantHandler{DB: db}
-	routes.RegisterAssistantRoutes(router, assistantHandler)
+	routes.RegisterAssistantRoutes(securedRouter, assistantHandler)
 
 	// Secretary Handler
 	secretaryHandler := &handlers.SecretaryHandler{DB: db}
-	routes.RegisterSecretaryRoutes(router, secretaryHandler)
+	routes.RegisterSecretaryRoutes(securedRouter, secretaryHandler)
 
 	// Procedure Handler
 	procedureHandler := &handlers.ProcedureHandler{DB: db}
-	routes.RegisterProcedureRoutes(router, procedureHandler)
+	routes.RegisterProcedureRoutes(securedRouter, procedureHandler)
 
 	log.Println("Starting server on :8080")
 	log.Fatal(http.ListenAndServe(":8080", router))
-
 }
