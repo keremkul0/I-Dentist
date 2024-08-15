@@ -1,0 +1,80 @@
+package handlers
+
+import (
+	"dental-clinic-system/models"
+	"encoding/json"
+	"net/http"
+
+	"github.com/gorilla/mux"
+	"gorm.io/gorm"
+)
+
+type GroupHandler struct {
+	DB *gorm.DB
+}
+
+func (h *GroupHandler) GetGroups(w http.ResponseWriter, r *http.Request) {
+	var groups []models.Group
+	if result := h.DB.Find(&groups); result.Error != nil {
+		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(groups)
+}
+
+func (h *GroupHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	var group models.Group
+	if result := h.DB.First(&group, params["id"]); result.Error != nil {
+		http.Error(w, result.Error.Error(), http.StatusNotFound)
+		return
+	}
+	json.NewEncoder(w).Encode(group)
+}
+
+func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
+	var group models.Group
+	if err := json.NewDecoder(r.Body).Decode(&group); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if result := h.DB.Create(&group); result.Error != nil {
+		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(group)
+}
+
+func (h *GroupHandler) UpdateGroup(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	var group models.Group
+	if result := h.DB.First(&group, params["id"]); result.Error != nil {
+		http.Error(w, result.Error.Error(), http.StatusNotFound)
+		return
+	}
+	if err := json.NewDecoder(r.Body).Decode(&group); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	h.DB.Save(&group)
+	json.NewEncoder(w).Encode(group)
+}
+
+func (h *GroupHandler) DeleteGroup(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	if result := h.DB.Delete(&models.Group{}, params["id"]); result.Error != nil {
+		http.Error(w, result.Error.Error(), http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *GroupHandler) GetClinicsByGroup(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	var clinics []models.Clinic
+	if result := h.DB.Where("group_id = ?", params["id"]).Find(&clinics); result.Error != nil {
+		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(clinics)
+}

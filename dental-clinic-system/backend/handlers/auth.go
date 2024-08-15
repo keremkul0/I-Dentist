@@ -8,6 +8,7 @@ import (
 	"dental-clinic-system/models"
 
 	"github.com/dgrijalva/jwt-go"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -24,7 +25,11 @@ type Claims struct {
 var jwtKey = []byte("my_secret_key")
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var creds models.Credentials
+	var creds struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
 	err := json.NewDecoder(r.Body).Decode(&creds)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -32,8 +37,15 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var user models.User
-	h.DB.Where("username = ? AND password = ?", creds.Username, creds.Password).First(&user)
+	// Username'i User tablosunda arayın
+	h.DB.Where("username = ?", creds.Username).First(&user)
 	if user.ID == 0 {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	// Girilen şifreyi hashlenmiş şifreyle karşılaştırın
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(creds.Password)); err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}

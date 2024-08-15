@@ -8,6 +8,8 @@ require (
 	gorm.io/gorm v1.22.3
 )
 
+require github.com/stretchr/testify v1.9.0 // indirect
+
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
@@ -20,6 +22,6 @@ require (
 	github.com/jackc/pgx/v4 v4.14.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.2 // indirect
-	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/crypto v0.23.0 // indirect
+	golang.org/x/text v0.15.0 // indirect
 )

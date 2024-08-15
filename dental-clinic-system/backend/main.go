@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -14,16 +15,41 @@ import (
 )
 
 func main() {
-	dsn := "host=localhost user=clinicuser password=clinicpassword dbname=clinicdb port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+	dsn := "host=localhost user=clinicuser password=clinicpassword dbname=clinicdb port=5432 sslmode=disable TimeZone=Asia/Shanghai search_path=public"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+
+	var result int
+	err = db.Raw("SELECT 1").Scan(&result).Error
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Database connection test failed:", err)
 	}
-
+	fmt.Println("Database connection successful")
+	db.Exec("CREATE SCHEMA IF NOT EXISTS public")
 	// Gerekli migrasyonları çalıştırıyoruz
-	db.AutoMigrate(&models.Clinic{}, &models.Appointment{}, &models.User{}, &models.Role{}, &models.Doctor{}, &models.Assistant{}, &models.Secretary{}, &models.Procedure{})
+	err = db.Transaction(func(tx *gorm.DB) error {
+		return tx.AutoMigrate(
+			&models.Appointment{},
+			&models.Assistant{},
+			&models.Clinic{},
+			&models.Doctor{},
+			&models.Group{},
+			&models.Patient{},
+			&models.Procedure{},
+			&models.Role{},
+			&models.Secretary{},
+			&models.UserRole{},
+			&models.User{},
+		)
+	})
 
+	if err != nil {
+		log.Fatal("AutoMigrate error:", err)
+	}
 	router := mux.NewRouter()
+
+	// Singup Handeler
+	singupHandler := &handlers.SignupHandler{DB: db}
+	routes.RegisterSignupRoutes(router, singupHandler)
 
 	// Auth Handler
 	authHandler := &handlers.AuthHandler{DB: db}
@@ -32,6 +58,10 @@ func main() {
 	// Auth Middleware
 	securedRouter := router.PathPrefix("/api").Subrouter()
 	securedRouter.Use(authHandler.AuthMiddleware)
+
+	// Group Handler
+	groupHandler := &handlers.GroupHandler{DB: db}
+	routes.RegisterGroupRoutes(securedRouter, groupHandler)
 
 	// Clinic Handler
 	clinicHandler := &handlers.ClinicHandler{DB: db}
