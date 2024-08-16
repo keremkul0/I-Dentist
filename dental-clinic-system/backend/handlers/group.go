@@ -19,7 +19,10 @@ func (h *GroupHandler) GetGroups(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
 		return
 	}
-	json.NewEncoder(w).Encode(groups)
+	err := json.NewEncoder(w).Encode(groups)
+	if err != nil {
+		return
+	}
 }
 
 func (h *GroupHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
@@ -29,7 +32,10 @@ func (h *GroupHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, result.Error.Error(), http.StatusNotFound)
 		return
 	}
-	json.NewEncoder(w).Encode(group)
+	err := json.NewEncoder(w).Encode(group)
+	if err != nil {
+		return
+	}
 }
 
 func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +48,10 @@ func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
 		return
 	}
-	json.NewEncoder(w).Encode(group)
+	err := json.NewEncoder(w).Encode(group)
+	if err != nil {
+		return
+	}
 }
 
 func (h *GroupHandler) UpdateGroup(w http.ResponseWriter, r *http.Request) {
@@ -57,7 +66,10 @@ func (h *GroupHandler) UpdateGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.DB.Save(&group)
-	json.NewEncoder(w).Encode(group)
+	err := json.NewEncoder(w).Encode(group)
+	if err != nil {
+		return
+	}
 }
 
 func (h *GroupHandler) DeleteGroup(w http.ResponseWriter, r *http.Request) {
@@ -76,5 +88,8 @@ func (h *GroupHandler) GetClinicsByGroup(w http.ResponseWriter, r *http.Request)
 		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
 		return
 	}
-	json.NewEncoder(w).Encode(clinics)
+	err := json.NewEncoder(w).Encode(clinics)
+	if err != nil {
+		return
+	}
 }

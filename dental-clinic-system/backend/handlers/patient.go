@@ -16,35 +16,56 @@ type PatientHandler struct {
 func (h *PatientHandler) GetPatients(w http.ResponseWriter, r *http.Request) {
 	var patients []models.Patient
 	h.DB.Find(&patients)
-	json.NewEncoder(w).Encode(patients)
+	err := json.NewEncoder(w).Encode(patients)
+	if err != nil {
+		return
+	}
 }
 
 func (h *PatientHandler) GetPatient(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	var patient models.Patient
 	h.DB.First(&patient, params["id"])
-	json.NewEncoder(w).Encode(patient)
+	err := json.NewEncoder(w).Encode(patient)
+	if err != nil {
+		return
+	}
 }
 
 func (h *PatientHandler) CreatePatient(w http.ResponseWriter, r *http.Request) {
 	var patient models.Patient
-	json.NewDecoder(r.Body).Decode(&patient)
+	err := json.NewDecoder(r.Body).Decode(&patient)
+	if err != nil {
+		return
+	}
 	h.DB.Create(&patient)
-	json.NewEncoder(w).Encode(patient)
+	err = json.NewEncoder(w).Encode(patient)
+	if err != nil {
+		return
+	}
 }
 
 func (h *PatientHandler) UpdatePatient(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	var patient models.Patient
 	h.DB.First(&patient, params["id"])
-	json.NewDecoder(r.Body).Decode(&patient)
+	err := json.NewDecoder(r.Body).Decode(&patient)
+	if err != nil {
+		return
+	}
 	h.DB.Save(&patient)
-	json.NewEncoder(w).Encode(patient)
+	err = json.NewEncoder(w).Encode(patient)
+	if err != nil {
+		return
+	}
 }
 
 func (h *PatientHandler) DeletePatient(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	var patient models.Patient
 	h.DB.Delete(&patient, params["id"])
-	json.NewEncoder(w).Encode("Patient deleted")
+	err := json.NewEncoder(w).Encode("Patient deleted")
+	if err != nil {
+		return
+	}
 }

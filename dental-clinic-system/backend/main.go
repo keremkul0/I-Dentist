@@ -95,6 +95,10 @@ func main() {
 	procedureHandler := &handlers.ProcedureHandler{DB: db}
 	routes.RegisterProcedureRoutes(securedRouter, procedureHandler)
 
+	// Patient Handler
+	patientHandler := &handlers.PatientHandler{DB: db}
+	routes.RegisterPatientsRoutes(securedRouter, patientHandler)
+
 	log.Println("Starting server on :8080")
 	log.Fatal(http.ListenAndServe(":8080", router))
 }

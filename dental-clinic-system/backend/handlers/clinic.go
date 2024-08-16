@@ -32,7 +32,10 @@ func (h *ClinicHandler) CreateClinic(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Clinic %s created successfully!", clinic.Name)
 	w.WriteHeader(http.StatusCreated) // Status code changed to 201 Created
-	json.NewEncoder(w).Encode(clinic)
+	err = json.NewEncoder(w).Encode(clinic)
+	if err != nil {
+		return
+	}
 }
 
 func (h *ClinicHandler) GetClinics(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +44,10 @@ func (h *ClinicHandler) GetClinics(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
 		return
 	}
-	json.NewEncoder(w).Encode(clinics)
+	err := json.NewEncoder(w).Encode(clinics)
+	if err != nil {
+		return
+	}
 }
 
 func (h *ClinicHandler) GetClinic(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +57,10 @@ func (h *ClinicHandler) GetClinic(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, result.Error.Error(), http.StatusNotFound)
 		return
 	}
-	json.NewEncoder(w).Encode(clinic)
+	err := json.NewEncoder(w).Encode(clinic)
+	if err != nil {
+		return
+	}
 }
 
 func (h *ClinicHandler) UpdateClinic(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +75,10 @@ func (h *ClinicHandler) UpdateClinic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.DB.Save(&clinic)
-	json.NewEncoder(w).Encode(clinic)
+	err := json.NewEncoder(w).Encode(clinic)
+	if err != nil {
+		return
+	}
 }
 
 func (h *ClinicHandler) DeleteClinic(w http.ResponseWriter, r *http.Request) {
