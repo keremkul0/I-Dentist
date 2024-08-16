@@ -6,7 +6,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func RegisterpatientsRoutes(router *mux.Router, patientHandler *handlers.PatientHandler) {
+func RegisterPatientsRoutes(router *mux.Router, patientHandler *handlers.PatientHandler) {
 
 	router.HandleFunc("/patients", patientHandler.GetPatients).Methods("GET")
 	router.HandleFunc("/patients/{id}", patientHandler.GetPatient).Methods("GET")

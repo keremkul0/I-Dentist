@@ -18,7 +18,10 @@ type AppointmentHandler struct {
 func (h *AppointmentHandler) GetAppointments(w http.ResponseWriter, r *http.Request) {
 	var appointments []models.Appointment
 	h.DB.Preload("Clinic").Preload("Patient").Preload("Doctor").Find(&appointments)
-	json.NewEncoder(w).Encode(appointments)
+	err := json.NewEncoder(w).Encode(appointments)
+	if err != nil {
+		return
+	}
 }
 
 func (h *AppointmentHandler) GetAppointment(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +31,10 @@ func (h *AppointmentHandler) GetAppointment(w http.ResponseWriter, r *http.Reque
 		http.Error(w, result.Error.Error(), http.StatusNotFound)
 		return
 	}
-	json.NewEncoder(w).Encode(appointment)
+	err := json.NewEncoder(w).Encode(appointment)
+	if err != nil {
+		return
+	}
 }
 
 func (h *AppointmentHandler) CreateAppointment(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +57,10 @@ func (h *AppointmentHandler) CreateAppointment(w http.ResponseWriter, r *http.Re
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(appointment)
+	err = json.NewEncoder(w).Encode(appointment)
+	if err != nil {
+		return
+	}
 }
 func (h *AppointmentHandler) UpdateAppointment(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
@@ -65,7 +74,10 @@ func (h *AppointmentHandler) UpdateAppointment(w http.ResponseWriter, r *http.Re
 		return
 	}
 	h.DB.Save(&appointment)
-	json.NewEncoder(w).Encode(appointment)
+	err := json.NewEncoder(w).Encode(appointment)
+	if err != nil {
+		return
+	}
 }
 
 func (h *AppointmentHandler) DeleteAppointment(w http.ResponseWriter, r *http.Request) {
