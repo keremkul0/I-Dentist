@@ -1,24 +1,43 @@
 package main
 
 import (
+	"dental-clinic-system/api/appointment"
+	"dental-clinic-system/api/auth"
+	"dental-clinic-system/api/clinic"
+	"dental-clinic-system/api/group"
+	"dental-clinic-system/api/patient"
+	"dental-clinic-system/api/procedure"
+	"dental-clinic-system/api/role"
+	"dental-clinic-system/api/signup"
+	"dental-clinic-system/api/user"
+	appointmentService "dental-clinic-system/application/appointment"
+	appointmentRepository "dental-clinic-system/repository/appointment"
+	"dental-clinic-system/repository/models"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"log"
 	"net/http"
-
-	"dental-clinic-system/handlers"
-	"dental-clinic-system/models"
-	"dental-clinic-system/routes"
+	"os"
 )
 
 func main() {
-	dsn := "host=localhost user=clinicuser password=clinicpassword dbname=clinicdb port=5432 sslmode=disable TimeZone=Asia/Shanghai search_path=public"
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-	})
+
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+
+	dsn := os.Getenv("DNS")
+	db, err := gorm.Open(
+		postgres.Open(dsn),
+		&gorm.Config{
+			Logger: logger.Default.LogMode(logger.Info),
+		},
+	)
 
 	var result int
 	err = db.Raw("SELECT 1").Scan(&result).Error
@@ -45,44 +64,46 @@ func main() {
 	router := mux.NewRouter()
 
 	// SingUp Handler
-	singupHandler := &handlers.SignupHandler{DB: db}
-	routes.RegisterSignupRoutes(router, singupHandler)
+	singupHandler := &signup.SignupHandler{DB: db}
+	signup.RegisterSignupRoutes(router, singupHandler)
 
 	// Auth Handler
-	authHandler := &handlers.AuthHandler{DB: db}
-	routes.RegisterAuthRoutes(router, authHandler)
+	authHandler := &auth.AuthHandler{DB: db}
+	auth.RegisterAuthRoutes(router, authHandler)
 
 	// Auth Middleware
 	securedRouter := router.PathPrefix("/api").Subrouter()
 	securedRouter.Use(authHandler.AuthMiddleware)
 
 	// Group Handler
-	groupHandler := &handlers.GroupHandler{DB: db}
-	routes.RegisterGroupRoutes(securedRouter, groupHandler)
+	groupHandler := group.NewGroupHandlerService(db)
+	group.RegisterGroupRoutes(securedRouter, groupHandler)
 
 	// Clinic Handler
-	clinicHandler := &handlers.ClinicHandler{DB: db}
-	routes.RegisterClinicRoutes(securedRouter, clinicHandler)
+	clinicHandler := clinic.NewClinicHandlerService(db)
+	clinic.RegisterClinicRoutes(securedRouter, clinicHandler)
 
 	// Appointment Handler
-	appointmentHandler := &handlers.AppointmentHandler{DB: db}
-	routes.RegisterAppointmentRoutes(securedRouter, appointmentHandler)
+	appointmentRepository := appointmentRepository.NewAppointmentRepository(db)
+	appointmentService := appointmentService.NewAppointmentService(appointmentRepository)
+	appointmentHandler := appointment.NewAppointmentHandlerService(appointmentService)
+	appointment.RegisterAppointmentRoutes(securedRouter, appointmentHandler)
 
 	// User Handler
-	userHandler := &handlers.UserHandler{DB: db}
-	routes.RegisterUserRoutes(securedRouter, userHandler)
+	userHandler := &user.UserHandler{DB: db}
+	user.RegisterUserRoutes(securedRouter, userHandler)
 
 	// Role Handler
-	roleHandler := &handlers.RoleHandler{DB: db}
-	routes.RegisterRoleRoutes(securedRouter, roleHandler)
+	roleHandler := &role.RoleHandler{DB: db}
+	role.RegisterRoleRoutes(securedRouter, roleHandler)
 
 	// Procedure Handler
-	procedureHandler := &handlers.ProcedureHandler{DB: db}
-	routes.RegisterProcedureRoutes(securedRouter, procedureHandler)
+	procedureHandler := &procedure.ProcedureHandler{DB: db}
+	procedure.RegisterProcedureRoutes(securedRouter, procedureHandler)
 
 	// Patient Handler
-	patientHandler := &handlers.PatientHandler{DB: db}
-	routes.RegisterPatientsRoutes(securedRouter, patientHandler)
+	patientHandler := &patient.PatientHandler{DB: db}
+	patient.RegisterPatientsRoutes(securedRouter, patientHandler)
 
 	log.Println("Starting server on :8080")
 	log.Fatal(http.ListenAndServe(":8080", router))

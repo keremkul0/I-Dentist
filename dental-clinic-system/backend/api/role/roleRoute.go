@@ -1,11 +1,10 @@
-package routes
+package role
 
 import (
-	"dental-clinic-system/handlers"
 	"github.com/gorilla/mux"
 )
 
-func RegisterRoleRoutes(router *mux.Router, handler *handlers.RoleHandler) {
+func RegisterRoleRoutes(router *mux.Router, handler *RoleHandler) {
 	router.HandleFunc("/roles", handler.GetRoles).Methods("GET")
 	router.HandleFunc("/roles/{id}", handler.GetRole).Methods("GET")
 }

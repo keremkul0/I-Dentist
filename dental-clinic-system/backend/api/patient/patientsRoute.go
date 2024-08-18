@@ -1,12 +1,10 @@
-package routes
+package patient
 
 import (
-	"dental-clinic-system/handlers"
-
 	"github.com/gorilla/mux"
 )
 
-func RegisterPatientsRoutes(router *mux.Router, patientHandler *handlers.PatientHandler) {
+func RegisterPatientsRoutes(router *mux.Router, patientHandler *PatientHandler) {
 
 	router.HandleFunc("/patients", patientHandler.GetPatients).Methods("GET")
 	router.HandleFunc("/patients/{id}", patientHandler.GetPatient).Methods("GET")

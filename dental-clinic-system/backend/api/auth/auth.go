@@ -1,16 +1,21 @@
-package handlers
+package auth
 
 import (
+	"dental-clinic-system/repository/models"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"time"
 
-	"dental-clinic-system/models"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
+
+type AuthHandlerService interface {
+	Login(w http.ResponseWriter, r *http.Request)
+	AuthMiddleware(next http.Handler) http.Handler
+}
 
 type AuthHandler struct {
 	DB *gorm.DB
