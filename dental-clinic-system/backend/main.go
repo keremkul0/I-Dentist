@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"net/http"
-
 	"github.com/gorilla/mux"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+	"log"
+	"net/http"
 
 	"dental-clinic-system/handlers"
 	"dental-clinic-system/models"
@@ -16,7 +16,9 @@ import (
 
 func main() {
 	dsn := "host=localhost user=clinicuser password=clinicpassword dbname=clinicdb port=5432 sslmode=disable TimeZone=Asia/Shanghai search_path=public"
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 
 	var result int
 	err = db.Raw("SELECT 1").Scan(&result).Error
@@ -25,29 +27,24 @@ func main() {
 	}
 	fmt.Println("Database connection successful")
 	db.Exec("CREATE SCHEMA IF NOT EXISTS public")
-	// Gerekli migrasyonları çalıştırıyoruz
-	err = db.Transaction(func(tx *gorm.DB) error {
-		return tx.AutoMigrate(
-			&models.Appointment{},
-			&models.Assistant{},
-			&models.Clinic{},
-			&models.Doctor{},
-			&models.Group{},
-			&models.Patient{},
-			&models.Procedure{},
-			&models.Role{},
-			&models.Secretary{},
-			&models.UserRole{},
-			&models.User{},
-		)
-	})
 
+	// Transaction olmadan AutoMigrate işlemi
+	err = db.AutoMigrate(
+		&models.Appointment{},
+		&models.Clinic{},
+		&models.Group{},
+		&models.Patient{},
+		&models.Procedure{},
+		&models.Role{},
+		&models.User{},
+	)
 	if err != nil {
 		log.Fatal("AutoMigrate error:", err)
 	}
+
 	router := mux.NewRouter()
 
-	// Singup Handeler
+	// SingUp Handler
 	singupHandler := &handlers.SignupHandler{DB: db}
 	routes.RegisterSignupRoutes(router, singupHandler)
 
@@ -78,18 +75,6 @@ func main() {
 	// Role Handler
 	roleHandler := &handlers.RoleHandler{DB: db}
 	routes.RegisterRoleRoutes(securedRouter, roleHandler)
-
-	// Doctor Handler
-	doctorHandler := &handlers.DoctorHandler{DB: db}
-	routes.RegisterDoctorRoutes(securedRouter, doctorHandler)
-
-	// Assistant Handler
-	assistantHandler := &handlers.AssistantHandler{DB: db}
-	routes.RegisterAssistantRoutes(securedRouter, assistantHandler)
-
-	// Secretary Handler
-	secretaryHandler := &handlers.SecretaryHandler{DB: db}
-	routes.RegisterSecretaryRoutes(securedRouter, secretaryHandler)
 
 	// Procedure Handler
 	procedureHandler := &handlers.ProcedureHandler{DB: db}
