@@ -1,8 +1,8 @@
 package appointment
 
 import (
+	"dental-clinic-system/models"
 	"dental-clinic-system/repository/appointment"
-	"dental-clinic-system/repository/models"
 )
 
 type AppointmentService interface {

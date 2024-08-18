@@ -1,7 +1,7 @@
 package procedure
 
 import (
-	"dental-clinic-system/repository/models"
+	"dental-clinic-system/models"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"

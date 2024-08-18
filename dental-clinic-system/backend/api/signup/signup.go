@@ -1,7 +1,7 @@
 package signup
 
 import (
-	models2 "dental-clinic-system/repository/models"
+	"dental-clinic-system/models"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -18,9 +18,9 @@ type SignupHandler struct {
 
 func (h *SignupHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	var signupData struct {
-		User   models2.User   `json:"user"`
-		Group  models2.Group  `json:"group"`
-		Clinic models2.Clinic `json:"clinic"`
+		User   models.User   `json:"user"`
+		Group  models.Group  `json:"group"`
+		Clinic models.Clinic `json:"clinic"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&signupData); err != nil {
@@ -41,7 +41,7 @@ func (h *SignupHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if signupData.Group.ID == 0 {
-		var existingGroup models2.Group
+		var existingGroup models.Group
 		if err := h.DB.Where("name = ?", signupData.Group.Name).First(&existingGroup).Error; err != nil {
 			http.Error(w, "Failed to retrieve existing group", http.StatusInternalServerError)
 			return
@@ -67,7 +67,7 @@ func (h *SignupHandler) Signup(w http.ResponseWriter, r *http.Request) {
 
 	err := h.DB.Transaction(func(tx *gorm.DB) error {
 		// Retrieve and assign existing roles to the user
-		var roles []*models2.Role
+		var roles []*models.Role
 		roleNames := []string{}
 		for _, role := range signupData.User.Roles {
 			roleNames = append(roleNames, role.Name)
