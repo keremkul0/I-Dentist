@@ -7,8 +7,7 @@ import (
 	"time"
 
 	"dental-clinic-system/models"
-
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -18,16 +17,16 @@ type AuthHandler struct {
 }
 
 type Claims struct {
-	Username string `json:"username"`
-	Role     string `json:"role"`
-	jwt.StandardClaims
+	Email string `json:"email"`
+	Role  string `json:"role"`
+	jwt.RegisteredClaims
 }
 
 var jwtKey = []byte("my_secret_key")
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var creds struct {
-		Username string `json:"username"`
+		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 
@@ -38,8 +37,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var user models.User
-	// Username'i User tablosunda arayın
-	h.DB.Where("username = ?", creds.Username).First(&user)
+	// Email'i User tablosunda arayın
+	h.DB.Where("email = ?", creds.Email).First(&user)
 	if user.ID == 0 {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -53,10 +52,9 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	expirationTime := time.Now().Add(5 * time.Minute)
 	claims := &Claims{
-		Username: user.Username,
-		Role:     user.Role,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
+		Email: user.Email,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
 		},
 	}
 
@@ -78,7 +76,7 @@ func (h *AuthHandler) AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("token")
 		if err != nil {
-			if errors.Is(err, http.ErrNoCookie) {
+			if errors.Is(http.ErrNoCookie, err) {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
@@ -94,7 +92,7 @@ func (h *AuthHandler) AuthMiddleware(next http.Handler) http.Handler {
 		})
 
 		if err != nil {
-			if errors.Is(err, jwt.ErrSignatureInvalid) {
+			if errors.Is(jwt.ErrSignatureInvalid, err) {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}

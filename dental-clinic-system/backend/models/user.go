@@ -7,16 +7,16 @@ import (
 )
 
 type User struct {
-    gorm.Model
-    Username  string    `json:"username"`
-    Password  string    `json:"password"`
-    Role      string    `json:"role"`
-    GroupID   uint      `json:"group_id"`
-    ClinicID  uint      `json:"clinic_id"`  // Clinic'e referans için eklendi
-    Email     string    `json:"email"`
-    FirstName string    `json:"first_name"`
-    LastName  string    `json:"last_name"`
-    LastLogin time.Time `json:"last_login"`
-    IsActive  bool      `json:"is_active"`
+	gorm.Model
+	NationalID  string    `json:"national_id"`
+	Password    string    `json:"password"`
+	GroupID     uint      `json:"group_id"`
+	ClinicID    uint      `json:"clinic_id"`
+	Email       string    `json:"email"`
+	FirstName   string    `json:"first_name"`
+	LastName    string    `json:"last_name"`
+	LastLogin   time.Time `json:"last_login"`
+	IsActive    bool      `json:"is_active"`
+	PhoneNumber string    `json:"phone_number"`
+	Roles       []*Role   `gorm:"many2many:user_roles;"`
 }
-
