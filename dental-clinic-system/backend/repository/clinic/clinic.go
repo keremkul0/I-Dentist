@@ -1,16 +1,16 @@
 package clinic
 
 import (
-	models2 "dental-clinic-system/models"
+	"dental-clinic-system/models"
 	"gorm.io/gorm"
 )
 
 type ClinicRepository interface {
-	GetClinics() ([]models2.Clinic, error)
-	GetClinic(id uint) (models2.Clinic, error)
-	CreateClinic(clinic models2.Clinic) (models2.Clinic, error)
-	UpdateClinic(clinic models2.Clinic) (models2.Clinic, error)
-	GetClinicAppointments(id uint) ([]models2.Appointment, error)
+	GetClinics() ([]models.Clinic, error)
+	GetClinic(id uint) (models.Clinic, error)
+	CreateClinic(clinic models.Clinic) (models.Clinic, error)
+	UpdateClinic(clinic models.Clinic) (models.Clinic, error)
+	GetClinicAppointments(id uint) ([]models.Appointment, error)
 	DeleteClinic(id uint) error
 }
 
@@ -22,35 +22,35 @@ type clinicRepository struct {
 	DB *gorm.DB
 }
 
-func (r *clinicRepository) GetClinics() ([]models2.Clinic, error) {
-	var clinics []models2.Clinic
+func (r *clinicRepository) GetClinics() ([]models.Clinic, error) {
+	var clinics []models.Clinic
 	err := r.DB.Find(&clinics).Error
 	return clinics, err
 }
 
-func (r *clinicRepository) GetClinic(id uint) (models2.Clinic, error) {
-	var clinic models2.Clinic
+func (r *clinicRepository) GetClinic(id uint) (models.Clinic, error) {
+	var clinic models.Clinic
 	err := r.DB.First(&clinic, id).Error
 	return clinic, err
 }
 
-func (r *clinicRepository) CreateClinic(clinic models2.Clinic) (models2.Clinic, error) {
+func (r *clinicRepository) CreateClinic(clinic models.Clinic) (models.Clinic, error) {
 	err := r.DB.Create(&clinic).Error
 	return clinic, err
 }
 
-func (r *clinicRepository) UpdateClinic(clinic models2.Clinic) (models2.Clinic, error) {
+func (r *clinicRepository) UpdateClinic(clinic models.Clinic) (models.Clinic, error) {
 	err := r.DB.Save(&clinic).Error
 	return clinic, err
 }
 
-func (r *clinicRepository) GetClinicAppointments(id uint) ([]models2.Appointment, error) {
-	var appointments []models2.Appointment
+func (r *clinicRepository) GetClinicAppointments(id uint) ([]models.Appointment, error) {
+	var appointments []models.Appointment
 	err := r.DB.Where("clinic_id = ?", id).Find(&appointments).Error
 	return appointments, err
 }
 
 func (r *clinicRepository) DeleteClinic(id uint) error {
-	err := r.DB.Delete(&models2.Clinic{}, id).Error
+	err := r.DB.Delete(&models.Clinic{}, id).Error
 	return err
 }
