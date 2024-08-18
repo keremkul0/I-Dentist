@@ -1,7 +1,7 @@
 package group
 
 import (
-	models2 "dental-clinic-system/repository/models"
+	"dental-clinic-system/models"
 	"encoding/json"
 	"net/http"
 
@@ -27,7 +27,7 @@ type GroupHandler struct {
 }
 
 func (h *GroupHandler) GetGroups(w http.ResponseWriter, r *http.Request) {
-	var groups []models2.Group
+	var groups []models.Group
 	if result := h.DB.Find(&groups); result.Error != nil {
 		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
 		return
@@ -40,7 +40,7 @@ func (h *GroupHandler) GetGroups(w http.ResponseWriter, r *http.Request) {
 
 func (h *GroupHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	var group models2.Group
+	var group models.Group
 	if result := h.DB.First(&group, params["id"]); result.Error != nil {
 		http.Error(w, result.Error.Error(), http.StatusNotFound)
 		return
@@ -52,7 +52,7 @@ func (h *GroupHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
-	var group models2.Group
+	var group models.Group
 	if err := json.NewDecoder(r.Body).Decode(&group); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -69,7 +69,7 @@ func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
 
 func (h *GroupHandler) UpdateGroup(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	var group models2.Group
+	var group models.Group
 	if result := h.DB.First(&group, params["id"]); result.Error != nil {
 		http.Error(w, result.Error.Error(), http.StatusNotFound)
 		return
@@ -87,7 +87,7 @@ func (h *GroupHandler) UpdateGroup(w http.ResponseWriter, r *http.Request) {
 
 func (h *GroupHandler) DeleteGroup(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	if result := h.DB.Delete(&models2.Group{}, params["id"]); result.Error != nil {
+	if result := h.DB.Delete(&models.Group{}, params["id"]); result.Error != nil {
 		http.Error(w, result.Error.Error(), http.StatusNotFound)
 		return
 	}
@@ -96,7 +96,7 @@ func (h *GroupHandler) DeleteGroup(w http.ResponseWriter, r *http.Request) {
 
 func (h *GroupHandler) GetClinicsByGroup(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	var clinics []models2.Clinic
+	var clinics []models.Clinic
 	if result := h.DB.Where("group_id = ?", params["id"]).Find(&clinics); result.Error != nil {
 		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
 		return

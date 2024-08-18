@@ -1,7 +1,7 @@
 package clinic
 
 import (
-	"dental-clinic-system/repository/models"
+	"dental-clinic-system/models"
 	"encoding/json"
 	"log"
 	"net/http"

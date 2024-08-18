@@ -1,7 +1,7 @@
 package patient
 
 import (
-	"dental-clinic-system/repository/models"
+	"dental-clinic-system/models"
 	"encoding/json"
 	"net/http"
 

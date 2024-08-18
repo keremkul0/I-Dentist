@@ -1,13 +1,12 @@
 package appointment
 
 import (
-	"dental-clinic-system/repository/models"
+	appointmentService "dental-clinic-system/application/appointment"
+	"dental-clinic-system/models"
 	"encoding/json"
 	"github.com/gorilla/mux"
 
 	"net/http"
-
-	appointmentService "dental-clinic-system/application/appointment"
 )
 
 type AppointmentHandlerService interface {
@@ -18,18 +17,18 @@ type AppointmentHandlerService interface {
 	DeleteAppointment(w http.ResponseWriter, r *http.Request)
 }
 
-func NewAppointmentHandlerService(appointmentService *appointmentService.AppointmentService) *AppointmentHandler {
-	return &AppointmentHandler{
-		AppointmentService: appointmentService,
+func NewAppointmentHandlerService(appointmentService appointmentService.AppointmentService) *appointmentHandler {
+	return &appointmentHandler{
+		appointmentService: appointmentService,
 	}
 }
 
-type AppointmentHandler struct {
-	AppointmentService *appointmentService.AppointmentService
+type appointmentHandler struct {
+	appointmentService appointmentService.AppointmentService
 }
 
-func (h *AppointmentHandler) GetAppointments(w http.ResponseWriter, r *http.Request) {
-	appointments, err := h.AppointmentService.GetAppointments()
+func (h *appointmentHandler) GetAppointments(w http.ResponseWriter, r *http.Request) {
+	appointments, err := h.appointmentService.GetAppointments()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -40,9 +39,9 @@ func (h *AppointmentHandler) GetAppointments(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func (h *AppointmentHandler) GetAppointment(w http.ResponseWriter, r *http.Request) {
+func (h *appointmentHandler) GetAppointment(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	appointment, err := h.AppointmentService.GetAppointment(params["id"])
+	appointment, err := h.appointmentService.GetAppointment(params["id"])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -53,13 +52,13 @@ func (h *AppointmentHandler) GetAppointment(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func (h *AppointmentHandler) CreateAppointment(w http.ResponseWriter, r *http.Request) {
+func (h *appointmentHandler) CreateAppointment(w http.ResponseWriter, r *http.Request) {
 	var appointment models.Appointment
 	if err := json.NewDecoder(r.Body).Decode(&appointment); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	appointment, err := h.AppointmentService.CreateAppointment(appointment)
+	appointment, err := h.appointmentService.CreateAppointment(appointment)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -70,13 +69,13 @@ func (h *AppointmentHandler) CreateAppointment(w http.ResponseWriter, r *http.Re
 	}
 }
 
-func (h *AppointmentHandler) UpdateAppointment(w http.ResponseWriter, r *http.Request) {
+func (h *appointmentHandler) UpdateAppointment(w http.ResponseWriter, r *http.Request) {
 	var appointment models.Appointment
 	if err := json.NewDecoder(r.Body).Decode(&appointment); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	appointment, err := h.AppointmentService.UpdateAppointment(appointment)
+	appointment, err := h.appointmentService.UpdateAppointment(appointment)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -87,9 +86,9 @@ func (h *AppointmentHandler) UpdateAppointment(w http.ResponseWriter, r *http.Re
 	}
 }
 
-func (h *AppointmentHandler) DeleteAppointment(w http.ResponseWriter, r *http.Request) {
+func (h *appointmentHandler) DeleteAppointment(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	err := h.AppointmentService.DeleteAppointment(params["id"])
+	err := h.appointmentService.DeleteAppointment(params["id"])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
