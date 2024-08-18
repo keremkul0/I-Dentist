@@ -1,7 +1,7 @@
-package handlers
+package user
 
 import (
-	"dental-clinic-system/models"
+	"dental-clinic-system/repository/models"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"

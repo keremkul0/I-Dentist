@@ -1,7 +1,7 @@
-package handlers
+package clinic
 
 import (
-	"dental-clinic-system/models"
+	"dental-clinic-system/repository/models"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -9,6 +9,18 @@ import (
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
 )
+
+type ClinicHandlerService interface {
+	GetClinics(w http.ResponseWriter, r *http.Request)
+	GetClinic(w http.ResponseWriter, r *http.Request)
+	CreateClinic(w http.ResponseWriter, r *http.Request)
+	UpdateClinic(w http.ResponseWriter, r *http.Request)
+	DeleteClinic(w http.ResponseWriter, r *http.Request)
+}
+
+func NewClinicHandlerService(db *gorm.DB) *ClinicHandler {
+	return &ClinicHandler{DB: db}
+}
 
 type ClinicHandler struct {
 	DB *gorm.DB
