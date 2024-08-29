@@ -1,12 +1,14 @@
 package group
 
 import (
+	"dental-clinic-system/application/groupService"
 	"dental-clinic-system/models"
+	"dental-clinic-system/repository/groupRepository"
 	"encoding/json"
-	"net/http"
-
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
+	"net/http"
+	"strconv"
 )
 
 type GroupHandlerService interface {
@@ -19,20 +21,22 @@ type GroupHandlerService interface {
 }
 
 func NewGroupHandlerService(db *gorm.DB) *GroupHandler {
-	return &GroupHandler{DB: db}
+	GroupRepository := groupRepository.NewGroupRepository(db)
+	newGroupService := groupService.NewGroupService(GroupRepository)
+	return &GroupHandler{groupService: newGroupService}
 }
 
 type GroupHandler struct {
-	DB *gorm.DB
+	groupService groupService.GroupService
 }
 
 func (h *GroupHandler) GetGroups(w http.ResponseWriter, r *http.Request) {
-	var groups []models.Group
-	if result := h.DB.Find(&groups); result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
+	groups, err := h.groupService.GetGroups()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	err := json.NewEncoder(w).Encode(groups)
+	err = json.NewEncoder(w).Encode(groups)
 	if err != nil {
 		return
 	}
@@ -40,13 +44,23 @@ func (h *GroupHandler) GetGroups(w http.ResponseWriter, r *http.Request) {
 
 func (h *GroupHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	var group models.Group
-	if result := h.DB.First(&group, params["id"]); result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusNotFound)
+	idStr := params["id"]
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id < 0 {
+		http.Error(w, "Invalid group ID", http.StatusBadRequest)
 		return
 	}
-	err := json.NewEncoder(w).Encode(group)
+
+	group, err := h.groupService.GetGroup(uint(id))
 	if err != nil {
+		http.Error(w, "Group not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(group); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return
 	}
 }
@@ -57,52 +71,77 @@ func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if result := h.DB.Create(&group); result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
+
+	group, err := h.groupService.CreateGroup(group)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err := json.NewEncoder(w).Encode(group)
-	if err != nil {
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(group); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return
 	}
 }
 
 func (h *GroupHandler) UpdateGroup(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
 	var group models.Group
-	if result := h.DB.First(&group, params["id"]); result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusNotFound)
-		return
-	}
 	if err := json.NewDecoder(r.Body).Decode(&group); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	h.DB.Save(&group)
-	err := json.NewEncoder(w).Encode(group)
+
+	group, err := h.groupService.UpdateGroup(group)
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(group); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return
 	}
 }
 
 func (h *GroupHandler) DeleteGroup(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	if result := h.DB.Delete(&models.Group{}, params["id"]); result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusNotFound)
+	idStr := params["id"]
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id < 0 {
+		http.Error(w, "Invalid group ID", http.StatusBadRequest)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+
+	if err := h.groupService.DeleteGroup(uint(id)); err != nil {
+		http.Error(w, "Failed to delete group", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *GroupHandler) GetClinicsByGroup(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	var clinics []models.Clinic
-	if result := h.DB.Where("group_id = ?", params["id"]).Find(&clinics); result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
+	idStr := params["id"]
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id < 0 {
+		http.Error(w, "Invalid group ID", http.StatusBadRequest)
 		return
 	}
-	err := json.NewEncoder(w).Encode(clinics)
+
+	clinics, err := h.groupService.GetClinicsByGroup(uint(id))
 	if err != nil {
+		http.Error(w, "Group not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(clinics); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return
 	}
 }

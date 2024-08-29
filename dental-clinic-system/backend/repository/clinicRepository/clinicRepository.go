@@ -1,4 +1,4 @@
-package clinic
+package clinicRepository
 
 import (
 	"dental-clinic-system/models"

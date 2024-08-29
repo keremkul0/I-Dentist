@@ -1,4 +1,4 @@
-package user
+package userRepository
 
 import (
 	"dental-clinic-system/models"
@@ -56,5 +56,4 @@ func (r *userRepository) DeleteUser(id uint) error {
 		return result.Error
 	}
 	return nil
-
 }

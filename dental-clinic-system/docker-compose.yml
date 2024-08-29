@@ -3,7 +3,7 @@ version: '3.8'
 services:
   postgres:
     image: postgres:latest
-    container_name: postgres-clinic
+    container_name: postgres-clinicRepository
     environment:
       POSTGRES_USER: clinicuser
       POSTGRES_PASSWORD: clinicpassword

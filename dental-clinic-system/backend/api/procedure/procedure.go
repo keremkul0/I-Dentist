@@ -1,24 +1,41 @@
 package procedure
 
 import (
+	"dental-clinic-system/application/procedureService"
 	"dental-clinic-system/models"
+	"dental-clinic-system/repository/procedureRepository"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
 	"net/http"
+	"strconv"
 )
 
+type ProcedureHandlerService interface {
+	GetProcedures(w http.ResponseWriter, r *http.Request)
+	GetProcedure(w http.ResponseWriter, r *http.Request)
+	CreateProcedure(w http.ResponseWriter, r *http.Request)
+	UpdateProcedure(w http.ResponseWriter, r *http.Request)
+	DeleteProcedure(w http.ResponseWriter, r *http.Request)
+}
+
+func NewProcedureHandlerService(db *gorm.DB) *ProcedureHandler {
+	newProcedureRepository := procedureRepository.NewProcedureRepository(db)
+	newProcedureService := procedureService.NewProcedureService(newProcedureRepository)
+	return &ProcedureHandler{procedureService: newProcedureService}
+}
+
 type ProcedureHandler struct {
-	DB *gorm.DB
+	procedureService procedureService.ProcedureService
 }
 
 func (h *ProcedureHandler) GetProcedures(w http.ResponseWriter, r *http.Request) {
-	var procedures []models.Procedure
-	if result := h.DB.Find(&procedures); result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
+	procedures, err := h.procedureService.GetProcedures()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	err := json.NewEncoder(w).Encode(procedures)
+	err = json.NewEncoder(w).Encode(procedures)
 	if err != nil {
 		return
 	}
@@ -26,12 +43,18 @@ func (h *ProcedureHandler) GetProcedures(w http.ResponseWriter, r *http.Request)
 
 func (h *ProcedureHandler) GetProcedure(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	var procedure models.Procedure
-	if result := h.DB.First(&procedure, params["id"]); result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusNotFound)
+	idStr := params["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid procedure ID", http.StatusBadRequest)
 		return
 	}
-	err := json.NewEncoder(w).Encode(procedure)
+	procedure, err := h.procedureService.GetProcedure(uint(id))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	err = json.NewEncoder(w).Encode(procedure)
 	if err != nil {
 		return
 	}
@@ -39,33 +62,35 @@ func (h *ProcedureHandler) GetProcedure(w http.ResponseWriter, r *http.Request) 
 
 func (h *ProcedureHandler) CreateProcedure(w http.ResponseWriter, r *http.Request) {
 	var procedure models.Procedure
-	if err := json.NewDecoder(r.Body).Decode(&procedure); err != nil {
+	err := json.NewDecoder(r.Body).Decode(&procedure)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if result := h.DB.Create(&procedure); result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
+	procedure, err = h.procedureService.CreateProcedure(procedure)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	err := json.NewEncoder(w).Encode(procedure)
+	err = json.NewEncoder(w).Encode(procedure)
 	if err != nil {
 		return
 	}
 }
 
 func (h *ProcedureHandler) UpdateProcedure(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
 	var procedure models.Procedure
-	if result := h.DB.First(&procedure, params["id"]); result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusNotFound)
-		return
-	}
-	if err := json.NewDecoder(r.Body).Decode(&procedure); err != nil {
+	err := json.NewDecoder(r.Body).Decode(&procedure)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	h.DB.Save(&procedure)
-	err := json.NewEncoder(w).Encode(procedure)
+	procedure, err = h.procedureService.UpdateProcedure(procedure)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	err = json.NewEncoder(w).Encode(procedure)
 	if err != nil {
 		return
 	}
@@ -73,9 +98,15 @@ func (h *ProcedureHandler) UpdateProcedure(w http.ResponseWriter, r *http.Reques
 
 func (h *ProcedureHandler) DeleteProcedure(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	if result := h.DB.Delete(&models.Procedure{}, params["id"]); result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusNotFound)
+	idStr := params["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid procedure ID", http.StatusBadRequest)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	err = h.procedureService.DeleteProcedure(uint(id))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 }

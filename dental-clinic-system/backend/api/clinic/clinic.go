@@ -1,13 +1,14 @@
 package clinic
 
 import (
+	"dental-clinic-system/application/clinicService"
 	"dental-clinic-system/models"
+	"dental-clinic-system/repository/clinicRepository"
 	"encoding/json"
-	"log"
-	"net/http"
-
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
+	"net/http"
+	"strconv"
 )
 
 type ClinicHandlerService interface {
@@ -15,48 +16,27 @@ type ClinicHandlerService interface {
 	GetClinic(w http.ResponseWriter, r *http.Request)
 	CreateClinic(w http.ResponseWriter, r *http.Request)
 	UpdateClinic(w http.ResponseWriter, r *http.Request)
+	GetClinicAppointments(w http.ResponseWriter, r *http.Request)
 	DeleteClinic(w http.ResponseWriter, r *http.Request)
 }
 
 func NewClinicHandlerService(db *gorm.DB) *ClinicHandler {
-	return &ClinicHandler{DB: db}
+	clinicRepository := clinicRepository.NewClinicRepository(db)
+	newClinicService := clinicService.NewClinicService(clinicRepository)
+	return &ClinicHandler{clinicService: newClinicService}
 }
 
 type ClinicHandler struct {
-	DB *gorm.DB
-}
-
-func (h *ClinicHandler) CreateClinic(w http.ResponseWriter, r *http.Request) {
-	var clinic models.Clinic
-	err := json.NewDecoder(r.Body).Decode(&clinic)
-	if err != nil {
-		log.Printf("Error decoding clinic data: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	result := h.DB.Create(&clinic)
-	if result.Error != nil {
-		log.Printf("Error saving clinic to the database: %v", result.Error)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	log.Printf("Clinic %s created successfully!", clinic.Name)
-	w.WriteHeader(http.StatusCreated) // Status code changed to 201 Created
-	err = json.NewEncoder(w).Encode(clinic)
-	if err != nil {
-		return
-	}
+	clinicService clinicService.ClinicService
 }
 
 func (h *ClinicHandler) GetClinics(w http.ResponseWriter, r *http.Request) {
-	var clinics []models.Clinic
-	if result := h.DB.Find(&clinics); result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
+	clinics, err := h.clinicService.GetClinics()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	err := json.NewEncoder(w).Encode(clinics)
+	err = json.NewEncoder(w).Encode(clinics)
 	if err != nil {
 		return
 	}
@@ -64,40 +44,74 @@ func (h *ClinicHandler) GetClinics(w http.ResponseWriter, r *http.Request) {
 
 func (h *ClinicHandler) GetClinic(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	var clinic models.Clinic
-	if result := h.DB.First(&clinic, params["id"]); result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusNotFound)
+	idStr := params["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid appointmentRepository ID", http.StatusBadRequest)
 		return
 	}
-	err := json.NewEncoder(w).Encode(clinic)
+	clinic, err := h.clinicService.GetClinic(uint(id))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	err = json.NewEncoder(w).Encode(clinic)
+	if err != nil {
+		return
+	}
+}
+
+func (h *ClinicHandler) CreateClinic(w http.ResponseWriter, r *http.Request) {
+	var clinic models.Clinic
+	err := json.NewDecoder(r.Body).Decode(&clinic)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	clinic, err = h.clinicService.CreateClinic(clinic)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	err = json.NewEncoder(w).Encode(clinic)
 	if err != nil {
 		return
 	}
 }
 
 func (h *ClinicHandler) UpdateClinic(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
 	var clinic models.Clinic
-	if result := h.DB.First(&clinic, params["id"]); result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusNotFound)
-		return
-	}
-	if err := json.NewDecoder(r.Body).Decode(&clinic); err != nil {
+	err := json.NewDecoder(r.Body).Decode(&clinic)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	h.DB.Save(&clinic)
-	err := json.NewEncoder(w).Encode(clinic)
+	clinic, err = h.clinicService.UpdateClinic(clinic)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	err = json.NewEncoder(w).Encode(clinic)
 	if err != nil {
 		return
 	}
 }
 
-func (h *ClinicHandler) DeleteClinic(w http.ResponseWriter, r *http.Request) {
+func (h *ClinicHandler) GetClinicAppointments(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	if result := h.DB.Delete(&models.Clinic{}, params["id"]); result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusNotFound)
+	idStr := params["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid appointmentRepository ID", http.StatusBadRequest)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	appointments, err := h.clinicService.GetClinicAppointments(uint(id))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	err = json.NewEncoder(w).Encode(appointments)
+	if err != nil {
+		return
+	}
 }

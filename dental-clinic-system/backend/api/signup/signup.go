@@ -18,9 +18,9 @@ type SignupHandler struct {
 
 func (h *SignupHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	var signupData struct {
-		User   models.User   `json:"user"`
-		Group  models.Group  `json:"group"`
-		Clinic models.Clinic `json:"clinic"`
+		User   models.User   `json:"userRepository"`
+		Group  models.Group  `json:"groupRepository"`
+		Clinic models.Clinic `json:"clinicRepository"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&signupData); err != nil {
@@ -43,7 +43,7 @@ func (h *SignupHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	if signupData.Group.ID == 0 {
 		var existingGroup models.Group
 		if err := h.DB.Where("name = ?", signupData.Group.Name).First(&existingGroup).Error; err != nil {
-			http.Error(w, "Failed to retrieve existing group", http.StatusInternalServerError)
+			http.Error(w, "Failed to retrieve existing groupRepository", http.StatusInternalServerError)
 			return
 		}
 		signupData.Group.ID = existingGroup.ID
@@ -66,7 +66,7 @@ func (h *SignupHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	signupData.User.IsActive = true
 
 	err := h.DB.Transaction(func(tx *gorm.DB) error {
-		// Retrieve and assign existing roles to the user
+		// Retrieve and assign existing roles to the userRepository
 		var roles []*models.Role
 		roleNames := []string{}
 		for _, role := range signupData.User.Roles {
