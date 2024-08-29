@@ -1,24 +1,41 @@
 package user
 
 import (
+	"dental-clinic-system/application/userService"
 	"dental-clinic-system/models"
+	"dental-clinic-system/repository/userRepository"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
 	"net/http"
+	"strconv"
 )
 
+type UserHandlerService interface {
+	GetUsers(w http.ResponseWriter, r *http.Request)
+	GetUser(w http.ResponseWriter, r *http.Request)
+	CreateUser(w http.ResponseWriter, r *http.Request)
+	UpdateUser(w http.ResponseWriter, r *http.Request)
+	DeleteUser(w http.ResponseWriter, r *http.Request)
+}
+
+func NewUserHandlerService(db *gorm.DB) *UserHandler {
+	newUserRepository := userRepository.NewUserRepository(db)
+	newUserService := userService.NewUserService(newUserRepository)
+	return &UserHandler{userService: newUserService}
+}
+
 type UserHandler struct {
-	DB *gorm.DB
+	userService userService.UserService
 }
 
 func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
-	var users []models.User
-	if result := h.DB.Find(&users); result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
+	users, err := h.userService.GetUsers()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	err := json.NewEncoder(w).Encode(users)
+	err = json.NewEncoder(w).Encode(users)
 	if err != nil {
 		return
 	}
@@ -26,12 +43,18 @@ func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	var user models.User
-	if result := h.DB.First(&user, params["id"]); result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusNotFound)
+	idStr := params["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
-	err := json.NewEncoder(w).Encode(user)
+	user, err := h.userService.GetUser(uint(id))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	err = json.NewEncoder(w).Encode(user)
 	if err != nil {
 		return
 	}
@@ -39,33 +62,35 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var user models.User
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if result := h.DB.Create(&user); result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
+	user, err = h.userService.CreateUser(user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	err := json.NewEncoder(w).Encode(user)
+	err = json.NewEncoder(w).Encode(user)
 	if err != nil {
 		return
 	}
 }
 
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
 	var user models.User
-	if result := h.DB.First(&user, params["id"]); result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusNotFound)
-		return
-	}
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	h.DB.Save(&user)
-	err := json.NewEncoder(w).Encode(user)
+	user, err = h.userService.UpdateUser(user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	err = json.NewEncoder(w).Encode(user)
 	if err != nil {
 		return
 	}
@@ -73,9 +98,15 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	if result := h.DB.Delete(&models.User{}, params["id"]); result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusNotFound)
+	idStr := params["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	err = h.userService.DeleteUser(uint(id))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 }

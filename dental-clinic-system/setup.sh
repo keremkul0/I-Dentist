@@ -1,27 +1,27 @@
 #!/bin/bash
 
 # Remove any existing container with the same name
-docker rm -f postgres-clinic
+docker rm -f postgres-clinicRepository
 
 # Start the PostgreSQL container
-docker run --name postgres-clinic -e POSTGRES_USER=clinicuser -e POSTGRES_PASSWORD=clinicpassword -p 5432:5432 -d postgres:latest
+docker run --name postgres-clinicRepository -e POSTGRES_USER=clinicuser -e POSTGRES_PASSWORD=clinicpassword -p 5432:5432 -d postgres:latest
 
 echo "Postgresql starting..."
 sleep 4
 
 # Check if the container is running
-if ! docker ps | grep -q postgres-clinic; then
+if ! docker ps | grep -q postgres-clinicRepository; then
   echo "Failed to start postgres-clinic container."
   exit 1
 fi
 
 # Create the database
-docker exec -it postgres-clinic psql -U clinicuser -d postgres -c "CREATE DATABASE clinicdb"
+docker exec -it postgres-clinicRepository psql -U clinicuser -d postgres -c "CREATE DATABASE clinicdb"
 sleep 3
 echo "Database clinicdb created"
 
 # Create the tables
-docker exec -it postgres-clinic psql -U clinicuser -d clinicdb -c "
+docker exec -it postgres-clinicRepository psql -U clinicuser -d clinicdb -c "
 CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL NOT NULL PRIMARY KEY,
     identity_number VARCHAR(20) NOT NULL UNIQUE,  

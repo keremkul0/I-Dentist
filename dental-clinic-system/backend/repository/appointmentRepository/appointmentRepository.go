@@ -1,4 +1,4 @@
-package appointment
+package appointmentRepository
 
 import (
 	"dental-clinic-system/models"
@@ -7,11 +7,10 @@ import (
 
 type AppointmentRepository interface {
 	GetAppointments() ([]models.Appointment, error)
-	GetAppointment(id string) (models.Appointment, error)
+	GetAppointment(id uint) (models.Appointment, error)
 	CreateAppointment(appointment models.Appointment) (models.Appointment, error)
 	UpdateAppointment(appointment models.Appointment) (models.Appointment, error)
-	GetAppointmentClinic(id string) (models.Clinic, error)
-	DeleteAppointment(id string) error
+	DeleteAppointment(id uint) error
 }
 
 func NewAppointmentRepository(db *gorm.DB) *appointmentRepository {
@@ -30,7 +29,7 @@ func (r *appointmentRepository) GetAppointments() ([]models.Appointment, error) 
 	return appointments, nil
 }
 
-func (r *appointmentRepository) GetAppointment(id string) (models.Appointment, error) {
+func (r *appointmentRepository) GetAppointment(id uint) (models.Appointment, error) {
 	var appointment models.Appointment
 	if result := r.DB.Preload("Clinic").Preload("Patient").Preload("Doctor").First(&appointment, id); result.Error != nil {
 		return models.Appointment{}, result.Error
@@ -52,18 +51,9 @@ func (r *appointmentRepository) UpdateAppointment(appointment models.Appointment
 	return appointment, nil
 }
 
-func (r *appointmentRepository) DeleteAppointment(id string) error {
+func (r *appointmentRepository) DeleteAppointment(id uint) error {
 	if result := r.DB.Delete(&models.Appointment{}, id); result.Error != nil {
 		return result.Error
 	}
 	return nil
-}
-
-func (r *appointmentRepository) GetAppointmentClinic(id string) (models.Clinic, error) {
-
-	var clinic models.Clinic
-	if result := r.DB.Preload("Appointments").First(&clinic, id); result.Error != nil {
-		return models.Clinic{}, result.Error
-	}
-	return clinic, nil
 }

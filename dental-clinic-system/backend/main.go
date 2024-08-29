@@ -10,9 +10,7 @@ import (
 	"dental-clinic-system/api/role"
 	"dental-clinic-system/api/signup"
 	"dental-clinic-system/api/user"
-	appointmentService "dental-clinic-system/application/appointment"
 	"dental-clinic-system/models"
-	appointmentRepository "dental-clinic-system/repository/appointment"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -47,7 +45,6 @@ func main() {
 	fmt.Println("Database connection successful")
 	db.Exec("CREATE SCHEMA IF NOT EXISTS public")
 
-	// Transaction olmadan AutoMigrate işlemi
 	err = db.AutoMigrate(
 		&models.Appointment{},
 		&models.Clinic{},
@@ -84,25 +81,23 @@ func main() {
 	clinic.RegisterClinicRoutes(securedRouter, clinicHandler)
 
 	// Appointment Handler
-	appointmentRepository := appointmentRepository.NewAppointmentRepository(db)
-	appointmentService := appointmentService.NewAppointmentService(appointmentRepository)
-	appointmentHandler := appointment.NewAppointmentHandlerService(appointmentService)
+	appointmentHandler := appointment.NewAppointmentHandlerService(db)
 	appointment.RegisterAppointmentRoutes(securedRouter, appointmentHandler)
 
 	// User Handler
-	userHandler := &user.UserHandler{DB: db}
+	userHandler := user.NewUserHandlerService(db)
 	user.RegisterUserRoutes(securedRouter, userHandler)
 
 	// Role Handler
-	roleHandler := &role.RoleHandler{DB: db}
+	roleHandler := role.NewRoleHandlerService(db)
 	role.RegisterRoleRoutes(securedRouter, roleHandler)
 
 	// Procedure Handler
-	procedureHandler := &procedure.ProcedureHandler{DB: db}
+	procedureHandler := procedure.NewProcedureHandlerService(db)
 	procedure.RegisterProcedureRoutes(securedRouter, procedureHandler)
 
 	// Patient Handler
-	patientHandler := &patient.PatientHandler{DB: db}
+	patientHandler := patient.NewPatientHandlerService(db)
 	patient.RegisterPatientsRoutes(securedRouter, patientHandler)
 
 	log.Println("Starting server on :8080")

@@ -1,22 +1,41 @@
 package patient
 
 import (
+	"dental-clinic-system/application/patientService"
 	"dental-clinic-system/models"
+	"dental-clinic-system/repository/patientRepository"
 	"encoding/json"
-	"net/http"
-
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
+	"net/http"
+	"strconv"
 )
 
+type patientHandlerService interface {
+	GetPatients(w http.ResponseWriter, r *http.Request)
+	GetPatient(w http.ResponseWriter, r *http.Request)
+	CreatePatient(w http.ResponseWriter, r *http.Request)
+	UpdatePatient(w http.ResponseWriter, r *http.Request)
+	DeletePatient(w http.ResponseWriter, r *http.Request)
+}
+
+func NewPatientHandlerService(db *gorm.DB) *PatientHandler {
+	newPatientRepository := patientRepository.NewPatientRepository(db)
+	newPatientService := patientService.NewPatientService(newPatientRepository)
+	return &PatientHandler{patientService: newPatientService}
+}
+
 type PatientHandler struct {
-	DB *gorm.DB
+	patientService patientService.PatientService
 }
 
 func (h *PatientHandler) GetPatients(w http.ResponseWriter, r *http.Request) {
-	var patients []models.Patient
-	h.DB.Find(&patients)
-	err := json.NewEncoder(w).Encode(patients)
+	patients, err := h.patientService.GetPatients()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	err = json.NewEncoder(w).Encode(patients)
 	if err != nil {
 		return
 	}
@@ -24,9 +43,18 @@ func (h *PatientHandler) GetPatients(w http.ResponseWriter, r *http.Request) {
 
 func (h *PatientHandler) GetPatient(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	var patient models.Patient
-	h.DB.First(&patient, params["id"])
-	err := json.NewEncoder(w).Encode(patient)
+	idStr := params["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid patient ID", http.StatusBadRequest)
+		return
+	}
+	patient, err := h.patientService.GetPatient(uint(id))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	err = json.NewEncoder(w).Encode(patient)
 	if err != nil {
 		return
 	}
@@ -36,9 +64,14 @@ func (h *PatientHandler) CreatePatient(w http.ResponseWriter, r *http.Request) {
 	var patient models.Patient
 	err := json.NewDecoder(r.Body).Decode(&patient)
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	h.DB.Create(&patient)
+	patient, err = h.patientService.CreatePatient(patient)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	err = json.NewEncoder(w).Encode(patient)
 	if err != nil {
 		return
@@ -46,14 +79,17 @@ func (h *PatientHandler) CreatePatient(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PatientHandler) UpdatePatient(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
 	var patient models.Patient
-	h.DB.First(&patient, params["id"])
 	err := json.NewDecoder(r.Body).Decode(&patient)
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	h.DB.Save(&patient)
+	patient, err = h.patientService.UpdatePatient(patient)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	err = json.NewEncoder(w).Encode(patient)
 	if err != nil {
 		return
@@ -62,10 +98,15 @@ func (h *PatientHandler) UpdatePatient(w http.ResponseWriter, r *http.Request) {
 
 func (h *PatientHandler) DeletePatient(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	var patient models.Patient
-	h.DB.Delete(&patient, params["id"])
-	err := json.NewEncoder(w).Encode("Patient deleted")
+	idStr := params["id"]
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
+		http.Error(w, "Invalid patient ID", http.StatusBadRequest)
+		return
+	}
+	err = h.patientService.DeletePatient(uint(id))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 }
