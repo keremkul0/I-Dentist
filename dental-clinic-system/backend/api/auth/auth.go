@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"dental-clinic-system/application/authService"
 	"dental-clinic-system/models"
 	"encoding/json"
 	"errors"
@@ -8,54 +9,41 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
-type AuthHandlerService interface {
+type AuthHandlerController interface {
 	Login(w http.ResponseWriter, r *http.Request)
 	AuthMiddleware(next http.Handler) http.Handler
 }
 
 type AuthHandler struct {
-	DB *gorm.DB
+	authService authService.AuthService
 }
 
 type Claims struct {
 	Email string `json:"email"`
-	Role  string `json:"role"`
 	jwt.RegisteredClaims
+}
+
+func NewAuthHandlerController(service authService.AuthService) *AuthHandler {
+	return &AuthHandler{authService: service}
 }
 
 var jwtKey = []byte("my_secret_key")
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var creds struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
+	var creds models.Auth
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
 	}
-
-	err := json.NewDecoder(r.Body).Decode(&creds)
+	user, err := h.authService.Login(creds.Email, creds.Password)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
 		return
 	}
 
-	var user models.User
-	// Email'i User tablosunda arayın
-	h.DB.Where("email = ?", creds.Email).First(&user)
-	if user.ID == 0 {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	// Girilen şifreyi hashlenmiş şifreyle karşılaştırın
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(creds.Password)); err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	expirationTime := time.Now().Add(5 * time.Minute)
+	expirationTime := time.Now().Add(24 * time.Hour)
 	claims := &Claims{
 		Email: user.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -66,7 +54,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(jwtKey)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, "Could not create token", http.StatusInternalServerError)
 		return
 	}
 
@@ -76,7 +64,6 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Expires: expirationTime,
 	})
 }
-
 func (h *AuthHandler) AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("token")
@@ -91,7 +78,6 @@ func (h *AuthHandler) AuthMiddleware(next http.Handler) http.Handler {
 
 		tokenStr := cookie.Value
 		claims := &Claims{}
-
 		token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
 			return jwtKey, nil
 		})

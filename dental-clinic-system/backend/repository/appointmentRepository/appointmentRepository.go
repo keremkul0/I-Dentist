@@ -11,6 +11,9 @@ type AppointmentRepository interface {
 	CreateAppointment(appointment models.Appointment) (models.Appointment, error)
 	UpdateAppointment(appointment models.Appointment) (models.Appointment, error)
 	DeleteAppointment(id uint) error
+	GetClinicAppointments(id uint) ([]models.Appointment, error)
+	GetDoctorAppointments(id uint) ([]models.Appointment, error)
+	GetPatientAppointments(id uint) ([]models.Appointment, error)
 }
 
 func NewAppointmentRepository(db *gorm.DB) *appointmentRepository {
@@ -56,4 +59,23 @@ func (r *appointmentRepository) DeleteAppointment(id uint) error {
 		return result.Error
 	}
 	return nil
+}
+
+func (r *appointmentRepository) GetClinicAppointments(id uint) ([]models.Appointment, error) {
+	var appointments []models.Appointment
+	err := r.DB.Where("clinic_id = ?", id).Find(&appointments).Error
+	return appointments, err
+}
+
+func (r *appointmentRepository) GetDoctorAppointments(id uint) ([]models.Appointment, error) {
+	var appointments []models.Appointment
+	err := r.DB.Where("doctor_id = ?", id).Find(&appointments).Error
+	return appointments, err
+
+}
+
+func (r *appointmentRepository) GetPatientAppointments(id uint) ([]models.Appointment, error) {
+	var appointments []models.Appointment
+	err := r.DB.Where("patient_id = ?", id).Find(&appointments).Error
+	return appointments, err
 }

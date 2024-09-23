@@ -3,15 +3,13 @@ package patient
 import (
 	"dental-clinic-system/application/patientService"
 	"dental-clinic-system/models"
-	"dental-clinic-system/repository/patientRepository"
 	"encoding/json"
 	"github.com/gorilla/mux"
-	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 )
 
-type patientHandlerService interface {
+type patientHandlerController interface {
 	GetPatients(w http.ResponseWriter, r *http.Request)
 	GetPatient(w http.ResponseWriter, r *http.Request)
 	CreatePatient(w http.ResponseWriter, r *http.Request)
@@ -19,10 +17,8 @@ type patientHandlerService interface {
 	DeletePatient(w http.ResponseWriter, r *http.Request)
 }
 
-func NewPatientHandlerService(db *gorm.DB) *PatientHandler {
-	newPatientRepository := patientRepository.NewPatientRepository(db)
-	newPatientService := patientService.NewPatientService(newPatientRepository)
-	return &PatientHandler{patientService: newPatientService}
+func NewPatientController(patientService patientService.PatientService) *PatientHandler {
+	return &PatientHandler{patientService: patientService}
 }
 
 type PatientHandler struct {

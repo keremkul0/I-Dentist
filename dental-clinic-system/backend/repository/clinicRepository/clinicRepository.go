@@ -10,8 +10,8 @@ type ClinicRepository interface {
 	GetClinic(id uint) (models.Clinic, error)
 	CreateClinic(clinic models.Clinic) (models.Clinic, error)
 	UpdateClinic(clinic models.Clinic) (models.Clinic, error)
-	GetClinicAppointments(id uint) ([]models.Appointment, error)
 	DeleteClinic(id uint) error
+	CheckClinicExist(clinic models.Clinic) bool
 }
 
 func NewClinicRepository(db *gorm.DB) *clinicRepository {
@@ -35,22 +35,22 @@ func (r *clinicRepository) GetClinic(id uint) (models.Clinic, error) {
 }
 
 func (r *clinicRepository) CreateClinic(clinic models.Clinic) (models.Clinic, error) {
+
 	err := r.DB.Create(&clinic).Error
 	return clinic, err
 }
-
 func (r *clinicRepository) UpdateClinic(clinic models.Clinic) (models.Clinic, error) {
 	err := r.DB.Save(&clinic).Error
 	return clinic, err
 }
 
-func (r *clinicRepository) GetClinicAppointments(id uint) ([]models.Appointment, error) {
-	var appointments []models.Appointment
-	err := r.DB.Where("clinic_id = ?", id).Find(&appointments).Error
-	return appointments, err
-}
-
 func (r *clinicRepository) DeleteClinic(id uint) error {
 	err := r.DB.Delete(&models.Clinic{}, id).Error
 	return err
+}
+
+func (r *clinicRepository) CheckClinicExist(clinic models.Clinic) bool {
+	var count int64
+	r.DB.Model(&models.Clinic{}).Where("id = ? or email = ? or name = ? OR phone_number = ?", clinic.ID, clinic.Email, clinic.Name, clinic.PhoneNumber).First(&models.Clinic{}).Count(&count)
+	return count > 0
 }

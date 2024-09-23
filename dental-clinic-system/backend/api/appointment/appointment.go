@@ -3,16 +3,14 @@ package appointment
 import (
 	"dental-clinic-system/application/appointmentService"
 	"dental-clinic-system/models"
-	"dental-clinic-system/repository/appointmentRepository"
 	"encoding/json"
 	"github.com/gorilla/mux"
-	"gorm.io/gorm"
 	"strconv"
 
 	"net/http"
 )
 
-type AppointmentHandlerService interface {
+type AppointmentController interface {
 	GetAppointments(w http.ResponseWriter, r *http.Request)
 	GetAppointment(w http.ResponseWriter, r *http.Request)
 	CreateAppointment(w http.ResponseWriter, r *http.Request)
@@ -20,10 +18,8 @@ type AppointmentHandlerService interface {
 	DeleteAppointment(w http.ResponseWriter, r *http.Request)
 }
 
-func NewAppointmentHandlerService(db *gorm.DB) *AppointmentHandler {
-	AppointmentRepository := appointmentRepository.NewAppointmentRepository(db)
-	newAppointmentService := appointmentService.NewAppointmentService(AppointmentRepository)
-	return &AppointmentHandler{appointmentService: newAppointmentService}
+func NewAppointmentHandlerController(service appointmentService.AppointmentService) *AppointmentHandler {
+	return &AppointmentHandler{appointmentService: service}
 }
 
 type AppointmentHandler struct {

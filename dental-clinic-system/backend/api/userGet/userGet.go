@@ -1,8 +1,7 @@
-package user
+package userGet
 
 import (
-	"dental-clinic-system/application/userService"
-	"dental-clinic-system/helpers"
+	"dental-clinic-system/application/userGetModelService"
 	"dental-clinic-system/models"
 	"encoding/json"
 	"github.com/gorilla/mux"
@@ -10,7 +9,7 @@ import (
 	"strconv"
 )
 
-type UserController interface {
+type userGetController interface {
 	GetUsers(w http.ResponseWriter, r *http.Request)
 	GetUser(w http.ResponseWriter, r *http.Request)
 	CreateUser(w http.ResponseWriter, r *http.Request)
@@ -18,16 +17,16 @@ type UserController interface {
 	DeleteUser(w http.ResponseWriter, r *http.Request)
 }
 
-func NewUserController(service userService.UserService) *UserHandler {
-	return &UserHandler{userService: service}
+func NewUserGetController(service userGetModelService.UserGetModelService) *UserGetHandler {
+	return &UserGetHandler{userGetModelService: service}
 }
 
-type UserHandler struct {
-	userService userService.UserService
+type UserGetHandler struct {
+	userGetModelService userGetModelService.UserGetModelService
 }
 
-func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := h.userService.GetUsers()
+func (h *UserGetHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
+	users, err := h.userGetModelService.GetUserGetModels()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -38,7 +37,7 @@ func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+func (h *UserGetHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	idStr := params["id"]
 	id, err := strconv.Atoi(idStr)
@@ -46,7 +45,7 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
-	user, err := h.userService.GetUser(uint(id))
+	user, err := h.userGetModelService.GetUserGetModel(uint(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -57,21 +56,14 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var user models.User
+func (h *UserGetHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+	var user models.UserGetModel
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	originalPassword := user.Password
-	user.Password = helpers.HashPassword(user.Password) // Hash the password if not already hashed
-	if originalPassword == user.Password {
-		http.Error(w, "Password hashing failed", http.StatusInternalServerError)
-		return
-	}
-	user, err = h.userService.CreateUser(user)
+	user, err = h.userGetModelService.CreateUserGetModel(user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -82,15 +74,14 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	var user models.User
+func (h *UserGetHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	var user models.UserGetModel
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	user.Password = helpers.HashPassword(user.Password) // Hash the password
-	user, err = h.userService.UpdateUser(user)
+	user, err = h.userGetModelService.UpdateUserGetModel(user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -101,7 +92,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+func (h *UserGetHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	idStr := params["id"]
 	id, err := strconv.Atoi(idStr)
@@ -109,7 +100,7 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
-	err = h.userService.DeleteUser(uint(id))
+	err = h.userGetModelService.DeleteUserGetModel(uint(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
