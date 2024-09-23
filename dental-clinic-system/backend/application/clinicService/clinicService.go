@@ -10,7 +10,6 @@ type ClinicService interface {
 	GetClinic(id uint) (models.Clinic, error)
 	CreateClinic(clinic models.Clinic) (models.Clinic, error)
 	UpdateClinic(clinic models.Clinic) (models.Clinic, error)
-	GetClinicAppointments(id uint) ([]models.Appointment, error)
 	DeleteClinic(id uint) error
 }
 
@@ -38,10 +37,6 @@ func (s *clinicService) CreateClinic(clinic models.Clinic) (models.Clinic, error
 
 func (s *clinicService) UpdateClinic(clinic models.Clinic) (models.Clinic, error) {
 	return s.clinicRepository.UpdateClinic(clinic)
-}
-
-func (s *clinicService) GetClinicAppointments(id uint) ([]models.Appointment, error) {
-	return s.clinicRepository.GetClinicAppointments(id)
 }
 
 func (s *clinicService) DeleteClinic(id uint) error {

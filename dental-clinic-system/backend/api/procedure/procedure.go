@@ -3,15 +3,13 @@ package procedure
 import (
 	"dental-clinic-system/application/procedureService"
 	"dental-clinic-system/models"
-	"dental-clinic-system/repository/procedureRepository"
 	"encoding/json"
 	"github.com/gorilla/mux"
-	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 )
 
-type ProcedureHandlerService interface {
+type ProcedureHandlerController interface {
 	GetProcedures(w http.ResponseWriter, r *http.Request)
 	GetProcedure(w http.ResponseWriter, r *http.Request)
 	CreateProcedure(w http.ResponseWriter, r *http.Request)
@@ -19,10 +17,8 @@ type ProcedureHandlerService interface {
 	DeleteProcedure(w http.ResponseWriter, r *http.Request)
 }
 
-func NewProcedureHandlerService(db *gorm.DB) *ProcedureHandler {
-	newProcedureRepository := procedureRepository.NewProcedureRepository(db)
-	newProcedureService := procedureService.NewProcedureService(newProcedureRepository)
-	return &ProcedureHandler{procedureService: newProcedureService}
+func NewProcedureController(service procedureService.ProcedureService) *ProcedureHandler {
+	return &ProcedureHandler{procedureService: service}
 }
 
 type ProcedureHandler struct {

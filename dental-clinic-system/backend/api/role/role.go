@@ -3,15 +3,13 @@ package role
 import (
 	"dental-clinic-system/application/roleService"
 	"dental-clinic-system/models"
-	"dental-clinic-system/repository/roleRepository"
 	"encoding/json"
 	"github.com/gorilla/mux"
-	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 )
 
-type RoleHandlerService interface {
+type RoleHandlerController interface {
 	GetRoles(w http.ResponseWriter, r *http.Request)
 	GetRole(w http.ResponseWriter, r *http.Request)
 	CreateRole(w http.ResponseWriter, r *http.Request)
@@ -19,9 +17,7 @@ type RoleHandlerService interface {
 	DeleteRole(w http.ResponseWriter, r *http.Request)
 }
 
-func NewRoleHandlerService(db *gorm.DB) *RoleHandler {
-	newRoleRepository := roleRepository.NewRoleRepository(db)
-	roleService := roleService.NewRoleService(newRoleRepository)
+func NewRoleController(roleService roleService.RoleService) *RoleHandler {
 	return &RoleHandler{roleService: roleService}
 }
 
