@@ -9,14 +9,6 @@ import (
 	"strconv"
 )
 
-type patientHandlerController interface {
-	GetPatients(w http.ResponseWriter, r *http.Request)
-	GetPatient(w http.ResponseWriter, r *http.Request)
-	CreatePatient(w http.ResponseWriter, r *http.Request)
-	UpdatePatient(w http.ResponseWriter, r *http.Request)
-	DeletePatient(w http.ResponseWriter, r *http.Request)
-}
-
 func NewPatientController(patientService patientService.PatientService) *PatientHandler {
 	return &PatientHandler{patientService: patientService}
 }

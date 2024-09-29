@@ -6,12 +6,13 @@ import (
 )
 
 type UserRepository interface {
-	GetUsers() ([]models.User, error)
-	GetUser(id uint) (models.User, error)
-	CreateUser(user models.User) (models.User, error)
-	UpdateUser(user models.User) (models.User, error)
-	DeleteUser(id uint) error
-	CheckUserExist(user models.User) bool
+	GetUsersRepo(ClinicID uint) ([]models.UserGetModel, error)
+	GetUserRepo(id uint) (models.UserGetModel, error)
+	GetUserByEmailRepo(email string) (models.UserGetModel, error)
+	CreateUserRepo(user models.User) (models.UserGetModel, error)
+	UpdateUserRepo(user models.User) (models.UserGetModel, error)
+	DeleteUserRepo(id uint) error
+	CheckUserExistRepo(user models.UserGetModel) bool
 }
 
 func NewUserRepository(db *gorm.DB) *userRepository {
@@ -22,45 +23,41 @@ type userRepository struct {
 	DB *gorm.DB
 }
 
-func (r *userRepository) GetUsers() ([]models.User, error) {
-	var users []models.User
-	if result := r.DB.Find(&users); result.Error != nil {
-		return nil, result.Error
-	}
+func (r *userRepository) GetUsersRepo(ClinicID uint) ([]models.UserGetModel, error) {
+	var users []models.UserGetModel
+	r.DB.Where("clinic_id = ?", ClinicID).Find(&users)
 	return users, nil
 }
 
-func (r *userRepository) GetUser(id uint) (models.User, error) {
-	var user models.User
-	if result := r.DB.First(&user, id); result.Error != nil {
-		return models.User{}, result.Error
-	}
+func (r *userRepository) GetUserRepo(id uint) (models.UserGetModel, error) {
+	var user models.UserGetModel
+	r.DB.First(&user, id)
 	return user, nil
 }
 
-func (r *userRepository) CreateUser(user models.User) (models.User, error) {
-	if result := r.DB.Create(&user); result.Error != nil {
-		return models.User{}, result.Error
-	}
+func (r *userRepository) GetUserByEmailRepo(email string) (models.UserGetModel, error) {
+	var user models.UserGetModel
+	r.DB.Where("email = ?", email).First(&user)
 	return user, nil
 }
 
-func (r *userRepository) UpdateUser(user models.User) (models.User, error) {
-	if result := r.DB.Save(&user); result.Error != nil {
-		return models.User{}, result.Error
-	}
-	return user, nil
+func (r *userRepository) CreateUserRepo(user models.User) (models.UserGetModel, error) {
+	r.DB.Create(&user)
+	return r.GetUserRepo(user.ID)
 }
 
-func (r *userRepository) DeleteUser(id uint) error {
-	if result := r.DB.Delete(&models.User{}, id); result.Error != nil {
-		return result.Error
-	}
+func (r *userRepository) UpdateUserRepo(user models.User) (models.UserGetModel, error) {
+	r.DB.Save(&user)
+	return r.GetUserRepo(user.ID)
+}
+
+func (r *userRepository) DeleteUserRepo(id uint) error {
+	r.DB.Delete(&models.User{}, id)
 	return nil
 }
 
-func (r *userRepository) CheckUserExist(user models.User) bool {
+func (r *userRepository) CheckUserExistRepo(user models.UserGetModel) bool {
 	var count int64
-	r.DB.Model(&models.User{}).Where("id = ? or email = ? OR phone_number = ? OR national_id = ?", user.ID, user.Email, user.PhoneNumber, user.NationalID).First(&models.User{}).Count(&count)
+	r.DB.Model(&models.User{}).Where("national_id = ? OR email = ? OR phone_number = ?", user.NationalID, user.Email, user.PhoneNumber).Count(&count)
 	return count > 0
 }

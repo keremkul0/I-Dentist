@@ -24,7 +24,7 @@ func NewSignUpClinicService(clinicRepository clinicRepository.ClinicRepository,
 }
 
 func (s *signUpClinicService) SignUpClinic(clinic models.Clinic, user models.User) (models.Clinic, models.User, error) {
-	if s.userRepository.CheckUserExist(user) {
+	if s.userRepository.CheckUserExistRepo(user) {
 		return models.Clinic{}, models.User{}, nil
 	}
 	if s.clinicRepository.CheckClinicExist(clinic) {
@@ -37,7 +37,7 @@ func (s *signUpClinicService) SignUpClinic(clinic models.Clinic, user models.Use
 		return models.Clinic{}, models.User{}, err
 	}
 	user.ClinicID = clinic.ID
-	user, err = s.userRepository.CreateUser(user)
+	user, err = s.userRepository.CreateUserRepo(user)
 	if err != nil {
 		return models.Clinic{}, models.User{}, err
 	}

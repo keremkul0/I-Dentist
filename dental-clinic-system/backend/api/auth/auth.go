@@ -11,11 +11,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type AuthHandlerController interface {
-	Login(w http.ResponseWriter, r *http.Request)
-	AuthMiddleware(next http.Handler) http.Handler
-}
-
 type AuthHandler struct {
 	authService authService.AuthService
 }
@@ -29,7 +24,7 @@ func NewAuthHandlerController(service authService.AuthService) *AuthHandler {
 	return &AuthHandler{authService: service}
 }
 
-var jwtKey = []byte("my_secret_key")
+var JwtKey = []byte("my_secret_key")
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var creds models.Auth
@@ -52,7 +47,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(jwtKey)
+	tokenString, err := token.SignedString(JwtKey)
 	if err != nil {
 		http.Error(w, "Could not create token", http.StatusInternalServerError)
 		return
@@ -64,6 +59,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Expires: expirationTime,
 	})
 }
+
 func (h *AuthHandler) AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("token")
@@ -79,7 +75,7 @@ func (h *AuthHandler) AuthMiddleware(next http.Handler) http.Handler {
 		tokenStr := cookie.Value
 		claims := &Claims{}
 		token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-			return jwtKey, nil
+			return JwtKey, nil
 		})
 
 		if err != nil {

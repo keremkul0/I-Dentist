@@ -6,7 +6,7 @@ import (
 )
 
 type AppointmentService interface {
-	GetAppointments() ([]models.Appointment, error)
+	GetAppointments(ClinicID uint) ([]models.Appointment, error)
 	GetAppointment(id uint) (models.Appointment, error)
 	CreateAppointment(appointment models.Appointment) (models.Appointment, error)
 	UpdateAppointment(appointment models.Appointment) (models.Appointment, error)
@@ -23,22 +23,22 @@ func NewAppointmentService(appointmentRepository appointmentRepository.Appointme
 	}
 }
 
-func (s *appointmentService) GetAppointments() ([]models.Appointment, error) {
-	return s.appointmentRepository.GetAppointments()
+func (s *appointmentService) GetAppointments(ClinicID uint) ([]models.Appointment, error) {
+	return s.appointmentRepository.GetAppointmentsRepo(ClinicID)
 }
 
 func (s *appointmentService) GetAppointment(id uint) (models.Appointment, error) {
-	return s.appointmentRepository.GetAppointment(id)
+	return s.appointmentRepository.GetAppointmentRepo(id)
 }
 
 func (s *appointmentService) CreateAppointment(appointment models.Appointment) (models.Appointment, error) {
-	return s.appointmentRepository.CreateAppointment(appointment)
+	return s.appointmentRepository.CreateAppointmentRepo(appointment)
 }
 
 func (s *appointmentService) UpdateAppointment(appointment models.Appointment) (models.Appointment, error) {
-	return s.appointmentRepository.UpdateAppointment(appointment)
+	return s.appointmentRepository.UpdateAppointmentRepo(appointment)
 }
 
 func (s *appointmentService) DeleteAppointment(id uint) error {
-	return s.appointmentRepository.DeleteAppointment(id)
+	return s.appointmentRepository.DeleteAppointmentRepo(id)
 }

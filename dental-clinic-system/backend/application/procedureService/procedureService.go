@@ -8,7 +8,7 @@ import (
 // ProcedureService describes the service.
 
 type ProcedureService interface {
-	GetProcedures() ([]models.Procedure, error)
+	GetProcedures(ClinicID uint) ([]models.Procedure, error)
 	GetProcedure(id uint) (models.Procedure, error)
 	CreateProcedure(procedure models.Procedure) (models.Procedure, error)
 	UpdateProcedure(procedure models.Procedure) (models.Procedure, error)
@@ -29,8 +29,8 @@ type procedureService struct {
 
 // GetProcedures returns all procedures.
 
-func (s *procedureService) GetProcedures() ([]models.Procedure, error) {
-	return s.procedureRepository.GetProcedures()
+func (s *procedureService) GetProcedures(ClinicID uint) ([]models.Procedure, error) {
+	return s.procedureRepository.GetProcedures(ClinicID)
 }
 
 // GetProcedure returns a procedure by its ID.

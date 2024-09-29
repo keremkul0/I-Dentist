@@ -6,11 +6,13 @@ import (
 )
 
 type UserService interface {
-	GetUsers() ([]models.User, error)
-	GetUser(id uint) (models.User, error)
-	CreateUser(user models.User) (models.User, error)
-	UpdateUser(user models.User) (models.User, error)
+	GetUsers(ClinicID uint) ([]models.UserGetModel, error)
+	GetUser(id uint) (models.UserGetModel, error)
+	GetUserByEmail(email string) (models.UserGetModel, error)
+	CreateUser(user models.User) (models.UserGetModel, error)
+	UpdateUser(user models.User) (models.UserGetModel, error)
 	DeleteUser(id uint) error
+	CheckUserExist(user models.UserGetModel) bool
 }
 
 type userService struct {
@@ -23,22 +25,30 @@ func NewUserService(userRepository userRepository.UserRepository) *userService {
 	}
 }
 
-func (s *userService) GetUsers() ([]models.User, error) {
-	return s.userRepository.GetUsers()
+func (s *userService) GetUsers(ClinicID uint) ([]models.UserGetModel, error) {
+	return s.userRepository.GetUsersRepo(ClinicID)
 }
 
-func (s *userService) GetUser(id uint) (models.User, error) {
-	return s.userRepository.GetUser(id)
+func (s *userService) GetUser(id uint) (models.UserGetModel, error) {
+	return s.userRepository.GetUserRepo(id)
 }
 
-func (s *userService) CreateUser(user models.User) (models.User, error) {
-	return s.userRepository.CreateUser(user)
+func (s *userService) GetUserByEmail(email string) (models.UserGetModel, error) {
+	return s.userRepository.GetUserByEmailRepo(email)
 }
 
-func (s *userService) UpdateUser(user models.User) (models.User, error) {
-	return s.userRepository.UpdateUser(user)
+func (s *userService) CreateUser(user models.User) (models.UserGetModel, error) {
+	return s.userRepository.CreateUserRepo(user)
+}
+
+func (s *userService) UpdateUser(user models.User) (models.UserGetModel, error) {
+	return s.userRepository.UpdateUserRepo(user)
 }
 
 func (s *userService) DeleteUser(id uint) error {
-	return s.userRepository.DeleteUser(id)
+	return s.userRepository.DeleteUserRepo(id)
+}
+
+func (s *userService) CheckUserExist(user models.UserGetModel) bool {
+	return s.userRepository.CheckUserExistRepo(user)
 }

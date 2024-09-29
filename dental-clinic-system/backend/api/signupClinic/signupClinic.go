@@ -2,14 +2,11 @@ package signupClinic
 
 import (
 	"dental-clinic-system/application/signupClinicService"
+	"dental-clinic-system/helpers"
 	"dental-clinic-system/models"
 	"encoding/json"
 	"net/http"
 )
-
-type SignUpClinicController interface {
-	SignUpClinic(w http.ResponseWriter, r *http.Request)
-}
 
 type SignUpClinicHandler struct {
 	service signupClinicService.SignUpClinicService
@@ -32,7 +29,9 @@ func (h *SignUpClinicHandler) SignUpClinic(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	user.Password = helpers.HashPassword(user.Password)
 	clinic, user, err = h.service.SignUpClinic(clinic, user)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

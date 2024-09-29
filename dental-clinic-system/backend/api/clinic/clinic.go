@@ -9,14 +9,6 @@ import (
 	"strconv"
 )
 
-type ClinicController interface {
-	GetClinics(w http.ResponseWriter, r *http.Request)
-	GetClinic(w http.ResponseWriter, r *http.Request)
-	CreateClinic(w http.ResponseWriter, r *http.Request)
-	UpdateClinic(w http.ResponseWriter, r *http.Request)
-	DeleteClinic(w http.ResponseWriter, r *http.Request)
-}
-
 func NewClinicHandlerController(clinicService clinicService.ClinicService) *ClinicHandler {
 	return &ClinicHandler{clinicService: clinicService}
 }

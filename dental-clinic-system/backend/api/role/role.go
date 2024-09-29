@@ -9,14 +9,6 @@ import (
 	"strconv"
 )
 
-type RoleHandlerController interface {
-	GetRoles(w http.ResponseWriter, r *http.Request)
-	GetRole(w http.ResponseWriter, r *http.Request)
-	CreateRole(w http.ResponseWriter, r *http.Request)
-	UpdateRole(w http.ResponseWriter, r *http.Request)
-	DeleteRole(w http.ResponseWriter, r *http.Request)
-}
-
 func NewRoleController(roleService roleService.RoleService) *RoleHandler {
 	return &RoleHandler{roleService: roleService}
 }
