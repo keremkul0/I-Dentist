@@ -10,14 +10,6 @@ import (
 	"net/http"
 )
 
-type AppointmentController interface {
-	GetAppointments(w http.ResponseWriter, r *http.Request)
-	GetAppointment(w http.ResponseWriter, r *http.Request)
-	CreateAppointment(w http.ResponseWriter, r *http.Request)
-	UpdateAppointment(w http.ResponseWriter, r *http.Request)
-	DeleteAppointment(w http.ResponseWriter, r *http.Request)
-}
-
 func NewAppointmentHandlerController(service appointmentService.AppointmentService) *AppointmentHandler {
 	return &AppointmentHandler{appointmentService: service}
 }

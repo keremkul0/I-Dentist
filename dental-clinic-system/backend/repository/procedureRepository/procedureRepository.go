@@ -6,7 +6,7 @@ import (
 )
 
 type ProcedureRepository interface {
-	GetProcedures() ([]models.Procedure, error)
+	GetProcedures(ClinicID uint) ([]models.Procedure, error)
 	GetProcedure(id uint) (models.Procedure, error)
 	CreateProcedure(procedure models.Procedure) (models.Procedure, error)
 	UpdateProcedure(procedure models.Procedure) (models.Procedure, error)
@@ -21,10 +21,10 @@ type procedureRepository struct {
 	DB *gorm.DB
 }
 
-func (r *procedureRepository) GetProcedures() ([]models.Procedure, error) {
+func (r *procedureRepository) GetProcedures(ClinicID uint) ([]models.Procedure, error) {
 	var procedures []models.Procedure
-	if result := r.DB.Find(&procedures); result.Error != nil {
-		return nil, result.Error
+	if result := r.DB.Where("clinic_id = ?", ClinicID).Find(&procedures); result.Error != nil {
+		return []models.Procedure{}, result.Error
 	}
 	return procedures, nil
 }

@@ -10,14 +10,6 @@ import (
 	"strconv"
 )
 
-type UserController interface {
-	GetUsers(w http.ResponseWriter, r *http.Request)
-	GetUser(w http.ResponseWriter, r *http.Request)
-	CreateUser(w http.ResponseWriter, r *http.Request)
-	UpdateUser(w http.ResponseWriter, r *http.Request)
-	DeleteUser(w http.ResponseWriter, r *http.Request)
-}
-
 func NewUserController(service userService.UserService) *UserHandler {
 	return &UserHandler{userService: service}
 }
@@ -27,7 +19,16 @@ type UserHandler struct {
 }
 
 func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := h.userService.GetUsers()
+
+	claims := helpers.TokenEmailHelper(r)
+	user, err := h.userService.GetUserByEmail(claims.Email)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	users, err := h.userService.GetUsers(user.ClinicID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -46,11 +47,26 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
-	user, err := h.userService.GetUser(uint(id))
+
+	claims := helpers.TokenEmailHelper(r)
+	user, err := h.userService.GetUserByEmail(claims.Email)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
+
+	requestedUser, err := h.userService.GetUser(uint(id))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	if user.ClinicID != requestedUser.ClinicID {
+		http.Error(w, "User not found", http.StatusUnauthorized)
+		return
+	}
+
 	err = json.NewEncoder(w).Encode(user)
 	if err != nil {
 		return
@@ -65,18 +81,35 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	originalPassword := user.Password
-	user.Password = helpers.HashPassword(user.Password) // Hash the password if not already hashed
-	if originalPassword == user.Password {
-		http.Error(w, "Password hashing failed", http.StatusInternalServerError)
+	claims := helpers.TokenEmailHelper(r)
+	mainUser, err := h.userService.GetUserByEmail(claims.Email)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	user, err = h.userService.CreateUser(user)
+
+	if mainUser.ClinicID != user.ClinicID || (!helpers.ContainsRole(mainUser, "Clinic Admin") && (!helpers.ContainsRole(mainUser, "Superadmin"))) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	tempUserGetModel := helpers.UserConvertor(user)
+	if h.userService.CheckUserExist(tempUserGetModel) {
+		http.Error(w, "User already exists", http.StatusBadRequest)
+		return
+	}
+
+	user.Password = helpers.HashPassword(user.Password) // Hash the password if not already hashed
+
+	createdUser, err := h.userService.CreateUser(user)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	err = json.NewEncoder(w).Encode(user)
+
+	err = json.NewEncoder(w).Encode(createdUser)
 	if err != nil {
 		return
 	}
@@ -89,13 +122,26 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	user.Password = helpers.HashPassword(user.Password) // Hash the password
-	user, err = h.userService.UpdateUser(user)
+
+	claims := helpers.TokenEmailHelper(r)
+	mainUser, err := h.userService.GetUserByEmail(claims.Email)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	if mainUser.ClinicID != user.ClinicID || (!helpers.ContainsRole(mainUser, "Clinic Admin") && (!helpers.ContainsRole(mainUser, "Superadmin"))) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	createdUser, err := h.userService.UpdateUser(user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	err = json.NewEncoder(w).Encode(user)
+	err = json.NewEncoder(w).Encode(createdUser)
 	if err != nil {
 		return
 	}
@@ -109,6 +155,31 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
+
+	claims := helpers.TokenEmailHelper(r)
+	mainUser, err := h.userService.GetUserByEmail(claims.Email)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	requestedUser, err := h.userService.GetUser(uint(id))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	if mainUser.ClinicID != requestedUser.ClinicID || (!helpers.ContainsRole(mainUser, "Clinic Admin") && (!helpers.ContainsRole(mainUser, "Superadmin"))) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if helpers.ContainsRole(requestedUser, "Superadmin") {
+		http.Error(w, "Cannot delete Superadmin", http.StatusBadRequest)
+		return
+	}
+
 	err = h.userService.DeleteUser(uint(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)

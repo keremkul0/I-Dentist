@@ -9,7 +9,6 @@ import (
 	"dental-clinic-system/api/role"
 	"dental-clinic-system/api/signupClinic"
 	"dental-clinic-system/api/user"
-	"dental-clinic-system/api/userGet"
 	"dental-clinic-system/application/appointmentService"
 	"dental-clinic-system/application/authService"
 	"dental-clinic-system/application/clinicService"
@@ -106,16 +105,10 @@ func main() {
 	appointment.RegisterAppointmentRoutes(securedRouter, appointmentHandler)
 
 	// User Handler
-	newUserRepository2 := userRepository.NewUserRepository(db)
-	newUserService := userService.NewUserService(newUserRepository2)
+	newUserGetModelRepository2 := userRepository.NewUserRepository(db)
+	newUserService := userService.NewUserService(newUserGetModelRepository2)
 	userHandler := user.NewUserController(newUserService)
 	user.RegisterUserRoutes(securedRouter, userHandler)
-
-	// User Get Handler
-	newUserGetRepository := userGetModelRepository.NewUserGetModelRepository(db)
-	newUserGetService := userGetModelService.NewUserGetModelService(newUserGetRepository)
-	userGetHandler := userGet.NewUserGetController(newUserGetService)
-	userGet.RegisterUserGetRoutes(securedRouter, userGetHandler)
 
 	// Role Handler
 	newRoleRepository := roleRepository.NewRoleRepository(db)
@@ -125,8 +118,10 @@ func main() {
 
 	// Procedure Handler
 	newProcedureRepository := procedureRepository.NewProcedureRepository(db)
+	newUserGetRepository = userGetModelRepository.NewUserGetModelRepository(db)
 	newProcedureService := procedureService.NewProcedureService(newProcedureRepository)
-	procedureHandler := procedure.NewProcedureController(newProcedureService)
+	newUserGetService2 := userGetModelService.NewUserGetModelService(newUserGetRepository)
+	procedureHandler := procedure.NewProcedureController(newProcedureService, newUserGetService2)
 	procedure.RegisterProcedureRoutes(securedRouter, procedureHandler)
 
 	// Patient Handler
