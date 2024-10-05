@@ -30,18 +30,20 @@ func (h *SignUpClinicHandler) SignUpClinic(w http.ResponseWriter, r *http.Reques
 	}
 
 	user.Password = helpers.HashPassword(user.Password)
-	clinic, user, err = h.service.SignUpClinic(clinic, user)
 
+	clinic, userGetModel, err := h.service.SignUpClinic(clinic, user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(struct {
-		Clinic models.Clinic `json:"clinic"`
-		User   models.User   `json:"user"`
-	}{clinic, user})
-
+	err = json.NewEncoder(w).Encode(struct {
+		Clinic models.Clinic       `json:"clinic"`
+		User   models.UserGetModel `json:"user"`
+	}{clinic, userGetModel})
+	if err != nil {
+		return
+	}
 	w.WriteHeader(http.StatusCreated)
+	return
 }
