@@ -6,7 +6,7 @@ import (
 )
 
 type PatientRepository interface {
-	GetPatients() ([]models.Patient, error)
+	GetPatients(ClinicID uint) ([]models.Patient, error)
 	GetPatient(id uint) (models.Patient, error)
 	CreatePatient(patient models.Patient) (models.Patient, error)
 	UpdatePatient(patient models.Patient) (models.Patient, error)
@@ -21,9 +21,9 @@ type patientRepository struct {
 	DB *gorm.DB
 }
 
-func (r *patientRepository) GetPatients() ([]models.Patient, error) {
+func (r *patientRepository) GetPatients(ClinicID uint) ([]models.Patient, error) {
 	var patients []models.Patient
-	err := r.DB.Find(&patients).Error
+	err := r.DB.Where("clinic_id = ?", ClinicID).Find(&patients).Error
 	return patients, err
 }
 

@@ -16,7 +16,6 @@ import (
 	"dental-clinic-system/application/procedureService"
 	"dental-clinic-system/application/roleService"
 	"dental-clinic-system/application/signupClinicService"
-	"dental-clinic-system/application/userGetModelService"
 	"dental-clinic-system/application/userService"
 	"dental-clinic-system/models"
 	"dental-clinic-system/repository/appointmentRepository"
@@ -25,7 +24,6 @@ import (
 	"dental-clinic-system/repository/patientRepository"
 	"dental-clinic-system/repository/procedureRepository"
 	"dental-clinic-system/repository/roleRepository"
-	"dental-clinic-system/repository/userGetModelRepository"
 	"dental-clinic-system/repository/userRepository"
 
 	"fmt"
@@ -93,15 +91,19 @@ func main() {
 	securedRouter.Use(authHandler.AuthMiddleware)
 
 	// Clinic Handler
+	newUserClinicRepository := userRepository.NewUserRepository(db)
 	newClinicRepository2 := clinicRepository.NewClinicRepository(db)
 	newClinicService := clinicService.NewClinicService(newClinicRepository2)
-	clinicHandler := clinic.NewClinicHandlerController(newClinicService)
+	newUserClinicService := userService.NewUserService(newUserClinicRepository)
+	clinicHandler := clinic.NewClinicHandlerController(newClinicService, newUserClinicService)
 	clinic.RegisterClinicRoutes(securedRouter, clinicHandler)
 
 	// Appointment Handler
+	newUserAppointmentRepository := userRepository.NewUserRepository(db)
 	newAppointmentRepository := appointmentRepository.NewAppointmentRepository(db)
 	newAppointmentService := appointmentService.NewAppointmentService(newAppointmentRepository)
-	appointmentHandler := appointment.NewAppointmentHandlerController(newAppointmentService)
+	newUserAppointmentService := userService.NewUserService(newUserAppointmentRepository)
+	appointmentHandler := appointment.NewAppointmentHandlerController(newAppointmentService, newUserAppointmentService)
 	appointment.RegisterAppointmentRoutes(securedRouter, appointmentHandler)
 
 	// User Handler
@@ -118,16 +120,18 @@ func main() {
 
 	// Procedure Handler
 	newProcedureRepository := procedureRepository.NewProcedureRepository(db)
-	newUserGetRepository = userGetModelRepository.NewUserGetModelRepository(db)
+	newUserProcedureRepository := userRepository.NewUserRepository(db)
 	newProcedureService := procedureService.NewProcedureService(newProcedureRepository)
-	newUserGetService2 := userGetModelService.NewUserGetModelService(newUserGetRepository)
-	procedureHandler := procedure.NewProcedureController(newProcedureService, newUserGetService2)
+	newUserProcedureService := userService.NewUserService(newUserProcedureRepository)
+	procedureHandler := procedure.NewProcedureController(newProcedureService, newUserProcedureService)
 	procedure.RegisterProcedureRoutes(securedRouter, procedureHandler)
 
 	// Patient Handler
 	newPatientRepository := patientRepository.NewPatientRepository(db)
+	newUserPatientRepository := userRepository.NewUserRepository(db)
 	newPatientService := patientService.NewPatientService(newPatientRepository)
-	patientHandler := patient.NewPatientController(newPatientService)
+	newUserPatientService := userService.NewUserService(newUserPatientRepository)
+	patientHandler := patient.NewPatientController(newPatientService, newUserPatientService)
 	patient.RegisterPatientsRoutes(securedRouter, patientHandler)
 
 	log.Println("Starting server on :8080")

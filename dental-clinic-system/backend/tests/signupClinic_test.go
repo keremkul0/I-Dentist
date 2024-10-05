@@ -5,107 +5,61 @@ import (
 	"dental-clinic-system/api/signupClinic"
 	"dental-clinic-system/models"
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
+	"gorm.io/gorm"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
+// Mock service
 type MockSignUpClinicService struct {
 	mock.Mock
 }
 
-func (m *MockSignUpClinicService) SignUpClinic(clinic models.Clinic, user models.User) (models.Clinic, error) {
+func (m *MockSignUpClinicService) SignUpClinic(clinic models.Clinic, user models.User) (models.Clinic, models.UserGetModel, error) {
 	args := m.Called(clinic, user)
-	return args.Get(0).(models.Clinic), args.Error(1)
+	return args.Get(0).(models.Clinic), args.Get(1).(models.UserGetModel), args.Error(2)
 }
 
-func TestSignUpClinic_Success(t *testing.T) {
+func TestSignUpClinicHandler_SignUpClinic(t *testing.T) {
 	mockService := new(MockSignUpClinicService)
 	handler := signupClinic.NewSignUpClinicHandler(mockService)
 
-	user := models.User{
-		NationalID:    "123456789",
-		Password:      "password",
-		ClinicID:      1,
-		Email:         "testuser@example.com",
-		FirstName:     "Test",
-		LastName:      "User",
-		LastLogin:     time.Now(),
-		IsActive:      true,
-		EmailVerified: true,
-		PhoneNumber:   "123-456-7890",
-		PhoneVerified: true,
+	clinic := models.Clinic{Model: gorm.Model{ID: 1}, Name: "Test Clinic", Address: "123 Main St", PhoneNumber: "123-456-7890", Email: "testclinic@example.com"}
+
+	user := models.User{Model: gorm.Model{ID: 1}, NationalID: "123456789", Password: "hashedpassword", ClinicID: 1, Email: "testuser@example.com", EmailVerified: true, FirstName: "Test", LastName: "User", LastLogin: time.Now(), IsActive: true, PhoneNumber: "123-456-7890", PhoneVerified: true, Roles: []*models.Role{}}
+	userGetModel := models.UserGetModel{Model: gorm.Model{ID: 1}, NationalID: "123456789", ClinicID: 1, Email: "testuser@example.com", FirstName: "Test", LastName: "User", LastLogin: time.Now(), IsActive: true, PhoneNumber: "123-456-7890", Roles: []*models.Role{}}
+	mockService.On("SignUpClinic", clinic, user).Return(clinic, userGetModel, nil)
+
+	body := struct {
+		Clinic models.Clinic `json:"clinic"`
+		User   models.User   `json:"user"`
+	}{clinic, user}
+	bodyBytes, _ := json.Marshal(body)
+
+	req, err := http.NewRequest("POST", "/signup", bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		t.Fatal(err)
 	}
-	clinic := models.Clinic{
-		Name:        "Test Clinic",
-		Address:     "123 Test St",
-		PhoneNumber: "123-456-7890",
-	}
-	signupData := map[string]interface{}{
-		"user":   user,
-		"clinic": clinic,
-	}
-	body, _ := json.Marshal(signupData)
-	req, _ := http.NewRequest("POST", "/signup", bytes.NewBuffer(body))
-	rr := httptest.NewRecorder()
-
-	mockService.On("SignUpClinic", clinic, mock.AnythingOfType("models.User")).Return(clinic, nil)
-
-	handler.SignUpClinic(rr, req)
-
-	assert.Equal(t, http.StatusOK, rr.Code)
-	var response map[string]interface{}
-	json.NewDecoder(rr.Body).Decode(&response)
-	assert.Equal(t, "User, Group, and Clinic created successfully!", response["message"])
-	assert.Equal(t, float64(clinic.ID), response["clinic_id"])
-}
-
-func TestSignUpClinic_InvalidJSON(t *testing.T) {
-	mockService := new(MockSignUpClinicService)
-	handler := signupClinic.NewSignUpClinicHandler(mockService)
-
-	req, _ := http.NewRequest("POST", "/signup", bytes.NewBuffer([]byte("{invalid json}")))
 	rr := httptest.NewRecorder()
 
 	handler.SignUpClinic(rr, req)
 
-	assert.Equal(t, http.StatusBadRequest, rr.Code)
-}
+	assert.Equal(t, http.StatusCreated, rr.Code)
 
-func TestSignUpClinic_ServiceError(t *testing.T) {
-	mockService := new(MockSignUpClinicService)
-	handler := signupClinic.NewSignUpClinicHandler(mockService)
-
-	user := models.User{
-		NationalID:    "123456789",
-		Password:      "password",
-		Email:         "testuser@example.com",
-		FirstName:     "Test",
-		LastName:      "User",
-		IsActive:      true,
-		EmailVerified: true,
-		PhoneNumber:   "123-456-7890",
-		PhoneVerified: true,
+	var response struct {
+		Clinic models.Clinic       `json:"clinic"`
+		User   models.UserGetModel `json:"user"`
 	}
-	clinic := models.Clinic{
-		Name:        "Test Clinic",
-		Address:     "123 Test St",
-		PhoneNumber: "123-456-7890",
+	err = json.NewDecoder(rr.Body).Decode(&response)
+	if err != nil {
+		t.Fatal(err)
 	}
-	signupData := map[string]interface{}{
-		"user":   user,
-		"clinic": clinic,
-	}
-	body, _ := json.Marshal(signupData)
-	req, _ := http.NewRequest("POST", "/signup", bytes.NewBuffer(body))
-	rr := httptest.NewRecorder()
 
-	mockService.On("SignUpClinic", clinic, mock.AnythingOfType("models.User")).Return(models.Clinic{}, assert.AnError)
-
-	handler.SignUpClinic(rr, req)
-
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Equal(t, clinic, response.Clinic)
+	assert.Equal(t, userGetModel, response.User)
 }

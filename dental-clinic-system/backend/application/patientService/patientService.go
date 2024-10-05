@@ -6,7 +6,7 @@ import (
 )
 
 type PatientService interface {
-	GetPatients() ([]models.Patient, error)
+	GetPatients(ClinicID uint) ([]models.Patient, error)
 	GetPatient(id uint) (models.Patient, error)
 	CreatePatient(patient models.Patient) (models.Patient, error)
 	UpdatePatient(patient models.Patient) (models.Patient, error)
@@ -23,8 +23,8 @@ func NewPatientService(patientRepository patientRepository.PatientRepository) *p
 	}
 }
 
-func (s *patientService) GetPatients() ([]models.Patient, error) {
-	return s.patientRepository.GetPatients()
+func (s *patientService) GetPatients(ClinicID uint) ([]models.Patient, error) {
+	return s.patientRepository.GetPatients(ClinicID)
 }
 
 func (s *patientService) GetPatient(id uint) (models.Patient, error) {

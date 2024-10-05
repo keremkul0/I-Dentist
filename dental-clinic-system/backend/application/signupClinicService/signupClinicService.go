@@ -1,13 +1,14 @@
 package signupClinicService
 
 import (
+	"dental-clinic-system/helpers"
 	"dental-clinic-system/models"
 	"dental-clinic-system/repository/clinicRepository"
 	"dental-clinic-system/repository/userRepository"
 )
 
 type SignUpClinicService interface {
-	SignUpClinic(clinic models.Clinic, user models.User) (models.Clinic, models.User, error)
+	SignUpClinic(clinic models.Clinic, user models.User) (models.Clinic, models.UserGetModel, error)
 }
 
 type signUpClinicService struct {
@@ -23,23 +24,28 @@ func NewSignUpClinicService(clinicRepository clinicRepository.ClinicRepository,
 	}
 }
 
-func (s *signUpClinicService) SignUpClinic(clinic models.Clinic, user models.User) (models.Clinic, models.User, error) {
-	if s.userRepository.CheckUserExistRepo(user) {
-		return models.Clinic{}, models.User{}, nil
+func (s *signUpClinicService) SignUpClinic(clinic models.Clinic, user models.User) (models.Clinic, models.UserGetModel, error) {
+
+	userGetModel := helpers.UserConvertor(user)
+
+	if s.userRepository.CheckUserExistRepo(userGetModel) {
+		return models.Clinic{}, models.UserGetModel{}, nil
 	}
 	if s.clinicRepository.CheckClinicExist(clinic) {
-		return models.Clinic{}, models.User{}, nil
+		return models.Clinic{}, models.UserGetModel{}, nil
 	}
 
 	clinic, err := s.clinicRepository.CreateClinic(clinic)
 
 	if err != nil {
-		return models.Clinic{}, models.User{}, err
+		return models.Clinic{}, models.UserGetModel{}, err
 	}
+
 	user.ClinicID = clinic.ID
-	user, err = s.userRepository.CreateUserRepo(user)
+	userGetModel, err = s.userRepository.CreateUserRepo(user)
+
 	if err != nil {
-		return models.Clinic{}, models.User{}, err
+		return models.Clinic{}, models.UserGetModel{}, err
 	}
-	return clinic, user, nil
+	return clinic, userGetModel, nil
 }
