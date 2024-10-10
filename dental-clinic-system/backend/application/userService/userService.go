@@ -1,6 +1,7 @@
 package userService
 
 import (
+	"dental-clinic-system/helpers"
 	"dental-clinic-system/models"
 	"dental-clinic-system/repository/userRepository"
 )
@@ -26,23 +27,54 @@ func NewUserService(userRepository userRepository.UserRepository) *userService {
 }
 
 func (s *userService) GetUsers(ClinicID uint) ([]models.UserGetModel, error) {
-	return s.userRepository.GetUsersRepo(ClinicID)
+	users, err := s.userRepository.GetUsersRepo(ClinicID)
+	if err != nil {
+		return nil, err
+	}
+
+	var usersGetModel []models.UserGetModel
+
+	for _, user := range users {
+		usersGetModel = append(usersGetModel, helpers.UserConvertor(user))
+	}
+
+	return usersGetModel, nil
 }
 
 func (s *userService) GetUser(id uint) (models.UserGetModel, error) {
-	return s.userRepository.GetUserRepo(id)
+	user, err := s.userRepository.GetUserRepo(id)
+	if err != nil {
+		return models.UserGetModel{}, err
+	}
+
+	return helpers.UserConvertor(user), nil
 }
 
 func (s *userService) GetUserByEmail(email string) (models.UserGetModel, error) {
-	return s.userRepository.GetUserByEmailRepo(email)
+	user, err := s.userRepository.GetUserByEmailRepo(email)
+	if err != nil {
+		return models.UserGetModel{}, err
+	}
+
+	return helpers.UserConvertor(user), nil
 }
 
 func (s *userService) CreateUser(user models.User) (models.UserGetModel, error) {
-	return s.userRepository.CreateUserRepo(user)
+	user, err := s.userRepository.CreateUserRepo(user)
+	if err != nil {
+		return models.UserGetModel{}, err
+	}
+
+	return helpers.UserConvertor(user), nil
 }
 
 func (s *userService) UpdateUser(user models.User) (models.UserGetModel, error) {
-	return s.userRepository.UpdateUserRepo(user)
+	user, err := s.userRepository.UpdateUserRepo(user)
+	if err != nil {
+		return models.UserGetModel{}, err
+	}
+
+	return helpers.UserConvertor(user), nil
 }
 
 func (s *userService) DeleteUser(id uint) error {

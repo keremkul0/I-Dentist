@@ -6,11 +6,11 @@ import (
 )
 
 type UserRepository interface {
-	GetUsersRepo(ClinicID uint) ([]models.UserGetModel, error)
-	GetUserRepo(id uint) (models.UserGetModel, error)
-	GetUserByEmailRepo(email string) (models.UserGetModel, error)
-	CreateUserRepo(user models.User) (models.UserGetModel, error)
-	UpdateUserRepo(user models.User) (models.UserGetModel, error)
+	GetUsersRepo(ClinicID uint) ([]models.User, error)
+	GetUserRepo(id uint) (models.User, error)
+	GetUserByEmailRepo(email string) (models.User, error)
+	CreateUserRepo(user models.User) (models.User, error)
+	UpdateUserRepo(user models.User) (models.User, error)
 	DeleteUserRepo(id uint) error
 	CheckUserExistRepo(user models.UserGetModel) bool
 }
@@ -23,30 +23,45 @@ type userRepository struct {
 	DB *gorm.DB
 }
 
-func (r *userRepository) GetUsersRepo(ClinicID uint) ([]models.UserGetModel, error) {
-	var users []models.UserGetModel
-	r.DB.Where("clinic_id = ?", ClinicID).Find(&users)
+func (r *userRepository) GetUsersRepo(ClinicID uint) ([]models.User, error) {
+	var users []models.User
+
+	result := r.DB.Where("clinic_id = ?", ClinicID).Find(&users)
+	if result.Error != nil {
+		return []models.User{}, result.Error
+	}
+
 	return users, nil
 }
 
-func (r *userRepository) GetUserRepo(id uint) (models.UserGetModel, error) {
-	var user models.UserGetModel
-	r.DB.First(&user, id)
+func (r *userRepository) GetUserRepo(id uint) (models.User, error) {
+	var user models.User
+
+	result := r.DB.Where("id = ?", id).First(&user)
+	if result.Error != nil {
+		return models.User{}, result.Error
+	}
+
 	return user, nil
 }
 
-func (r *userRepository) GetUserByEmailRepo(email string) (models.UserGetModel, error) {
-	var user models.UserGetModel
-	r.DB.Where("email = ?", email).First(&user)
+func (r *userRepository) GetUserByEmailRepo(email string) (models.User, error) {
+	var user models.User
+
+	result := r.DB.Where("email = ?", email).First(&user)
+	if result.Error != nil {
+		return models.User{}, result.Error
+	}
+
 	return user, nil
 }
 
-func (r *userRepository) CreateUserRepo(user models.User) (models.UserGetModel, error) {
+func (r *userRepository) CreateUserRepo(user models.User) (models.User, error) {
 	r.DB.Create(&user)
 	return r.GetUserRepo(user.ID)
 }
 
-func (r *userRepository) UpdateUserRepo(user models.User) (models.UserGetModel, error) {
+func (r *userRepository) UpdateUserRepo(user models.User) (models.User, error) {
 	r.DB.Save(&user)
 	return r.GetUserRepo(user.ID)
 }

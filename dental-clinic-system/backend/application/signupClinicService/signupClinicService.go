@@ -42,7 +42,8 @@ func (s *signUpClinicService) SignUpClinic(clinic models.Clinic, user models.Use
 	}
 
 	user.ClinicID = clinic.ID
-	userGetModel, err = s.userRepository.CreateUserRepo(user)
+	user, err = s.userRepository.CreateUserRepo(user)
+	userGetModel = helpers.UserConvertor(user)
 
 	if err != nil {
 		return models.Clinic{}, models.UserGetModel{}, err

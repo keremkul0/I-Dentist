@@ -35,7 +35,6 @@ func (r *clinicRepository) GetClinic(id uint) (models.Clinic, error) {
 }
 
 func (r *clinicRepository) CreateClinic(clinic models.Clinic) (models.Clinic, error) {
-
 	err := r.DB.Create(&clinic).Error
 	return clinic, err
 }
