@@ -9,7 +9,6 @@ type UserGetModel struct {
 	gorm.Model
 	NationalID  string    `json:"national_id"`
 	ClinicID    uint      `json:"clinic_id"`
-	Clinic      Clinic    `gorm:"foreignKey:ClinicID"`
 	Email       string    `json:"email"`
 	FirstName   string    `json:"first_name"`
 	LastName    string    `json:"last_name"`

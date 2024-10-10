@@ -21,7 +21,6 @@ func UserConvertor(user models.User) models.UserGetModel {
 		Roles:       user.Roles,
 		ClinicID:    user.ClinicID,
 		NationalID:  user.NationalID,
-		Clinic:      user.Clinic,
 		LastLogin:   user.LastLogin,
 		IsActive:    user.IsActive,
 		PhoneNumber: user.PhoneNumber,

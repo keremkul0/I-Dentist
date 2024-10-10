@@ -2,7 +2,7 @@ package authRepository
 
 import (
 	"dental-clinic-system/models"
-	"errors"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -24,14 +24,9 @@ func (r *authRepository) Login(email string, password string) (models.Auth, erro
 		return models.Auth{}, err
 	}
 
-	//Compare the password from the request with the password from the database
-	if user.Password != password {
-		return models.Auth{}, errors.New("Invalid email or password")
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		return models.Auth{}, err
 	}
-
-	//if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-	//	return models.Auth{}, err
-	//}
 
 	return models.Auth{
 		Email:    user.Email,
