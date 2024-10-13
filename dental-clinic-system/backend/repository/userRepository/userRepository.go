@@ -58,12 +58,12 @@ func (r *userRepository) GetUserByEmailRepo(email string) (models.User, error) {
 
 func (r *userRepository) CreateUserRepo(user models.User) (models.User, error) {
 	r.DB.Create(&user)
-	return r.GetUserRepo(user.ID)
+	return user, nil
 }
 
 func (r *userRepository) UpdateUserRepo(user models.User) (models.User, error) {
 	r.DB.Save(&user)
-	return r.GetUserRepo(user.ID)
+	return user, nil
 }
 
 func (r *userRepository) DeleteUserRepo(id uint) error {
