@@ -47,7 +47,7 @@ func TestSignUpClinic(t *testing.T) {
 		IsActive:      true,
 		PhoneNumber:   "987-654-3210",
 		PhoneVerified: true,
-		Roles:         []*models.Role{{Name: "Admin"}, {Name: "User"}},
+		Roles:         []*models.Role{{Model: gorm.Model{ID: 2}, Name: "Assistant"}, {Model: gorm.Model{ID: 3}, Name: "Intern"}},
 	}
 
 	userGetModel := models.UserGetModel{
@@ -58,7 +58,7 @@ func TestSignUpClinic(t *testing.T) {
 		LastLogin:   time.Now(),
 		IsActive:    true,
 		PhoneNumber: "987-654-3210",
-		Roles:       []*models.Role{{Name: "Admin"}, {Name: "User"}},
+		Roles:       []*models.Role{{Model: gorm.Model{ID: 2}, Name: "Assistant"}, {Model: gorm.Model{ID: 3}, Name: "Intern"}},
 	}
 
 	mockService.On("SignUpClinic", clinic, user).Return(clinic, userGetModel, nil)
@@ -68,10 +68,17 @@ func TestSignUpClinic(t *testing.T) {
 		"user":   user,
 	}
 	bodyBytes, _ := json.Marshal(body)
-	req, err := http.NewRequest("POST", "/signup", bytes.NewBuffer(bodyBytes))
+	req, err := http.NewRequest("POST", "/Singup", bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Check if the JSON body is valid
+	if !json.Valid(bodyBytes) {
+		t.Fatal("Invalid JSON body")
+	} else {
+		t.Log("Valid JSON body:", string(bodyBytes))
+	}
+
 	rr := httptest.NewRecorder()
 
 	handler.SignUpClinic(rr, req)
