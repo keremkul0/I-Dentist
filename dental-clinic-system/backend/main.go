@@ -2,25 +2,26 @@ package main
 
 import (
 	"dental-clinic-system/api/appointment"
-	"dental-clinic-system/api/auth"
 	"dental-clinic-system/api/clinic"
+	"dental-clinic-system/api/login"
 	"dental-clinic-system/api/patient"
 	"dental-clinic-system/api/procedure"
 	"dental-clinic-system/api/role"
 	"dental-clinic-system/api/signupClinic"
 	"dental-clinic-system/api/user"
 	"dental-clinic-system/application/appointmentService"
-	"dental-clinic-system/application/authService"
 	"dental-clinic-system/application/clinicService"
+	"dental-clinic-system/application/loginService"
 	"dental-clinic-system/application/patientService"
 	"dental-clinic-system/application/procedureService"
 	"dental-clinic-system/application/roleService"
 	"dental-clinic-system/application/signupClinicService"
 	"dental-clinic-system/application/userService"
+	"dental-clinic-system/middleware/authMiddleware"
 	"dental-clinic-system/models"
 	"dental-clinic-system/repository/appointmentRepository"
-	"dental-clinic-system/repository/authRepository"
 	"dental-clinic-system/repository/clinicRepository"
+	"dental-clinic-system/repository/loginRepository"
 	"dental-clinic-system/repository/patientRepository"
 	"dental-clinic-system/repository/procedureRepository"
 	"dental-clinic-system/repository/roleRepository"
@@ -80,15 +81,15 @@ func main() {
 	newSignUpClinic := signupClinic.NewSignUpClinicHandler(newSignUpClinicService)
 	signupClinic.RegisterSignupClinicRoutes(router, newSignUpClinic)
 
-	// Auth Handler
-	newAuthRepository := authRepository.NewAuthRepository(db)
-	newAuthService := authService.NewAuthService(newAuthRepository)
-	authHandler := auth.NewAuthHandlerController(newAuthService)
-	auth.RegisterAuthRoutes(router, authHandler)
+	// Login Handler
+	newLoginRepository := loginRepository.NewLoginRepository(db)
+	newLoginService := loginService.NewLoginService(newLoginRepository)
+	authHandler := login.NewLoginController(newLoginService)
+	login.RegisterAuthRoutes(router, authHandler)
 
-	// Auth Middleware
+	// Login Middleware
 	securedRouter := router.PathPrefix("/api").Subrouter()
-	securedRouter.Use(authHandler.AuthMiddleware)
+	securedRouter.Use(authMiddleware.AuthMiddleware)
 
 	// Clinic Handler
 	newUserClinicRepository := userRepository.NewUserRepository(db)
