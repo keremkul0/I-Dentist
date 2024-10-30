@@ -6,7 +6,7 @@ import (
 
 type Patient struct {
 	gorm.Model
-	NationalID     string `json:"national_id"`
+	NationalID     string `json:"national_id" gorm:"uniqueIndex"`
 	Name           string `json:"name"`
 	BirthDate      string `json:"birth_date"`
 	ContactInfo    string `json:"contact_info"`
