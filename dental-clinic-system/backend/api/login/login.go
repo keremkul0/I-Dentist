@@ -2,6 +2,7 @@ package login
 
 import (
 	"dental-clinic-system/application/loginService"
+	"dental-clinic-system/helpers"
 	"dental-clinic-system/models"
 	"encoding/json"
 	"net/http"
@@ -39,7 +40,7 @@ func (h *LoginHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(models.JwtKey)
+	tokenString, err := token.SignedString(helpers.GetJWTKey())
 	if err != nil {
 		http.Error(w, "Could not create token", http.StatusInternalServerError)
 		return

@@ -10,15 +10,15 @@ type LoginService interface {
 }
 
 type loginService struct {
-	authRepository loginRepository.LoginRepository
+	loginRepository loginRepository.LoginRepository
 }
 
-func NewLoginService(authRepository loginRepository.LoginRepository) *loginService {
+func NewLoginService(loginRepository loginRepository.LoginRepository) *loginService {
 	return &loginService{
-		authRepository: authRepository,
+		loginRepository: loginRepository,
 	}
 }
 
 func (s *loginService) Login(email string, password string) (models.Login, error) {
-	return s.authRepository.Login(email, password)
+	return s.loginRepository.Login(email, password)
 }

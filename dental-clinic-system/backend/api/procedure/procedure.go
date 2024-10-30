@@ -25,7 +25,11 @@ type ProcedureHandler struct {
 
 func (h *ProcedureHandler) GetProcedures(w http.ResponseWriter, r *http.Request) {
 
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
 
 	if err != nil {
@@ -54,7 +58,11 @@ func (h *ProcedureHandler) GetProcedure(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
 
 	if err != nil {
@@ -88,7 +96,11 @@ func (h *ProcedureHandler) CreateProcedure(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
 
 	if err != nil {
@@ -118,7 +130,11 @@ func (h *ProcedureHandler) UpdateProcedure(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
 
 	if err != nil {
@@ -153,7 +169,11 @@ func (h *ProcedureHandler) DeleteProcedure(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
 
 	if err != nil {

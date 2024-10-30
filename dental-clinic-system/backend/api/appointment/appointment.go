@@ -27,7 +27,12 @@ type AppointmentHandler struct {
 
 func (h *AppointmentHandler) GetAppointments(w http.ResponseWriter, r *http.Request) {
 
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
 	user, err := h.userService.GetUserByEmail(claims.Email)
 
 	if err != nil {
@@ -56,7 +61,11 @@ func (h *AppointmentHandler) GetAppointment(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
 
 	if err != nil {
@@ -88,7 +97,11 @@ func (h *AppointmentHandler) CreateAppointment(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
 
 	if err != nil {
@@ -116,7 +129,11 @@ func (h *AppointmentHandler) UpdateAppointment(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
 
 	if err != nil {
@@ -155,7 +172,11 @@ func (h *AppointmentHandler) DeleteAppointment(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
 
 	if err != nil {
