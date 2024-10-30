@@ -21,7 +21,11 @@ type PatientHandler struct {
 }
 
 func (h *PatientHandler) GetPatients(w http.ResponseWriter, r *http.Request) {
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
 
 	if err != nil {
@@ -55,7 +59,11 @@ func (h *PatientHandler) GetPatient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
 
 	if err != nil {
@@ -82,7 +90,11 @@ func (h *PatientHandler) CreatePatient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
 
 	if err != nil {
@@ -110,7 +122,11 @@ func (h *PatientHandler) UpdatePatient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
 
 	if err != nil {
@@ -150,7 +166,11 @@ func (h *PatientHandler) DeletePatient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
 
 	if err != nil {

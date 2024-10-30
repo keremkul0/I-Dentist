@@ -4,6 +4,7 @@ import (
 	"dental-clinic-system/api/appointment"
 	"dental-clinic-system/api/clinic"
 	"dental-clinic-system/api/login"
+	"dental-clinic-system/api/logout"
 	"dental-clinic-system/api/patient"
 	"dental-clinic-system/api/procedure"
 	"dental-clinic-system/api/role"
@@ -16,7 +17,10 @@ import (
 	"dental-clinic-system/application/procedureService"
 	"dental-clinic-system/application/roleService"
 	"dental-clinic-system/application/signupClinicService"
+	"dental-clinic-system/application/tokenService"
 	"dental-clinic-system/application/userService"
+	background_jobs "dental-clinic-system/background-jobs"
+	"dental-clinic-system/helpers"
 	"dental-clinic-system/middleware/authMiddleware"
 	"dental-clinic-system/models"
 	"dental-clinic-system/repository/appointmentRepository"
@@ -25,7 +29,9 @@ import (
 	"dental-clinic-system/repository/patientRepository"
 	"dental-clinic-system/repository/procedureRepository"
 	"dental-clinic-system/repository/roleRepository"
+	"dental-clinic-system/repository/tokenRepository"
 	"dental-clinic-system/repository/userRepository"
+	"dental-clinic-system/vault"
 
 	"fmt"
 	"github.com/gorilla/mux"
@@ -67,74 +73,71 @@ func main() {
 		&models.Procedure{},
 		&models.Role{},
 		&models.User{},
+		&models.ExpiredTokens{},
 	)
 	if err != nil {
 		log.Fatal("AutoMigrate error:", err)
 	}
 
+	jwtKey, err := vault.GetJWTKeyFromVault()
+	if err != nil {
+		log.Fatalf("Error retrieving JWT key from Vault: %v", err)
+	}
+	log.Printf("Retrieved JWT key: %s", jwtKey)
+	helpers.NewJWTKeyHelper(jwtKey)
+
 	router := mux.NewRouter()
 
-	// newSignUpClinicService
+	//Repositories
 	newClinicRepository := clinicRepository.NewClinicRepository(db)
+	newAppointmentRepository := appointmentRepository.NewAppointmentRepository(db)
+	newPatientRepository := patientRepository.NewPatientRepository(db)
+	newProcedureRepository := procedureRepository.NewProcedureRepository(db)
+	newRoleRepository := roleRepository.NewRoleRepository(db)
 	newUserRepository := userRepository.NewUserRepository(db)
-	newSignUpClinicService := signupClinicService.NewSignUpClinicService(newClinicRepository, newUserRepository)
-	newSignUpClinic := signupClinic.NewSignUpClinicHandler(newSignUpClinicService)
-	signupClinic.RegisterSignupClinicRoutes(router, newSignUpClinic)
-
-	// Login Handler
 	newLoginRepository := loginRepository.NewLoginRepository(db)
-	newLoginService := loginService.NewLoginService(newLoginRepository)
-	authHandler := login.NewLoginController(newLoginService)
-	login.RegisterAuthRoutes(router, authHandler)
+	newTokenRepository := tokenRepository.NewTokenRepository(db)
 
-	// Login Middleware
+	//Services
+	newClinicService := clinicService.NewClinicService(newClinicRepository)
+	newAppointmentService := appointmentService.NewAppointmentService(newAppointmentRepository)
+	newPatientService := patientService.NewPatientService(newPatientRepository)
+	newProcedureService := procedureService.NewProcedureService(newProcedureRepository)
+	newRoleService := roleService.NewRoleService(newRoleRepository)
+	newUserService := userService.NewUserService(newUserRepository)
+	newLoginService := loginService.NewLoginService(newLoginRepository)
+	newSignUpClinicService := signupClinicService.NewSignUpClinicService(newClinicRepository, newUserRepository)
+	newTokenService := tokenService.NewTokenService(newTokenRepository)
+
+	//background services
+	background_jobs.StartCleanExpiredJwtTokens(newTokenService)
+
+	//Handlers
+	newClinicHandler := clinic.NewClinicHandlerController(newClinicService, newUserService)
+	newAppointmentHandler := appointment.NewAppointmentHandlerController(newAppointmentService, newUserService)
+	newPatientHandler := patient.NewPatientController(newPatientService, newUserService)
+	newProcedureHandler := procedure.NewProcedureController(newProcedureService, newUserService)
+	newRoleHandler := role.NewRoleController(newRoleService)
+	newUserHandler := user.NewUserController(newUserService)
+	newLoginHandler := login.NewLoginController(newLoginService)
+	newSignUpClinicHandler := signupClinic.NewSignUpClinicHandler(newSignUpClinicService)
+	newLogoutHandler := logout.NewLogoutHandler(newTokenService)
+
+	//Middleware
 	securedRouter := router.PathPrefix("/api").Subrouter()
 	securedRouter.Use(authMiddleware.AuthMiddleware)
 
-	// Clinic Handler
-	newUserClinicRepository := userRepository.NewUserRepository(db)
-	newClinicRepository2 := clinicRepository.NewClinicRepository(db)
-	newClinicService := clinicService.NewClinicService(newClinicRepository2)
-	newUserClinicService := userService.NewUserService(newUserClinicRepository)
-	clinicHandler := clinic.NewClinicHandlerController(newClinicService, newUserClinicService)
-	clinic.RegisterClinicRoutes(securedRouter, clinicHandler)
+	//Routes
+	clinic.RegisterClinicRoutes(securedRouter, newClinicHandler)
+	appointment.RegisterAppointmentRoutes(securedRouter, newAppointmentHandler)
+	patient.RegisterPatientsRoutes(securedRouter, newPatientHandler)
+	procedure.RegisterProcedureRoutes(securedRouter, newProcedureHandler)
+	role.RegisterRoleRoutes(securedRouter, newRoleHandler)
+	user.RegisterUserRoutes(securedRouter, newUserHandler)
+	login.RegisterAuthRoutes(router, newLoginHandler)
+	signupClinic.RegisterSignupClinicRoutes(router, newSignUpClinicHandler)
+	logout.RegisterLogoutRoutes(securedRouter, newLogoutHandler)
 
-	// Appointment Handler
-	newUserAppointmentRepository := userRepository.NewUserRepository(db)
-	newAppointmentRepository := appointmentRepository.NewAppointmentRepository(db)
-	newAppointmentService := appointmentService.NewAppointmentService(newAppointmentRepository)
-	newUserAppointmentService := userService.NewUserService(newUserAppointmentRepository)
-	appointmentHandler := appointment.NewAppointmentHandlerController(newAppointmentService, newUserAppointmentService)
-	appointment.RegisterAppointmentRoutes(securedRouter, appointmentHandler)
-
-	// User Handler
-	newUserGetModelRepository2 := userRepository.NewUserRepository(db)
-	newUserService := userService.NewUserService(newUserGetModelRepository2)
-	userHandler := user.NewUserController(newUserService)
-	user.RegisterUserRoutes(securedRouter, userHandler)
-
-	// Role Handler
-	newRoleRepository := roleRepository.NewRoleRepository(db)
-	newRoleService := roleService.NewRoleService(newRoleRepository)
-	roleHandler := role.NewRoleController(newRoleService)
-	role.RegisterRoleRoutes(securedRouter, roleHandler)
-
-	// Procedure Handler
-	newProcedureRepository := procedureRepository.NewProcedureRepository(db)
-	newUserProcedureRepository := userRepository.NewUserRepository(db)
-	newProcedureService := procedureService.NewProcedureService(newProcedureRepository)
-	newUserProcedureService := userService.NewUserService(newUserProcedureRepository)
-	procedureHandler := procedure.NewProcedureController(newProcedureService, newUserProcedureService)
-	procedure.RegisterProcedureRoutes(securedRouter, procedureHandler)
-
-	// Patient Handler
-	newPatientRepository := patientRepository.NewPatientRepository(db)
-	newUserPatientRepository := userRepository.NewUserRepository(db)
-	newPatientService := patientService.NewPatientService(newPatientRepository)
-	newUserPatientService := userService.NewUserService(newUserPatientRepository)
-	patientHandler := patient.NewPatientController(newPatientService, newUserPatientService)
-	patient.RegisterPatientsRoutes(securedRouter, patientHandler)
-
-	log.Println("Starting server on :8080")
-	log.Fatal(http.ListenAndServe(":8080", router))
+	log.Println("Starting server on :8095")
+	log.Fatal(http.ListenAndServe(":8095", router))
 }

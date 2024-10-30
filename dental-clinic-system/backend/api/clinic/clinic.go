@@ -40,7 +40,11 @@ func (h *ClinicHandler) GetClinic(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid appointmentRepository ID", http.StatusBadRequest)
 		return
 	}
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -90,7 +94,11 @@ func (h *ClinicHandler) UpdateClinic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)

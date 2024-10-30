@@ -20,7 +20,11 @@ type UserHandler struct {
 
 func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
 
 	if err != nil {
@@ -48,7 +52,11 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
 
 	if err != nil {
@@ -81,7 +89,11 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	mainUser, err := h.userService.GetUserByEmail(claims.Email)
 
 	if err != nil {
@@ -123,7 +135,11 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	mainUser, err := h.userService.GetUserByEmail(claims.Email)
 
 	if err != nil {
@@ -156,7 +172,11 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims := helpers.TokenEmailHelper(r)
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	mainUser, err := h.userService.GetUserByEmail(claims.Email)
 
 	if err != nil {
