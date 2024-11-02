@@ -29,7 +29,7 @@ func (h *AppointmentHandler) GetAppointments(w http.ResponseWriter, r *http.Requ
 
 	claims, err := helpers.TokenEmailHelper(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
@@ -63,7 +63,7 @@ func (h *AppointmentHandler) GetAppointment(w http.ResponseWriter, r *http.Reque
 
 	claims, err := helpers.TokenEmailHelper(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
@@ -99,7 +99,7 @@ func (h *AppointmentHandler) CreateAppointment(w http.ResponseWriter, r *http.Re
 
 	claims, err := helpers.TokenEmailHelper(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
@@ -131,7 +131,7 @@ func (h *AppointmentHandler) UpdateAppointment(w http.ResponseWriter, r *http.Re
 
 	claims, err := helpers.TokenEmailHelper(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
@@ -174,7 +174,7 @@ func (h *AppointmentHandler) DeleteAppointment(w http.ResponseWriter, r *http.Re
 
 	claims, err := helpers.TokenEmailHelper(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 	user, err := h.userService.GetUserByEmail(claims.Email)

@@ -8,7 +8,8 @@ import (
 	"dental-clinic-system/api/patient"
 	"dental-clinic-system/api/procedure"
 	"dental-clinic-system/api/role"
-	"dental-clinic-system/api/signupClinic"
+	"dental-clinic-system/api/signUpClinic"
+	"dental-clinic-system/api/singUpUser"
 	"dental-clinic-system/api/user"
 	"dental-clinic-system/application/appointmentService"
 	"dental-clinic-system/application/clinicService"
@@ -16,13 +17,15 @@ import (
 	"dental-clinic-system/application/patientService"
 	"dental-clinic-system/application/procedureService"
 	"dental-clinic-system/application/roleService"
-	"dental-clinic-system/application/signupClinicService"
+	"dental-clinic-system/application/signUpClinicService"
+	"dental-clinic-system/application/singUpUserService"
 	"dental-clinic-system/application/tokenService"
 	"dental-clinic-system/application/userService"
 	background_jobs "dental-clinic-system/background-jobs"
 	"dental-clinic-system/helpers"
 	"dental-clinic-system/middleware/authMiddleware"
 	"dental-clinic-system/models"
+	"dental-clinic-system/redisService"
 	"dental-clinic-system/repository/appointmentRepository"
 	"dental-clinic-system/repository/clinicRepository"
 	"dental-clinic-system/repository/loginRepository"
@@ -32,7 +35,6 @@ import (
 	"dental-clinic-system/repository/tokenRepository"
 	"dental-clinic-system/repository/userRepository"
 	"dental-clinic-system/vault"
-
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -44,7 +46,6 @@ import (
 )
 
 func main() {
-
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatalf("Error loading .env file")
@@ -106,11 +107,9 @@ func main() {
 	newRoleService := roleService.NewRoleService(newRoleRepository)
 	newUserService := userService.NewUserService(newUserRepository)
 	newLoginService := loginService.NewLoginService(newLoginRepository)
-	newSignUpClinicService := signupClinicService.NewSignUpClinicService(newClinicRepository, newUserRepository)
+	newSignUpClinicService := signUpClinicService.NewSignUpClinicService(newClinicRepository, newUserRepository)
 	newTokenService := tokenService.NewTokenService(newTokenRepository)
-
-	//background services
-	background_jobs.StartCleanExpiredJwtTokens(newTokenService)
+	newSignUpUserService := singUpUserService.NewSignUpUserService(newUserRepository)
 
 	//Handlers
 	newClinicHandler := clinic.NewClinicHandlerController(newClinicService, newUserService)
@@ -120,24 +119,34 @@ func main() {
 	newRoleHandler := role.NewRoleController(newRoleService)
 	newUserHandler := user.NewUserController(newUserService)
 	newLoginHandler := login.NewLoginController(newLoginService)
-	newSignUpClinicHandler := signupClinic.NewSignUpClinicHandler(newSignUpClinicService)
-	newLogoutHandler := logout.NewLogoutHandler(newTokenService)
+	newSignUpClinicHandler := signUpClinic.NewSignUpClinicController(newSignUpClinicService)
+	newSignUpUserHandler := singUpUser.NewSignUpUserHandler(newSignUpUserService)
+	newLogoutHandler := logout.NewLogoutController(newTokenService)
 
 	//Middleware
 	securedRouter := router.PathPrefix("/api").Subrouter()
 	securedRouter.Use(authMiddleware.AuthMiddleware)
 
 	//Routes
+	login.RegisterAuthRoutes(router, newLoginHandler)
+	signUpClinic.RegisterSignupClinicRoutes(router, newSignUpClinicHandler)
+	singUpUser.RegisterSignupUserRoutes(router, newSignUpUserHandler)
+
+	//Secured Routes
 	clinic.RegisterClinicRoutes(securedRouter, newClinicHandler)
 	appointment.RegisterAppointmentRoutes(securedRouter, newAppointmentHandler)
 	patient.RegisterPatientsRoutes(securedRouter, newPatientHandler)
 	procedure.RegisterProcedureRoutes(securedRouter, newProcedureHandler)
 	role.RegisterRoleRoutes(securedRouter, newRoleHandler)
 	user.RegisterUserRoutes(securedRouter, newUserHandler)
-	login.RegisterAuthRoutes(router, newLoginHandler)
-	signupClinic.RegisterSignupClinicRoutes(router, newSignUpClinicHandler)
 	logout.RegisterLogoutRoutes(securedRouter, newLogoutHandler)
 
-	log.Println("Starting server on :8095")
-	log.Fatal(http.ListenAndServe(":8095", router))
+	//background services
+	background_jobs.StartCleanExpiredJwtTokens(newTokenService)
+
+	//Initialize Redis
+	redisService.InitializeRedis()
+
+	log.Println("Starting server on :8080")
+	log.Fatal(http.ListenAndServe(":8080", router))
 }

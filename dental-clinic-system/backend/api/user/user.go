@@ -10,12 +10,12 @@ import (
 	"strconv"
 )
 
-func NewUserController(service userService.UserService) *UserHandler {
-	return &UserHandler{userService: service}
-}
-
 type UserHandler struct {
 	userService userService.UserService
+}
+
+func NewUserController(service userService.UserService) *UserHandler {
+	return &UserHandler{userService: service}
 }
 
 func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {

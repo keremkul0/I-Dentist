@@ -42,12 +42,12 @@ func (h *ClinicHandler) GetClinic(w http.ResponseWriter, r *http.Request) {
 	}
 	claims, err := helpers.TokenEmailHelper(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
@@ -96,12 +96,12 @@ func (h *ClinicHandler) UpdateClinic(w http.ResponseWriter, r *http.Request) {
 
 	claims, err := helpers.TokenEmailHelper(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 	user, err := h.userService.GetUserByEmail(claims.Email)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 

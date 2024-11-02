@@ -25,5 +25,14 @@ services:
       - IPC_LOCK
     command: "server -dev"
 
+  redis:
+    image: redis:latest
+    container_name: redisService
+    ports:
+      - "6379:6379"  # Redis varsayılan portu
+    volumes:
+      - redisService-data:/data  # Redis verilerini saklamak için bir volume ekleyin
+
 volumes:
   postgres-data:
+  redis-data:
