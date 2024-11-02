@@ -6,17 +6,17 @@ import (
 	"time"
 )
 
-type LogoutHandler struct {
+type LogoutController struct {
 	tokenService tokenService.TokenService
 }
 
-func NewLogoutHandler(tokenService tokenService.TokenService) *LogoutHandler {
-	return &LogoutHandler{
+func NewLogoutController(tokenService tokenService.TokenService) *LogoutController {
+	return &LogoutController{
 		tokenService: tokenService,
 	}
 }
 
-func (h *LogoutHandler) Logout(w http.ResponseWriter, r *http.Request) {
+func (h *LogoutController) Logout(w http.ResponseWriter, r *http.Request) {
 	token, err := r.Cookie("token")
 	if err != nil {
 		http.Error(w, "No token found", http.StatusUnauthorized)

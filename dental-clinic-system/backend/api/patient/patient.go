@@ -55,13 +55,13 @@ func (h *PatientHandler) GetPatient(w http.ResponseWriter, r *http.Request) {
 	patient, err := h.patientService.GetPatient(uint(id))
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	claims, err := helpers.TokenEmailHelper(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	user, err := h.userService.GetUserByEmail(claims.Email)

@@ -2,7 +2,7 @@ package signupClinic_test
 
 import (
 	"bytes"
-	"dental-clinic-system/api/signupClinic"
+	"dental-clinic-system/api/signUpClinic"
 	"dental-clinic-system/models"
 	"encoding/json"
 	"gorm.io/gorm"
@@ -27,7 +27,7 @@ func (m *MockSignUpClinicService) SignUpClinic(clinic models.Clinic, user models
 
 func TestSignUpClinic(t *testing.T) {
 	mockService := new(MockSignUpClinicService)
-	handler := signupClinic.NewSignUpClinicHandler(mockService)
+	handler := signUpClinic.NewSignUpClinicController(mockService)
 
 	clinic := models.Clinic{
 		Model:       gorm.Model{ID: 1},

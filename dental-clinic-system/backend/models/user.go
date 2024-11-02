@@ -18,6 +18,7 @@ type User struct {
 	LastName      string    `json:"last_name"`
 	LastLogin     time.Time `json:"last_login"`
 	IsActive      bool      `json:"is_active"`
+	CountryCode   string    `json:"country_code"`
 	PhoneNumber   string    `json:"phone_number" gorm:"uniqueIndex"`
 	PhoneVerified bool      `json:"phone_verified"`
 	Roles         []*Role   `gorm:"many2many:user_roles;"`

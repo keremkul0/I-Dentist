@@ -1,11 +1,9 @@
 package vault
 
 import (
-	"context"
 	"errors"
 	"github.com/hashicorp/vault/api"
 	"os"
-	"time"
 )
 
 func ConnectVault() (*api.Client, error) {
@@ -46,20 +44,4 @@ func GetJWTKeyFromVault() ([]byte, error) {
 		return nil, errors.New("JWT key not found")
 	}
 	return []byte(jwtKey), nil
-}
-
-func AddTokenToVaultBlacklist(client *api.Client, token string, expiry time.Time) error {
-	data := map[string]interface{}{
-		"token":  token,
-		"expiry": expiry.Format(time.RFC3339),
-	}
-
-	// KV store’da saklayın (örnek yol: auth/blacklist/)
-	_, err := client.KVv2("auth-secrets").Put(context.Background(), "blacklist/"+token, data)
-	return err
-}
-
-func IsTokenBlacklisted(client *api.Client, token string) bool {
-	_, err := client.KVv2("auth-secrets").Get(context.Background(), "blacklist/"+token)
-	return err == nil
 }
