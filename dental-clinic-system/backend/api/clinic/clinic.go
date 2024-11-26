@@ -1,8 +1,6 @@
 package clinic
 
 import (
-	"dental-clinic-system/application/clinicService"
-	"dental-clinic-system/application/userService"
 	"dental-clinic-system/helpers"
 	"dental-clinic-system/models"
 	"encoding/json"
@@ -11,13 +9,25 @@ import (
 	"strconv"
 )
 
-func NewClinicHandlerController(clinicService clinicService.ClinicService, userService userService.UserService) *ClinicHandler {
+type UserService interface {
+	GetUserByEmail(email string) (models.UserGetModel, error)
+}
+
+type ClinicService interface {
+	GetClinics() ([]models.Clinic, error)
+	GetClinic(id uint) (models.Clinic, error)
+	CreateClinic(clinic models.Clinic) (models.Clinic, error)
+	UpdateClinic(clinic models.Clinic) (models.Clinic, error)
+	DeleteClinic(id uint) error
+}
+
+func NewClinicHandlerController(clinicService ClinicService, userService UserService) *ClinicHandler {
 	return &ClinicHandler{clinicService: clinicService, userService: userService}
 }
 
 type ClinicHandler struct {
-	clinicService clinicService.ClinicService
-	userService   userService.UserService
+	clinicService ClinicService
+	userService   UserService
 }
 
 func (h *ClinicHandler) GetClinics(w http.ResponseWriter, r *http.Request) {

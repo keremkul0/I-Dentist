@@ -1,8 +1,6 @@
 package patient
 
 import (
-	"dental-clinic-system/application/patientService"
-	"dental-clinic-system/application/userService"
 	"dental-clinic-system/helpers"
 	"dental-clinic-system/models"
 	"encoding/json"
@@ -11,13 +9,25 @@ import (
 	"strconv"
 )
 
-func NewPatientController(patientService patientService.PatientService, userService userService.UserService) *PatientHandler {
+type UserService interface {
+	GetUserByEmail(email string) (models.UserGetModel, error)
+}
+
+type PatientService interface {
+	GetPatients(ClinicID uint) ([]models.Patient, error)
+	GetPatient(id uint) (models.Patient, error)
+	CreatePatient(patient models.Patient) (models.Patient, error)
+	UpdatePatient(patient models.Patient) (models.Patient, error)
+	DeletePatient(id uint) error
+}
+
+func NewPatientController(patientService PatientService, userService UserService) *PatientHandler {
 	return &PatientHandler{patientService: patientService, userService: userService}
 }
 
 type PatientHandler struct {
-	patientService patientService.PatientService
-	userService    userService.UserService
+	patientService PatientService
+	userService    UserService
 }
 
 func (h *PatientHandler) GetPatients(w http.ResponseWriter, r *http.Request) {

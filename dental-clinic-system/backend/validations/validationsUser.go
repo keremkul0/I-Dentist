@@ -95,13 +95,11 @@ func UserPasswordValidation(user *models.User) error {
 }
 
 func ValidateUserPhones(user *models.User) error {
-	// Ülke kodu doğrulaması (1-3 haneli, opsiyonel olarak + işaretiyle başlayabilir)
 	countryCodePattern := `^\+?[0-9]{1,3}$`
 	if !regexp.MustCompile(countryCodePattern).MatchString(user.CountryCode) {
 		return errors.New("Country code must be 1 to 3 digits, and can start with '+'")
 	}
 
-	// Kişisel telefon numarası doğrulaması (10 haneli)
 	personalPhonePattern := `^[0-9]{10}$`
 	if !regexp.MustCompile(personalPhonePattern).MatchString(user.PhoneNumber) {
 		return errors.New("Personal phone number must be exactly 10 digits")
@@ -111,7 +109,6 @@ func ValidateUserPhones(user *models.User) error {
 }
 
 func ValidateUserNationalID(user *models.User) error {
-	// Kimlik numarası doğrulaması (11 haneli)
 	nationalIDPattern := `^[0-9]{11}$`
 	if !regexp.MustCompile(nationalIDPattern).MatchString(user.NationalID) {
 		return errors.New("National ID must be exactly 11 digits")

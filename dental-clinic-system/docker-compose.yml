@@ -13,26 +13,15 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
-  vault:
-    image: hashicorp/vault:latest
-    container_name: vault
-    environment:
-      VAULT_DEV_ROOT_TOKEN_ID: root
-      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
-    ports:
-      - "8200:8200"
-    cap_add:
-      - IPC_LOCK
-    command: "server -dev"
-
   redis:
     image: redis:latest
-    container_name: redisService
+    container_name: redis
     ports:
-      - "6379:6379"  # Redis varsayılan portu
+      - "6379:6379"
     volumes:
-      - redisService-data:/data  # Redis verilerini saklamak için bir volume ekleyin
+      - redis-data:/data
 
 volumes:
   postgres-data:
   redis-data:
+  vault-data:  # Volume to persist Vault data

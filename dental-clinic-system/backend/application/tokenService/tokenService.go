@@ -1,21 +1,20 @@
 package tokenService
 
 import (
-	"dental-clinic-system/repository/tokenRepository"
 	"time"
 )
 
-type TokenService interface {
-	DeleteExpiredTokensService()
-	AddTokenToBlacklistService(token string, expireTime time.Time)
-	IsTokenBlacklistedService(token string) bool
+type TokenRepository interface {
+	DeleteExpiredTokensRepo()
+	AddTokenToBlacklistRepo(token string, expireTime time.Time)
+	IsTokenBlacklistedRepo(token string) bool
 }
 
 type tokenService struct {
-	tokenRepository tokenRepository.TokenRepository
+	tokenRepository TokenRepository
 }
 
-func NewTokenService(tokenRepository tokenRepository.TokenRepository) *tokenService {
+func NewTokenService(tokenRepository TokenRepository) *tokenService {
 	return &tokenService{
 		tokenRepository: tokenRepository,
 	}

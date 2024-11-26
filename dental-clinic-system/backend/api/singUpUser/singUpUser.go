@@ -1,20 +1,20 @@
 package singUpUser
 
 import (
-	"dental-clinic-system/application/singUpUserService"
 	"dental-clinic-system/models"
-	"dental-clinic-system/redisService"
 	"encoding/json"
-	"github.com/google/uuid"
 	"net/http"
-	"time"
 )
 
-type SignUpUserHandler struct {
-	singUpUserService singUpUserService.SignUpUserService
+type SignUpUserService interface {
+	SignUpUserService(user models.User) (string, error)
 }
 
-func NewSignUpUserHandler(singUpUserService singUpUserService.SignUpUserService) *SignUpUserHandler {
+type SignUpUserHandler struct {
+	singUpUserService SignUpUserService
+}
+
+func NewSignUpUserHandler(singUpUserService SignUpUserService) *SignUpUserHandler {
 	return &SignUpUserHandler{
 		singUpUserService: singUpUserService,
 	}
@@ -30,23 +30,7 @@ func (s *SignUpUserHandler) SignUpUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err = s.singUpUserService.SignUpUserService(user)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-
-	// Kullanıcıyı Redis'e kaydet
-	ctx := r.Context()
-	userJSON, err := json.Marshal(user)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-
-	cacheKey := uuid.New().String()
-
-	err = redisService.Rdb.Set(ctx, cacheKey, userJSON, 10*time.Minute).Err()
+	cacheKey, err := s.singUpUserService.SignUpUserService(user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return

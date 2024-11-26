@@ -5,14 +5,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type PatientRepository interface {
-	GetPatients(ClinicID uint) ([]models.Patient, error)
-	GetPatient(id uint) (models.Patient, error)
-	CreatePatient(patient models.Patient) (models.Patient, error)
-	UpdatePatient(patient models.Patient) (models.Patient, error)
-	DeletePatient(id uint) error
-}
-
 func NewPatientRepository(db *gorm.DB) *patientRepository {
 	return &patientRepository{DB: db}
 }

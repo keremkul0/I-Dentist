@@ -1,7 +1,6 @@
 package login
 
 import (
-	"dental-clinic-system/application/loginService"
 	"dental-clinic-system/helpers"
 	"dental-clinic-system/models"
 	"encoding/json"
@@ -11,11 +10,15 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type LoginHandler struct {
-	loginService loginService.LoginService
+type LoginService interface {
+	Login(email string, password string) (models.Login, error)
 }
 
-func NewLoginController(service loginService.LoginService) *LoginHandler {
+type LoginHandler struct {
+	loginService LoginService
+}
+
+func NewLoginController(service LoginService) *LoginHandler {
 	return &LoginHandler{loginService: service}
 }
 

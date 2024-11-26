@@ -2,10 +2,9 @@ package patientService
 
 import (
 	"dental-clinic-system/models"
-	"dental-clinic-system/repository/patientRepository"
 )
 
-type PatientService interface {
+type PatientRepository interface {
 	GetPatients(ClinicID uint) ([]models.Patient, error)
 	GetPatient(id uint) (models.Patient, error)
 	CreatePatient(patient models.Patient) (models.Patient, error)
@@ -14,10 +13,10 @@ type PatientService interface {
 }
 
 type patientService struct {
-	patientRepository patientRepository.PatientRepository
+	patientRepository PatientRepository
 }
 
-func NewPatientService(patientRepository patientRepository.PatientRepository) *patientService {
+func NewPatientService(patientRepository PatientRepository) *patientService {
 	return &patientService{
 		patientRepository: patientRepository,
 	}

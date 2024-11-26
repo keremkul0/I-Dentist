@@ -1,16 +1,19 @@
 package logout
 
 import (
-	"dental-clinic-system/application/tokenService"
 	"net/http"
 	"time"
 )
 
-type LogoutController struct {
-	tokenService tokenService.TokenService
+type TokenService interface {
+	AddTokenToBlacklistService(token string, expireTime time.Time)
 }
 
-func NewLogoutController(tokenService tokenService.TokenService) *LogoutController {
+type LogoutController struct {
+	tokenService TokenService
+}
+
+func NewLogoutController(tokenService TokenService) *LogoutController {
 	return &LogoutController{
 		tokenService: tokenService,
 	}

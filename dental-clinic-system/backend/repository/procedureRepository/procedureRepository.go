@@ -5,14 +5,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type ProcedureRepository interface {
-	GetProcedures(ClinicID uint) ([]models.Procedure, error)
-	GetProcedure(id uint) (models.Procedure, error)
-	CreateProcedure(procedure models.Procedure) (models.Procedure, error)
-	UpdateProcedure(procedure models.Procedure) (models.Procedure, error)
-	DeleteProcedure(id uint) error
-}
-
 func NewProcedureRepository(db *gorm.DB) *procedureRepository {
 	return &procedureRepository{DB: db}
 }

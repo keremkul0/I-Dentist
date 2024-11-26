@@ -5,16 +5,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserRepository interface {
-	GetUsersRepo(ClinicID uint) ([]models.User, error)
-	GetUserRepo(id uint) (models.User, error)
-	GetUserByEmailRepo(email string) (models.User, error)
-	CreateUserRepo(user models.User) (models.User, error)
-	UpdateUserRepo(user models.User) (models.User, error)
-	DeleteUserRepo(id uint) error
-	CheckUserExistRepo(user models.UserGetModel) bool
-}
-
 func NewUserRepository(db *gorm.DB) *userRepository {
 	return &userRepository{DB: db}
 }

@@ -24,7 +24,7 @@ func TokenEmailHelper(r *http.Request) (*models.Claims, error) {
 		return nil, err
 	}
 	if !token.Valid {
-		return nil, errors.New("Token is invalid")
+		return nil, errors.New("token is invalid")
 	}
 
 	return claims, nil

@@ -5,14 +5,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type RoleRepository interface {
-	GetRoles() ([]models.Role, error)
-	GetRole(id uint) (models.Role, error)
-	CreateRole(role models.Role) (models.Role, error)
-	UpdateRole(role models.Role) (models.Role, error)
-	DeleteRole(id uint) error
-}
-
 func NewRoleRepository(db *gorm.DB) *roleRepository {
 	return &roleRepository{DB: db}
 }

@@ -1,19 +1,28 @@
 package authMiddleware
 
 import (
-	"dental-clinic-system/application/tokenService"
 	"dental-clinic-system/helpers"
 	"dental-clinic-system/models"
-	"dental-clinic-system/repository/tokenRepository"
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 	"net/http"
-	"os"
+	"time"
 )
 
-func AuthMiddleware(next http.Handler) http.Handler {
+type TokenService interface {
+	DeleteExpiredTokensService()
+	AddTokenToBlacklistService(token string, expireTime time.Time)
+	IsTokenBlacklistedService(token string) bool
+}
+type AuthMiddleware struct {
+	TokenService TokenService
+}
+
+func NewAuthMiddleware(tokenService TokenService) *AuthMiddleware {
+	return &AuthMiddleware{TokenService: tokenService}
+}
+
+func (auth *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("token")
 		if err != nil {
@@ -26,15 +35,8 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		tokenStr := cookie.Value
-		dsn := os.Getenv("DNS")
-		db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		newTokenRepository := tokenRepository.NewTokenRepository(db)
-		tokenServiceClient := tokenService.NewTokenService(newTokenRepository)
-		if tokenServiceClient.IsTokenBlacklistedService(tokenStr) {
+
+		if auth.TokenService.IsTokenBlacklistedService(tokenStr) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}

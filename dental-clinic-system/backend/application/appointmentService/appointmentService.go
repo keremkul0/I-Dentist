@@ -2,22 +2,23 @@ package appointmentService
 
 import (
 	"dental-clinic-system/models"
-	"dental-clinic-system/repository/appointmentRepository"
 )
 
-type AppointmentService interface {
-	GetAppointments(ClinicID uint) ([]models.Appointment, error)
-	GetAppointment(id uint) (models.Appointment, error)
-	CreateAppointment(appointment models.Appointment) (models.Appointment, error)
-	UpdateAppointment(appointment models.Appointment) (models.Appointment, error)
-	DeleteAppointment(id uint) error
+type AppointmentRepository interface {
+	GetAppointmentsRepo(ClinicID uint) ([]models.Appointment, error)
+	GetAppointmentRepo(id uint) (models.Appointment, error)
+	CreateAppointmentRepo(appointment models.Appointment) (models.Appointment, error)
+	UpdateAppointmentRepo(appointment models.Appointment) (models.Appointment, error)
+	DeleteAppointmentRepo(id uint) error
+	GetDoctorAppointmentsRepo(id uint) ([]models.Appointment, error)
+	GetPatientAppointmentsRepo(id uint) ([]models.Appointment, error)
 }
 
 type appointmentService struct {
-	appointmentRepository appointmentRepository.AppointmentRepository
+	appointmentRepository AppointmentRepository
 }
 
-func NewAppointmentService(appointmentRepository appointmentRepository.AppointmentRepository) *appointmentService {
+func NewAppointmentService(appointmentRepository AppointmentRepository) *appointmentService {
 	return &appointmentService{
 		appointmentRepository: appointmentRepository,
 	}
@@ -41,4 +42,12 @@ func (s *appointmentService) UpdateAppointment(appointment models.Appointment) (
 
 func (s *appointmentService) DeleteAppointment(id uint) error {
 	return s.appointmentRepository.DeleteAppointmentRepo(id)
+}
+
+func (s *appointmentService) GetDoctorAppointments(id uint) ([]models.Appointment, error) {
+	return s.appointmentRepository.GetDoctorAppointmentsRepo(id)
+}
+
+func (s *appointmentService) GetPatientAppointments(id uint) ([]models.Appointment, error) {
+	return s.appointmentRepository.GetPatientAppointmentsRepo(id)
 }

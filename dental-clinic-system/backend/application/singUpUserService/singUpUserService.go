@@ -2,40 +2,52 @@ package singUpUserService
 
 import (
 	"dental-clinic-system/helpers"
+	"dental-clinic-system/mapper"
 	"dental-clinic-system/models"
-	"dental-clinic-system/repository/userRepository"
 	"dental-clinic-system/validations"
 	"errors"
 )
 
-type SignUpUserService interface {
-	SignUpUserService(user models.User) (models.User, error)
+type UserRepository interface {
+	CheckUserExistRepo(user models.UserGetModel) bool
+}
+
+type CacheUserRepository interface {
+	CacheUserRepo(user models.User) (string, error)
 }
 
 type signUpUserService struct {
-	userRepository userRepository.UserRepository
+	userRepository      UserRepository
+	cacheUserRepository CacheUserRepository
 }
 
-func NewSignUpUserService(userRepository userRepository.UserRepository) *signUpUserService {
+func NewSignUpUserService(userRepository UserRepository, repository CacheUserRepository) *signUpUserService {
 	return &signUpUserService{
-		userRepository: userRepository,
+		userRepository:      userRepository,
+		cacheUserRepository: repository,
 	}
 }
 
-func (s *signUpUserService) SignUpUserService(user models.User) (models.User, error) {
+func (s *signUpUserService) SignUpUserService(user models.User) (string, error) {
 
 	err := validations.UserValidation(&user)
 
 	if err != nil {
-		return models.User{}, err
+		return "", errors.New("User validation error")
 	}
 
 	user.Password = helpers.HashPassword(user.Password)
-	userGetModel := helpers.UserConvertor(user)
+	userGetModel := mapper.UserMapper(user)
 
 	if s.userRepository.CheckUserExistRepo(userGetModel) {
-		return models.User{}, errors.New("User already exists")
+		return "", errors.New("User already exist")
 	}
 
-	return user, nil
+	userID, err := s.cacheUserRepository.CacheUserRepo(user)
+
+	if err != nil {
+		return "", errors.New("Cache user service error")
+	}
+
+	return userID, nil
 }

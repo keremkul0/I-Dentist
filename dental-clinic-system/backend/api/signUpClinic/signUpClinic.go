@@ -1,17 +1,20 @@
 package signUpClinic
 
 import (
-	"dental-clinic-system/application/signUpClinicService"
 	"dental-clinic-system/models"
 	"encoding/json"
 	"net/http"
 )
 
-type SignUpClinicController struct {
-	service signUpClinicService.SignUpClinicService
+type SignUpClinicService interface {
+	SignUpClinic(clinic models.Clinic, userCacheKey string) (models.Clinic, models.UserGetModel, error)
 }
 
-func NewSignUpClinicController(service signUpClinicService.SignUpClinicService) *SignUpClinicController {
+type SignUpClinicController struct {
+	service SignUpClinicService
+}
+
+func NewSignUpClinicController(service SignUpClinicService) *SignUpClinicController {
 	return &SignUpClinicController{service: service}
 }
 

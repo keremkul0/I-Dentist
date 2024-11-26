@@ -1,12 +1,15 @@
 package background_jobs
 
 import (
-	"dental-clinic-system/application/tokenService"
 	"fmt"
 	"github.com/robfig/cron/v3"
 )
 
-func StartCleanExpiredJwtTokens(tokenService tokenService.TokenService) {
+type TokenService interface {
+	DeleteExpiredTokensService()
+}
+
+func StartCleanExpiredJwtTokens(tokenService TokenService) {
 	c := cron.New()
 	cronExpression := fmt.Sprintf("@every %ds", 10)
 

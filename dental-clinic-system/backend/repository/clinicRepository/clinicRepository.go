@@ -5,15 +5,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type ClinicRepository interface {
-	GetClinics() ([]models.Clinic, error)
-	GetClinic(id uint) (models.Clinic, error)
-	CreateClinic(clinic models.Clinic) (models.Clinic, error)
-	UpdateClinic(clinic models.Clinic) (models.Clinic, error)
-	DeleteClinic(id uint) error
-	CheckClinicExist(clinic models.Clinic) bool
-}
-
 func NewClinicRepository(db *gorm.DB) *clinicRepository {
 	return &clinicRepository{DB: db}
 }

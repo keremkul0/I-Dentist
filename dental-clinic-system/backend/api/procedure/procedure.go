@@ -1,8 +1,6 @@
 package procedure
 
 import (
-	"dental-clinic-system/application/procedureService"
-	"dental-clinic-system/application/userService"
 	"dental-clinic-system/helpers"
 	"dental-clinic-system/models"
 	"encoding/json"
@@ -11,7 +9,19 @@ import (
 	"strconv"
 )
 
-func NewProcedureController(procedureService procedureService.ProcedureService, userService userService.UserService) *ProcedureHandler {
+type ProcedureService interface {
+	GetProcedures(ClinicID uint) ([]models.Procedure, error)
+	GetProcedure(id uint) (models.Procedure, error)
+	CreateProcedure(procedure models.Procedure) (models.Procedure, error)
+	UpdateProcedure(procedure models.Procedure) (models.Procedure, error)
+	DeleteProcedure(id uint) error
+}
+
+type UserService interface {
+	GetUserByEmail(email string) (models.UserGetModel, error)
+}
+
+func NewProcedureController(procedureService ProcedureService, userService UserService) *ProcedureHandler {
 	return &ProcedureHandler{
 		procedureService: procedureService,
 		userService:      userService,
@@ -19,8 +29,8 @@ func NewProcedureController(procedureService procedureService.ProcedureService, 
 }
 
 type ProcedureHandler struct {
-	procedureService procedureService.ProcedureService
-	userService      userService.UserService
+	procedureService ProcedureService
+	userService      UserService
 }
 
 func (h *ProcedureHandler) GetProcedures(w http.ResponseWriter, r *http.Request) {

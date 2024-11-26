@@ -1,8 +1,8 @@
 package user
 
 import (
-	"dental-clinic-system/application/userService"
 	"dental-clinic-system/helpers"
+	"dental-clinic-system/mapper"
 	"dental-clinic-system/models"
 	"encoding/json"
 	"github.com/gorilla/mux"
@@ -10,11 +10,21 @@ import (
 	"strconv"
 )
 
-type UserHandler struct {
-	userService userService.UserService
+type UserService interface {
+	GetUsers(ClinicID uint) ([]models.UserGetModel, error)
+	GetUser(id uint) (models.UserGetModel, error)
+	GetUserByEmail(email string) (models.UserGetModel, error)
+	CreateUser(user models.User) (models.UserGetModel, error)
+	UpdateUser(user models.User) (models.UserGetModel, error)
+	DeleteUser(id uint) error
+	CheckUserExist(user models.UserGetModel) bool
 }
 
-func NewUserController(service userService.UserService) *UserHandler {
+type UserHandler struct {
+	userService UserService
+}
+
+func NewUserController(service UserService) *UserHandler {
 	return &UserHandler{userService: service}
 }
 
@@ -81,6 +91,25 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *UserHandler) GetUserByEmail(w http.ResponseWriter, r *http.Request) {
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	user, err := h.userService.GetUserByEmail(claims.Email)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
@@ -106,7 +135,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tempUserGetModel := helpers.UserConvertor(user)
+	tempUserGetModel := mapper.UserMapper(user)
 	if h.userService.CheckUserExist(tempUserGetModel) {
 		http.Error(w, "User already exists", http.StatusBadRequest)
 		return
