@@ -5,16 +5,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type AppointmentRepository interface {
-	GetAppointmentsRepo(ClinicID uint) ([]models.Appointment, error)
-	GetAppointmentRepo(id uint) (models.Appointment, error)
-	CreateAppointmentRepo(appointment models.Appointment) (models.Appointment, error)
-	UpdateAppointmentRepo(appointment models.Appointment) (models.Appointment, error)
-	DeleteAppointmentRepo(id uint) error
-	GetDoctorAppointmentsRepo(id uint) ([]models.Appointment, error)
-	GetPatientAppointmentsRepo(id uint) ([]models.Appointment, error)
-}
-
 func NewAppointmentRepository(db *gorm.DB) *appointmentRepository {
 	return &appointmentRepository{DB: db}
 }

@@ -1,8 +1,6 @@
 package appointment
 
 import (
-	"dental-clinic-system/application/appointmentService"
-	"dental-clinic-system/application/userService"
 	"dental-clinic-system/helpers"
 	"dental-clinic-system/models"
 	"encoding/json"
@@ -12,17 +10,38 @@ import (
 	"net/http"
 )
 
-func NewAppointmentHandlerController(appointmentService appointmentService.AppointmentService, userService userService.UserService) *AppointmentHandler {
+type UserService interface {
+	GetUser(id uint) (models.UserGetModel, error)
+	GetUserByEmail(email string) (models.UserGetModel, error)
+}
+
+type AppointmentService interface {
+	GetAppointments(ClinicID uint) ([]models.Appointment, error)
+	GetAppointment(id uint) (models.Appointment, error)
+	CreateAppointment(appointment models.Appointment) (models.Appointment, error)
+	UpdateAppointment(appointment models.Appointment) (models.Appointment, error)
+	DeleteAppointment(id uint) error
+	GetDoctorAppointments(id uint) ([]models.Appointment, error)
+	GetPatientAppointments(id uint) ([]models.Appointment, error)
+}
+
+type PatientService interface {
+	GetPatient(id uint) (models.Patient, error)
+}
+
+func NewAppointmentHandlerController(appointmentService AppointmentService, userService UserService, patientService PatientService) *AppointmentHandler {
 
 	return &AppointmentHandler{
 		appointmentService: appointmentService,
 		userService:        userService,
+		patientService:     patientService,
 	}
 }
 
 type AppointmentHandler struct {
-	appointmentService appointmentService.AppointmentService
-	userService        userService.UserService
+	appointmentService AppointmentService
+	userService        UserService
+	patientService     PatientService
 }
 
 func (h *AppointmentHandler) GetAppointments(w http.ResponseWriter, r *http.Request) {
@@ -198,6 +217,97 @@ func (h *AppointmentHandler) DeleteAppointment(w http.ResponseWriter, r *http.Re
 	err = h.appointmentService.DeleteAppointment(uint(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *AppointmentHandler) GetDoctorAppointments(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	idStr := params["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid doctor ID", http.StatusBadRequest)
+		return
+	}
+
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	user, err := h.userService.GetUserByEmail(claims.Email)
+
+	if err != nil {
+		http.Error(w, "User not found", http.StatusUnauthorized)
+		return
+	}
+
+	doctor, err := h.userService.GetUser(uint(id))
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	if user.ClinicID != doctor.ClinicID {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	appointments, err := h.appointmentService.GetDoctorAppointments(uint(id))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(appointments)
+	if err != nil {
+		return
+	}
+}
+
+func (h *AppointmentHandler) GetPatientAppointments(w http.ResponseWriter, r *http.Request) {
+
+	params := mux.Vars(r)
+	idStr := params["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid patient ID", http.StatusBadRequest)
+		return
+	}
+
+	claims, err := helpers.TokenEmailHelper(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	user, err := h.userService.GetUserByEmail(claims.Email)
+
+	if err != nil {
+		http.Error(w, "User not found", http.StatusUnauthorized)
+		return
+	}
+
+	patient, err := h.patientService.GetPatient(uint(id))
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	if user.ClinicID != patient.ClinicID {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	appointments, err := h.appointmentService.GetPatientAppointments(uint(id))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(appointments)
+	if err != nil {
 		return
 	}
 }

@@ -2,22 +2,20 @@ package roleService
 
 import (
 	"dental-clinic-system/models"
-	"dental-clinic-system/repository/roleRepository"
 )
 
-type RoleService interface {
+type RoleRepository interface {
 	GetRoles() ([]models.Role, error)
 	GetRole(id uint) (models.Role, error)
 	CreateRole(role models.Role) (models.Role, error)
 	UpdateRole(role models.Role) (models.Role, error)
 	DeleteRole(id uint) error
 }
-
 type roleService struct {
-	roleRepository roleRepository.RoleRepository
+	roleRepository RoleRepository
 }
 
-func NewRoleService(roleRepository roleRepository.RoleRepository) *roleService {
+func NewRoleService(roleRepository RoleRepository) *roleService {
 	return &roleService{
 		roleRepository: roleRepository,
 	}

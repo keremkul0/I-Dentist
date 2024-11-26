@@ -65,7 +65,6 @@ func ClinicPhoneNumberValidation(clinic *models.Clinic) error {
 		return errors.New("Clinic phone number can not be empty")
 	}
 
-	// Kişisel telefon numarası doğrulaması (10 haneli)
 	personalPhonePattern := `^[0-9]{10}$`
 	if !regexp.MustCompile(personalPhonePattern).MatchString(clinic.PhoneNumber) {
 		return errors.New("Personal phone number must be exactly 10 digits")

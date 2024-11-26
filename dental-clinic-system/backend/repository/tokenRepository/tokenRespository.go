@@ -6,12 +6,6 @@ import (
 	"time"
 )
 
-type TokenRepository interface {
-	DeleteExpiredTokensRepo()
-	AddTokenToBlacklistRepo(token string, expireTime time.Time)
-	IsTokenBlacklistedRepo(token string) bool
-}
-
 func NewTokenRepository(db *gorm.DB) *tokenRepository {
 	return &tokenRepository{DB: db}
 }

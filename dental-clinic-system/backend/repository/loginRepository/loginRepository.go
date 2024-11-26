@@ -6,10 +6,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type LoginRepository interface {
-	Login(email string, password string) (models.Login, error)
-}
-
 func NewLoginRepository(db *gorm.DB) *loginRepository {
 	return &loginRepository{DB: db}
 }

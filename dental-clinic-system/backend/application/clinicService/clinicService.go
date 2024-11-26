@@ -2,10 +2,9 @@ package clinicService
 
 import (
 	"dental-clinic-system/models"
-	"dental-clinic-system/repository/clinicRepository"
 )
 
-type ClinicService interface {
+type ClinicRepository interface {
 	GetClinics() ([]models.Clinic, error)
 	GetClinic(id uint) (models.Clinic, error)
 	CreateClinic(clinic models.Clinic) (models.Clinic, error)
@@ -14,10 +13,10 @@ type ClinicService interface {
 }
 
 type clinicService struct {
-	clinicRepository clinicRepository.ClinicRepository
+	clinicRepository ClinicRepository
 }
 
-func NewClinicService(clinicRepository clinicRepository.ClinicRepository) *clinicService {
+func NewClinicService(clinicRepository ClinicRepository) *clinicService {
 	return &clinicService{
 		clinicRepository: clinicRepository,
 	}

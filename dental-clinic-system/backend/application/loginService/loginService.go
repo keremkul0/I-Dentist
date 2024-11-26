@@ -2,18 +2,17 @@ package loginService
 
 import (
 	"dental-clinic-system/models"
-	"dental-clinic-system/repository/loginRepository"
 )
 
-type LoginService interface {
+type LoginRepository interface {
 	Login(email string, password string) (models.Login, error)
 }
 
 type loginService struct {
-	loginRepository loginRepository.LoginRepository
+	loginRepository LoginRepository
 }
 
-func NewLoginService(loginRepository loginRepository.LoginRepository) *loginService {
+func NewLoginService(loginRepository LoginRepository) *loginService {
 	return &loginService{
 		loginRepository: loginRepository,
 	}

@@ -1,13 +1,13 @@
-package helpers
+package mapper
 
 import (
 	"dental-clinic-system/models"
 	"gorm.io/gorm"
 )
 
-// UserConvertor is a struct that contains the methods to convert a user model to a user get model
+// UserMapper is a struct that contains the methods to convert a user model to a user get model
 
-func UserConvertor(user models.User) models.UserGetModel {
+func UserMapper(user models.User) models.UserGetModel {
 	return models.UserGetModel{
 		Model: gorm.Model{
 			ID:        user.ID,

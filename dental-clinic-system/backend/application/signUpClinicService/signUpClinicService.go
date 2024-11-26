@@ -1,58 +1,61 @@
 package signUpClinicService
 
 import (
-	"context"
-	"dental-clinic-system/helpers"
+	"dental-clinic-system/mapper"
 	"dental-clinic-system/models"
-	"dental-clinic-system/redisService"
-	"dental-clinic-system/repository/clinicRepository"
-	"dental-clinic-system/repository/userRepository"
-	"encoding/json"
+	"dental-clinic-system/validations"
 	"errors"
-	"fmt"
-	"github.com/go-redis/redis/v8"
 )
 
-type SignUpClinicService interface {
-	SignUpClinic(clinic models.Clinic, userCacheKey string) (models.Clinic, models.UserGetModel, error)
+type UserRepository interface {
+	CreateUserRepo(user models.User) (models.User, error)
+	CheckUserExistRepo(user models.UserGetModel) bool
+}
+
+type ClinicRepository interface {
+	CreateClinic(clinic models.Clinic) (models.Clinic, error)
+	CheckClinicExist(clinic models.Clinic) bool
+}
+
+type CacheUserRepository interface {
+	GetUserRepo(cacheKey string) (models.User, error)
 }
 
 type signUpClinicService struct {
-	clinicRepository clinicRepository.ClinicRepository
-	userRepository   userRepository.UserRepository
+	clinicRepository ClinicRepository
+	userRepository   UserRepository
+	repository       CacheUserRepository
 }
 
-func NewSignUpClinicService(clinicRepository clinicRepository.ClinicRepository,
-	userRepository userRepository.UserRepository) *signUpClinicService {
+func NewSignUpClinicService(clinicRepository ClinicRepository,
+	userRepository UserRepository, repository CacheUserRepository) *signUpClinicService {
 	return &signUpClinicService{
 		clinicRepository: clinicRepository,
 		userRepository:   userRepository,
+		repository:       repository,
 	}
 }
 
 func (s *signUpClinicService) SignUpClinic(clinic models.Clinic, userCacheKey string) (models.Clinic, models.UserGetModel, error) {
 
-	ctx := context.Background()
-	val, err := redisService.Rdb.Get(ctx, userCacheKey).Result()
-	if errors.Is(err, redis.Nil) {
-		fmt.Println("Key does not exist")
-	} else if err != nil {
-		fmt.Println("Error retrieving data:", err)
-	}
+	user, err := s.repository.GetUserRepo(userCacheKey)
 
-	var user models.User
-	err = json.Unmarshal([]byte(val), &user)
 	if err != nil {
-		return models.Clinic{}, models.UserGetModel{}, fmt.Errorf("error unmarshalling user data: %v", err)
+		return models.Clinic{}, models.UserGetModel{}, errors.New("user not found")
 	}
 
-	userGetModel := helpers.UserConvertor(user)
+	userGetModel := mapper.UserMapper(user)
 	if s.userRepository.CheckUserExistRepo(userGetModel) {
 		return models.Clinic{}, models.UserGetModel{}, errors.New("user already exist")
 	}
 
 	if s.clinicRepository.CheckClinicExist(clinic) {
 		return models.Clinic{}, models.UserGetModel{}, errors.New("clinic already exist")
+	}
+
+	err = validations.ClinicValidation(&clinic)
+	if err != nil {
+		return models.Clinic{}, models.UserGetModel{}, errors.New("clinic validation error")
 	}
 
 	clinic, err = s.clinicRepository.CreateClinic(clinic)

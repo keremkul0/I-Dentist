@@ -21,11 +21,11 @@ import (
 	"dental-clinic-system/application/singUpUserService"
 	"dental-clinic-system/application/tokenService"
 	"dental-clinic-system/application/userService"
-	background_jobs "dental-clinic-system/background-jobs"
+	"dental-clinic-system/background-jobs"
 	"dental-clinic-system/helpers"
 	"dental-clinic-system/middleware/authMiddleware"
 	"dental-clinic-system/models"
-	"dental-clinic-system/redisService"
+	"dental-clinic-system/redis/redisRepository"
 	"dental-clinic-system/repository/appointmentRepository"
 	"dental-clinic-system/repository/clinicRepository"
 	"dental-clinic-system/repository/loginRepository"
@@ -35,36 +35,40 @@ import (
 	"dental-clinic-system/repository/tokenRepository"
 	"dental-clinic-system/repository/userRepository"
 	"dental-clinic-system/vault"
-	"fmt"
+	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"log"
 	"net/http"
 	"os"
 )
 
 func main() {
+
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	log.Info().Int("port", 8080).Msg("Starting server on port")
+
 	err := godotenv.Load(".env")
 	if err != nil {
-		log.Fatalf("Error loading .env file")
+		log.Fatal().Err(err).Msg("Error loading .env file")
+		panic(err)
 	}
 
 	dsn := os.Getenv("DNS")
 	db, err := gorm.Open(
 		postgres.Open(dsn),
-		//&gorm.Config{
-		//	Logger: logger.Default.LogMode(logger.Info),
-		//},
 	)
 
 	var result int
 	err = db.Raw("SELECT 1").Scan(&result).Error
 	if err != nil {
-		log.Fatal("Database connection test failed:", err)
+		log.Fatal().Err(err).Msg("Error connecting to database")
+		panic(err)
 	}
-	fmt.Println("Database connection successful")
+	log.Info().Msg("Database connection successful")
 	db.Exec("CREATE SCHEMA IF NOT EXISTS public")
 
 	err = db.AutoMigrate(
@@ -77,14 +81,34 @@ func main() {
 		&models.ExpiredTokens{},
 	)
 	if err != nil {
-		log.Fatal("AutoMigrate error:", err)
+		log.Fatal().Err(err).Msg("Error migrating models")
+		panic(err)
+	}
+
+	var Rdb *redis.Client
+	Rdb = redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+
+	_, err = Rdb.Ping(Rdb.Context()).Result()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error connecting to Redis")
+		panic(err)
+	}
+
+	if Rdb == nil {
+		log.Fatal().Msg("Redis client is nil")
+		panic(err)
 	}
 
 	jwtKey, err := vault.GetJWTKeyFromVault()
 	if err != nil {
-		log.Fatalf("Error retrieving JWT key from Vault: %v", err)
+		log.Fatal().Err(err).Msg("Error getting JWT key from vault")
+		panic(err)
 	}
-	log.Printf("Retrieved JWT key: %s", jwtKey)
+	log.Info().Str("JWT Key", string(jwtKey)).Msg("Retrieved JWT Key from Vault")
 	helpers.NewJWTKeyHelper(jwtKey)
 
 	router := mux.NewRouter()
@@ -99,6 +123,9 @@ func main() {
 	newLoginRepository := loginRepository.NewLoginRepository(db)
 	newTokenRepository := tokenRepository.NewTokenRepository(db)
 
+	//Redis Repository
+	newRedisRepository := redisRepository.NewRedisUserRepository(Rdb)
+
 	//Services
 	newClinicService := clinicService.NewClinicService(newClinicRepository)
 	newAppointmentService := appointmentService.NewAppointmentService(newAppointmentRepository)
@@ -107,13 +134,16 @@ func main() {
 	newRoleService := roleService.NewRoleService(newRoleRepository)
 	newUserService := userService.NewUserService(newUserRepository)
 	newLoginService := loginService.NewLoginService(newLoginRepository)
-	newSignUpClinicService := signUpClinicService.NewSignUpClinicService(newClinicRepository, newUserRepository)
+	newSignUpClinicService := signUpClinicService.NewSignUpClinicService(newClinicRepository, newUserRepository, newRedisRepository)
 	newTokenService := tokenService.NewTokenService(newTokenRepository)
-	newSignUpUserService := singUpUserService.NewSignUpUserService(newUserRepository)
+	newSignUpUserService := singUpUserService.NewSignUpUserService(newUserRepository, newRedisRepository)
+
+	//Middleware
+	newAuthMiddleware := authMiddleware.NewAuthMiddleware(newTokenService)
 
 	//Handlers
 	newClinicHandler := clinic.NewClinicHandlerController(newClinicService, newUserService)
-	newAppointmentHandler := appointment.NewAppointmentHandlerController(newAppointmentService, newUserService)
+	newAppointmentHandler := appointment.NewAppointmentHandlerController(newAppointmentService, newUserService, newPatientService)
 	newPatientHandler := patient.NewPatientController(newPatientService, newUserService)
 	newProcedureHandler := procedure.NewProcedureController(newProcedureService, newUserService)
 	newRoleHandler := role.NewRoleController(newRoleService)
@@ -125,7 +155,7 @@ func main() {
 
 	//Middleware
 	securedRouter := router.PathPrefix("/api").Subrouter()
-	securedRouter.Use(authMiddleware.AuthMiddleware)
+	securedRouter.Use(newAuthMiddleware.Authenticate)
 
 	//Routes
 	login.RegisterAuthRoutes(router, newLoginHandler)
@@ -144,9 +174,6 @@ func main() {
 	//background services
 	background_jobs.StartCleanExpiredJwtTokens(newTokenService)
 
-	//Initialize Redis
-	redisService.InitializeRedis()
-
-	log.Println("Starting server on :8080")
-	log.Fatal(http.ListenAndServe(":8080", router))
+	log.Info().Msg("Server started on port 8080")
+	log.Fatal().Err(http.ListenAndServe(":8080", router))
 }

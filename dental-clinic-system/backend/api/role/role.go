@@ -1,7 +1,6 @@
 package role
 
 import (
-	"dental-clinic-system/application/roleService"
 	"dental-clinic-system/models"
 	"encoding/json"
 	"github.com/gorilla/mux"
@@ -9,12 +8,20 @@ import (
 	"strconv"
 )
 
-func NewRoleController(roleService roleService.RoleService) *RoleHandler {
+type RoleService interface {
+	GetRoles() ([]models.Role, error)
+	GetRole(id uint) (models.Role, error)
+	CreateRole(role models.Role) (models.Role, error)
+	UpdateRole(role models.Role) (models.Role, error)
+	DeleteRole(id uint) error
+}
+
+func NewRoleController(roleService RoleService) *RoleHandler {
 	return &RoleHandler{roleService: roleService}
 }
 
 type RoleHandler struct {
-	roleService roleService.RoleService
+	roleService RoleService
 }
 
 func (h *RoleHandler) GetRoles(w http.ResponseWriter, r *http.Request) {
