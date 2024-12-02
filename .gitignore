@@ -21,7 +21,7 @@
 go.work
 
 # Environment file
-backend/.env
+dental-clinic-system/backend/.env
 qodana.yaml
-vault-config/
-vault-data/
+dental-clinic-system/vault-config/
+dental-clinic-system/vault-data/
