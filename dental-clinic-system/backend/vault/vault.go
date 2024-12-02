@@ -69,7 +69,7 @@ func GetJWTKeyFromVault() ([]byte, error) {
 		return nil, errors.New("data could not be retrieved from Vault or secret/jwt_token not found")
 	}
 
-	jwtKey, ok := secret.Data["value"].(string)
+	jwtKey, ok := secret.Data["token"].(string)
 	if !ok || jwtKey == "" {
 		return nil, errors.New("JWT key not found or format is incorrect")
 	}

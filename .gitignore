@@ -19,3 +19,9 @@
 
 # Go workspace file
 go.work
+
+# Environment file
+backend/.env
+qodana.yaml
+vault-config/
+vault-data/
