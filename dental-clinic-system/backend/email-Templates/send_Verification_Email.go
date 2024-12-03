@@ -1,18 +1,17 @@
-package email_verification
+package email_Templates
 
 import (
 	"gopkg.in/gomail.v2"
 )
 
-func SendVerificationEmail(email, token string) error {
+func CreateVerificationEmail(email, token string) (gomail.Message, error) {
+
 	m := gomail.NewMessage()
 	m.SetHeader("From", "noreply@i-dentist.com")
 	m.SetHeader("To", email)
 	m.SetHeader("Subject", "E-posta Doğrulama")
 	m.SetBody("text/plain", "Doğrulama için aşağıdaki bağlantıya tıklayın:\n\n"+
-		"http://localhost:3000/verify-email?token="+token)
+		"http://localhost:8080/verify-email?token="+token)
 
-	d := gomail.NewDialer("smtp.example.com", 587, "username", "password")
-
-	return d.DialAndSend(m)
+	return *m, nil
 }

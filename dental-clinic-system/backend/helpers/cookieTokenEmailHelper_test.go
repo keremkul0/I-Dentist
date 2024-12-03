@@ -62,13 +62,13 @@ func TestTokenEmailHelper(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := tt.setup()
-			claims, err := TokenEmailHelper(req)
+			claims, err := CookieTokenEmailHelper(req)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("TokenEmailHelper() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("CookieTokenEmailHelper() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if err == nil && claims.Email != tt.wantEmail {
-				t.Errorf("TokenEmailHelper() email = %v, want %v", claims.Email, tt.wantEmail)
+				t.Errorf("CookieTokenEmailHelper() email = %v, want %v", claims.Email, tt.wantEmail)
 			}
 		})
 	}

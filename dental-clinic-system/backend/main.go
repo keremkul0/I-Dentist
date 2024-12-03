@@ -8,11 +8,14 @@ import (
 	"dental-clinic-system/api/patient"
 	"dental-clinic-system/api/procedure"
 	"dental-clinic-system/api/role"
+	"dental-clinic-system/api/sendEmail"
 	"dental-clinic-system/api/signUpClinic"
 	"dental-clinic-system/api/singUpUser"
 	"dental-clinic-system/api/user"
+	"dental-clinic-system/api/verifyEmail"
 	"dental-clinic-system/application/appointmentService"
 	"dental-clinic-system/application/clinicService"
+	"dental-clinic-system/application/emailService"
 	"dental-clinic-system/application/loginService"
 	"dental-clinic-system/application/patientService"
 	"dental-clinic-system/application/procedureService"
@@ -40,10 +43,12 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"gopkg.in/gomail.v2"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 func main() {
@@ -98,10 +103,13 @@ func main() {
 		panic(err)
 	}
 
-	if Rdb == nil {
-		log.Fatal().Msg("Redis client is nil")
+	emailPort, err := strconv.Atoi(os.Getenv("Email_port"))
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error parsing email port")
 		panic(err)
 	}
+
+	Mail := gomail.NewDialer(os.Getenv("Email_host"), emailPort, os.Getenv("Email_user"), os.Getenv("Email_password"))
 
 	jwtKey, err := vault.GetJWTKeyFromVault()
 	if err != nil {
@@ -137,6 +145,7 @@ func main() {
 	newSignUpClinicService := signUpClinicService.NewSignUpClinicService(newClinicRepository, newUserRepository, newRedisRepository)
 	newTokenService := tokenService.NewTokenService(newTokenRepository)
 	newSignUpUserService := singUpUserService.NewSignUpUserService(newUserRepository, newRedisRepository)
+	newEmailService := emailService.NewEmailService(newUserRepository, newTokenRepository, *Mail)
 
 	//Middleware
 	newAuthMiddleware := authMiddleware.NewAuthMiddleware(newTokenService)
@@ -152,6 +161,8 @@ func main() {
 	newSignUpClinicHandler := signUpClinic.NewSignUpClinicController(newSignUpClinicService)
 	newSignUpUserHandler := singUpUser.NewSignUpUserHandler(newSignUpUserService)
 	newLogoutHandler := logout.NewLogoutController(newTokenService)
+	newVerifyEmailHandler := verifyEmail.NewVerifyEmailController(newEmailService)
+	newSendEmailHandler := sendEmail.NewSendEmailController(newEmailService)
 
 	//Middleware
 	securedRouter := router.PathPrefix("/api").Subrouter()
@@ -161,6 +172,7 @@ func main() {
 	login.RegisterAuthRoutes(router, newLoginHandler)
 	signUpClinic.RegisterSignupClinicRoutes(router, newSignUpClinicHandler)
 	singUpUser.RegisterSignupUserRoutes(router, newSignUpUserHandler)
+	verifyEmail.RegisterVerifyEmailRoutes(router, newVerifyEmailHandler)
 
 	//Secured Routes
 	clinic.RegisterClinicRoutes(securedRouter, newClinicHandler)
@@ -170,6 +182,7 @@ func main() {
 	role.RegisterRoleRoutes(securedRouter, newRoleHandler)
 	user.RegisterUserRoutes(securedRouter, newUserHandler)
 	logout.RegisterLogoutRoutes(securedRouter, newLogoutHandler)
+	sendEmail.RegisterSendEmailRoutes(securedRouter, newSendEmailHandler)
 
 	//background services
 	background_jobs.StartCleanExpiredJwtTokens(newTokenService)
