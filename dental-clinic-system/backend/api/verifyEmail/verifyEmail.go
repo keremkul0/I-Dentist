@@ -31,7 +31,10 @@ func (h *VerifyEmailHandler) VerifyUserEmail(w http.ResponseWriter, r *http.Requ
 	}
 
 	if h.EmailService.VerifyUserEmail(token, claims.Email) {
-		http.Redirect(w, r, "/verify-email-success", http.StatusSeeOther)
+		_, err := w.Write([]byte("Email verified"))
+		if err != nil {
+			return
+		}
 		return
 	}
 
