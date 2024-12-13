@@ -1,7 +1,7 @@
 package emailService
 
 import (
-	email_Templates "dental-clinic-system/email-Templates"
+	email_Templates "dental-clinic-system/email-templates"
 	"dental-clinic-system/models"
 	"gopkg.in/gomail.v2"
 	"time"
@@ -39,7 +39,7 @@ func (s *emailService) SendVerificationEmail(email, token string) error {
 		return err
 	}
 
-	return s.Email.DialAndSend(&m)
+	return s.Email.DialAndSend(m)
 }
 
 func (s *emailService) VerifyUserEmail(token string, email string) bool {
