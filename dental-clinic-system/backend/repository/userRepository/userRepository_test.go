@@ -98,7 +98,7 @@ func TestUserRepository(t *testing.T) {
 		}
 	})
 
-	t.Run("GetUserRepo", func(t *testing.T) {
+	t.Run("GetData", func(t *testing.T) {
 		user, err := repo.GetUserRepo(1)
 		if err != nil {
 			t.Fatalf("Failed to get user: %v", err)
@@ -108,7 +108,7 @@ func TestUserRepository(t *testing.T) {
 		}
 	})
 
-	t.Run("GetUserRepo", func(t *testing.T) {
+	t.Run("GetData", func(t *testing.T) {
 		user, err := repo.GetUserRepo(3)
 		if err == nil {
 			t.Fatalf("Expected error, got nil")

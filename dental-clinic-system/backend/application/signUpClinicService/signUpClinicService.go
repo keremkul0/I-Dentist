@@ -17,30 +17,34 @@ type ClinicRepository interface {
 	CheckClinicExist(clinic models.Clinic) bool
 }
 
-type CacheUserRepository interface {
-	GetUserRepo(cacheKey string) (models.User, error)
+type RedisRepository interface {
+	GetData(key string) (any, error)
 }
 
 type signUpClinicService struct {
 	clinicRepository ClinicRepository
 	userRepository   UserRepository
-	repository       CacheUserRepository
+	redisRepository  RedisRepository
 }
 
 func NewSignUpClinicService(clinicRepository ClinicRepository,
-	userRepository UserRepository, repository CacheUserRepository) *signUpClinicService {
+	userRepository UserRepository, redisRepository RedisRepository) *signUpClinicService {
 	return &signUpClinicService{
 		clinicRepository: clinicRepository,
 		userRepository:   userRepository,
-		repository:       repository,
+		redisRepository:  redisRepository,
 	}
 }
 
 func (s *signUpClinicService) SignUpClinic(clinic models.Clinic, userCacheKey string) (models.Clinic, models.UserGetModel, error) {
 
-	user, err := s.repository.GetUserRepo(userCacheKey)
-
+	data, err := s.redisRepository.GetData(userCacheKey)
 	if err != nil {
+		return models.Clinic{}, models.UserGetModel{}, errors.New("user not found")
+	}
+
+	user, ok := data.(models.User)
+	if !ok {
 		return models.Clinic{}, models.UserGetModel{}, errors.New("user not found")
 	}
 
