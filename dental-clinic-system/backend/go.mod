@@ -10,7 +10,6 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/hashicorp/vault/api v1.15.0
-	github.com/joho/godotenv v1.5.1
 	github.com/robfig/cron/v3 v3.0.0
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/viper v1.19.0
