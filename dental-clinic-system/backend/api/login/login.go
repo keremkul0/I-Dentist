@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
-
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type LoginService interface {
@@ -34,16 +32,8 @@ func (h *LoginHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expirationTime := time.Now().Add(24 * time.Hour)
-	claims := &models.Claims{
-		Email: user.Email,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expirationTime),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(helpers.GetJWTKey())
+	expirationTime := time.Now().Add(time.Hour * 24)
+	tokenString, err := helpers.GenerateJWTToken(user.Email, expirationTime)
 	if err != nil {
 		http.Error(w, "Could not create token", http.StatusInternalServerError)
 		return

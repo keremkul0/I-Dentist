@@ -31,7 +31,7 @@ type PatientHandler struct {
 }
 
 func (h *PatientHandler) GetPatients(w http.ResponseWriter, r *http.Request) {
-	claims, err := helpers.TokenEmailHelper(r)
+	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -69,7 +69,7 @@ func (h *PatientHandler) GetPatient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := helpers.TokenEmailHelper(r)
+	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -100,7 +100,7 @@ func (h *PatientHandler) CreatePatient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := helpers.TokenEmailHelper(r)
+	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -132,7 +132,7 @@ func (h *PatientHandler) UpdatePatient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := helpers.TokenEmailHelper(r)
+	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -176,7 +176,7 @@ func (h *PatientHandler) DeletePatient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := helpers.TokenEmailHelper(r)
+	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return

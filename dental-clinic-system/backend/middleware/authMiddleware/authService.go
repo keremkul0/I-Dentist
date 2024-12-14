@@ -34,16 +34,16 @@ func (auth *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 			return
 		}
 
-		tokenStr := cookie.Value
-
-		if auth.TokenService.IsTokenBlacklistedService(tokenStr) {
+		if auth.TokenService.IsTokenBlacklistedService(cookie.Value) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
+
 		claims := &models.Claims{}
-		token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+		token, err := jwt.ParseWithClaims(cookie.Value, claims, func(token *jwt.Token) (interface{}, error) {
 			return helpers.GetJWTKey(), nil
 		})
+
 		if err != nil {
 			if errors.Is(jwt.ErrSignatureInvalid, err) {
 				w.WriteHeader(http.StatusUnauthorized)

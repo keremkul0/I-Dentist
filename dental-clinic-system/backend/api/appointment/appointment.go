@@ -46,7 +46,7 @@ type AppointmentHandler struct {
 
 func (h *AppointmentHandler) GetAppointments(w http.ResponseWriter, r *http.Request) {
 
-	claims, err := helpers.TokenEmailHelper(r)
+	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -80,7 +80,7 @@ func (h *AppointmentHandler) GetAppointment(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	claims, err := helpers.TokenEmailHelper(r)
+	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -116,7 +116,7 @@ func (h *AppointmentHandler) CreateAppointment(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	claims, err := helpers.TokenEmailHelper(r)
+	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -148,7 +148,7 @@ func (h *AppointmentHandler) UpdateAppointment(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	claims, err := helpers.TokenEmailHelper(r)
+	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -191,7 +191,7 @@ func (h *AppointmentHandler) DeleteAppointment(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	claims, err := helpers.TokenEmailHelper(r)
+	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -230,7 +230,7 @@ func (h *AppointmentHandler) GetDoctorAppointments(w http.ResponseWriter, r *htt
 		return
 	}
 
-	claims, err := helpers.TokenEmailHelper(r)
+	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -276,7 +276,7 @@ func (h *AppointmentHandler) GetPatientAppointments(w http.ResponseWriter, r *ht
 		return
 	}
 
-	claims, err := helpers.TokenEmailHelper(r)
+	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
