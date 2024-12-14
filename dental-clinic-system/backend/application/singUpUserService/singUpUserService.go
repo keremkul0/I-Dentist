@@ -12,19 +12,19 @@ type UserRepository interface {
 	CheckUserExistRepo(user models.UserGetModel) bool
 }
 
-type CacheUserRepository interface {
-	CacheUserRepo(user models.User) (string, error)
+type RedisRepository interface {
+	SetData(data any) (string, error)
 }
 
 type signUpUserService struct {
-	userRepository      UserRepository
-	cacheUserRepository CacheUserRepository
+	userRepository  UserRepository
+	redisRepository RedisRepository
 }
 
-func NewSignUpUserService(userRepository UserRepository, repository CacheUserRepository) *signUpUserService {
+func NewSignUpUserService(userRepository UserRepository, redisRepository RedisRepository) *signUpUserService {
 	return &signUpUserService{
-		userRepository:      userRepository,
-		cacheUserRepository: repository,
+		userRepository:  userRepository,
+		redisRepository: redisRepository,
 	}
 }
 
@@ -43,7 +43,7 @@ func (s *signUpUserService) SignUpUserService(user models.User) (string, error) 
 		return "", errors.New("User already exist")
 	}
 
-	userID, err := s.cacheUserRepository.CacheUserRepo(user)
+	userID, err := s.redisRepository.SetData(user)
 
 	if err != nil {
 		return "", errors.New("Cache user service error")

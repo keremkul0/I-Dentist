@@ -35,7 +35,7 @@ type ProcedureHandler struct {
 
 func (h *ProcedureHandler) GetProcedures(w http.ResponseWriter, r *http.Request) {
 
-	claims, err := helpers.TokenEmailHelper(r)
+	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -68,7 +68,7 @@ func (h *ProcedureHandler) GetProcedure(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	claims, err := helpers.TokenEmailHelper(r)
+	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -106,7 +106,7 @@ func (h *ProcedureHandler) CreateProcedure(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	claims, err := helpers.TokenEmailHelper(r)
+	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -140,7 +140,7 @@ func (h *ProcedureHandler) UpdateProcedure(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	claims, err := helpers.TokenEmailHelper(r)
+	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -179,7 +179,7 @@ func (h *ProcedureHandler) DeleteProcedure(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	claims, err := helpers.TokenEmailHelper(r)
+	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return

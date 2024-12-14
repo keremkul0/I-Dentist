@@ -109,7 +109,7 @@ func ValidateUserPhones(user *models.User) error {
 }
 
 func ValidateUserNationalID(user *models.User) error {
-	nationalIDPattern := `^[0-9]{11}$`
+	nationalIDPattern := `^[1-9]{1}[0-9]{9}[02468]{1}$`
 	if !regexp.MustCompile(nationalIDPattern).MatchString(user.NationalID) {
 		return errors.New("National ID must be exactly 11 digits")
 	}

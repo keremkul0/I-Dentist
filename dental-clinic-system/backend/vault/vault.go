@@ -1,44 +1,42 @@
 package vault
 
 import (
-	"errors"
+	"dental-clinic-system/config"
 	"fmt"
 	"github.com/hashicorp/vault/api"
-	"github.com/joho/godotenv"
+
 	"github.com/rs/zerolog/log"
-	"os"
 )
 
-func ConnectVault() (*api.Client, error) {
-	err := godotenv.Load()
-	if err != nil {
-		return nil, fmt.Errorf("error loading .env file: %v", err)
-	}
+func ConnectVault(vaultConfig config.VaultConfig) (*api.Client, error) {
 
-	config := api.DefaultConfig()
-	config.Address = os.Getenv("VAULT_ADDR")
+	defaultConfig := api.DefaultConfig()
+	defaultConfig.Address = vaultConfig.Addr
 
-	client, err := api.NewClient(config)
+	client, err := api.NewClient(defaultConfig)
 	if err != nil {
+		log.Fatal().Err(err).Msg("Error creating vault client")
 		return nil, err
 	}
 
-	client.SetToken(os.Getenv("Initial_Root_Token"))
+	client.SetToken(vaultConfig.InitialRootToken)
 
 	sealStatus, err := client.Sys().SealStatus()
 	if err != nil {
+		log.Fatal().Err(err).Msg("Error getting vault seal status")
 		return nil, err
 	}
 
 	if sealStatus.Sealed {
-		for i := 1; i <= 5; i++ {
-			unsealKey := os.Getenv(fmt.Sprintf("Unseal_Key_%d", i))
-			if unsealKey == "" {
-				return nil, fmt.Errorf("unseal key %d not found", i)
-			}
+		for _, unsealKey := range vaultConfig.UnsealKeys {
 
+			if unsealKey == "" {
+				log.Fatal().Msg("Unseal key not found")
+				return nil, fmt.Errorf("unseal key not found")
+			}
 			if unsealResponse, err := client.Sys().Unseal(unsealKey); err != nil {
-				return nil, fmt.Errorf("vault unseal failed: %v", err)
+				log.Fatal().Err(err).Msg("Error unsealing vault")
+				return nil, err
 			} else if !unsealResponse.Sealed {
 				log.Info().Msg("Vault successfully unsealed")
 				break
@@ -46,33 +44,11 @@ func ConnectVault() (*api.Client, error) {
 		}
 
 		if sealStatus, err = client.Sys().SealStatus(); err != nil || sealStatus.Sealed {
-			return nil, fmt.Errorf("vault unseal failed")
+			log.Fatal().Err(err).Msg("Error unsealing vault")
+			return nil, err
 		}
 	} else {
 		log.Info().Msg("Vault is already unsealed")
 	}
 	return client, nil
-}
-
-func GetJWTKeyFromVault() ([]byte, error) {
-	client, err := ConnectVault()
-	if err != nil {
-		return nil, err
-	}
-
-	secret, err := client.Logical().Read("secret/jwt_token")
-	if err != nil {
-		return nil, err
-	}
-
-	if secret == nil || secret.Data == nil {
-		return nil, errors.New("data could not be retrieved from Vault or secret/jwt_token not found")
-	}
-
-	jwtKey, ok := secret.Data["value"].(string)
-	if !ok || jwtKey == "" {
-		return nil, errors.New("JWT key not found or format is incorrect")
-	}
-
-	return []byte(jwtKey), nil
 }

@@ -8,11 +8,14 @@ import (
 	"dental-clinic-system/api/patient"
 	"dental-clinic-system/api/procedure"
 	"dental-clinic-system/api/role"
+	"dental-clinic-system/api/sendEmail"
 	"dental-clinic-system/api/signUpClinic"
 	"dental-clinic-system/api/singUpUser"
 	"dental-clinic-system/api/user"
+	"dental-clinic-system/api/verifyEmail"
 	"dental-clinic-system/application/appointmentService"
 	"dental-clinic-system/application/clinicService"
+	"dental-clinic-system/application/emailService"
 	"dental-clinic-system/application/loginService"
 	"dental-clinic-system/application/patientService"
 	"dental-clinic-system/application/procedureService"
@@ -22,94 +25,46 @@ import (
 	"dental-clinic-system/application/tokenService"
 	"dental-clinic-system/application/userService"
 	"dental-clinic-system/background-jobs"
+	"dental-clinic-system/config"
 	"dental-clinic-system/helpers"
+	"dental-clinic-system/init_func"
 	"dental-clinic-system/middleware/authMiddleware"
-	"dental-clinic-system/models"
-	"dental-clinic-system/redis/redisRepository"
 	"dental-clinic-system/repository/appointmentRepository"
 	"dental-clinic-system/repository/clinicRepository"
 	"dental-clinic-system/repository/loginRepository"
 	"dental-clinic-system/repository/patientRepository"
 	"dental-clinic-system/repository/procedureRepository"
+	"dental-clinic-system/repository/redisRepository"
 	"dental-clinic-system/repository/roleRepository"
 	"dental-clinic-system/repository/tokenRepository"
 	"dental-clinic-system/repository/userRepository"
 	"dental-clinic-system/vault"
-	"github.com/go-redis/redis/v8"
+	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 	"net/http"
-	"os"
 )
 
 func main() {
 
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	log.Info().Int("port", 8080).Msg("Starting server on port")
-
-	err := godotenv.Load(".env")
+	configModel := init_func.SetConfig("resources")
+	zerolog.SetGlobalLevel(configModel.Log.Level)
+	db := init_func.ConnectDatabase(&configModel.Database)
+	Rdb := init_func.ConnectRedis(&configModel.Redis)
+	mailDialer := init_func.SetupMailDialer(&configModel.Email)
+	clientVault, err := vault.ConnectVault(configModel.Vault)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error loading .env file")
-		panic(err)
+		log.Fatal().Err(err).Msg("Error connecting to vault")
+		panic("Error connecting to vault")
 	}
-
-	dsn := os.Getenv("DNS")
-	db, err := gorm.Open(
-		postgres.Open(dsn),
-	)
-
-	var result int
-	err = db.Raw("SELECT 1").Scan(&result).Error
+	err = config.ReadConfigFromVault(clientVault, configModel)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error connecting to database")
-		panic(err)
+		log.Fatal().Err(err).Msg("Error reading config from vault")
+		panic("Error reading config from vault")
 	}
-	log.Info().Msg("Database connection successful")
-	db.Exec("CREATE SCHEMA IF NOT EXISTS public")
-
-	err = db.AutoMigrate(
-		&models.Appointment{},
-		&models.Clinic{},
-		&models.Patient{},
-		&models.Procedure{},
-		&models.Role{},
-		&models.User{},
-		&models.ExpiredTokens{},
-	)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error migrating models")
-		panic(err)
-	}
-
-	var Rdb *redis.Client
-	Rdb = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
-		DB:       0,
-	})
-
-	_, err = Rdb.Ping(Rdb.Context()).Result()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error connecting to Redis")
-		panic(err)
-	}
-
-	if Rdb == nil {
-		log.Fatal().Msg("Redis client is nil")
-		panic(err)
-	}
-
-	jwtKey, err := vault.GetJWTKeyFromVault()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error getting JWT key from vault")
-		panic(err)
-	}
-	log.Info().Str("JWT Key", string(jwtKey)).Msg("Retrieved JWT Key from Vault")
-	helpers.NewJWTKeyHelper(jwtKey)
+	init_func.MigrateDatabase(db)
+	helpers.NewJWTKeyHelper([]byte(configModel.JWT.SecretKey))
 
 	router := mux.NewRouter()
 
@@ -124,7 +79,7 @@ func main() {
 	newTokenRepository := tokenRepository.NewTokenRepository(db)
 
 	//Redis Repository
-	newRedisRepository := redisRepository.NewRedisUserRepository(Rdb)
+	newRedisRepository := redisRepository.NewRedisRepository(Rdb)
 
 	//Services
 	newClinicService := clinicService.NewClinicService(newClinicRepository)
@@ -137,8 +92,9 @@ func main() {
 	newSignUpClinicService := signUpClinicService.NewSignUpClinicService(newClinicRepository, newUserRepository, newRedisRepository)
 	newTokenService := tokenService.NewTokenService(newTokenRepository)
 	newSignUpUserService := singUpUserService.NewSignUpUserService(newUserRepository, newRedisRepository)
+	newEmailService := emailService.NewEmailService(newUserRepository, newTokenRepository, *mailDialer)
 
-	//Middleware
+	//Middlewares
 	newAuthMiddleware := authMiddleware.NewAuthMiddleware(newTokenService)
 
 	//Handlers
@@ -152,17 +108,20 @@ func main() {
 	newSignUpClinicHandler := signUpClinic.NewSignUpClinicController(newSignUpClinicService)
 	newSignUpUserHandler := singUpUser.NewSignUpUserHandler(newSignUpUserService)
 	newLogoutHandler := logout.NewLogoutController(newTokenService)
+	newVerifyEmailHandler := verifyEmail.NewVerifyEmailController(newEmailService)
+	newSendEmailHandler := sendEmail.NewSendEmailController(newEmailService)
 
-	//Middleware
+	//Middleware injection
 	securedRouter := router.PathPrefix("/api").Subrouter()
 	securedRouter.Use(newAuthMiddleware.Authenticate)
 
-	//Routes
+	// Register Routes
 	login.RegisterAuthRoutes(router, newLoginHandler)
 	signUpClinic.RegisterSignupClinicRoutes(router, newSignUpClinicHandler)
 	singUpUser.RegisterSignupUserRoutes(router, newSignUpUserHandler)
+	verifyEmail.RegisterVerifyEmailRoutes(router, newVerifyEmailHandler)
 
-	//Secured Routes
+	// Register Secured Routes
 	clinic.RegisterClinicRoutes(securedRouter, newClinicHandler)
 	appointment.RegisterAppointmentRoutes(securedRouter, newAppointmentHandler)
 	patient.RegisterPatientsRoutes(securedRouter, newPatientHandler)
@@ -170,10 +129,12 @@ func main() {
 	role.RegisterRoleRoutes(securedRouter, newRoleHandler)
 	user.RegisterUserRoutes(securedRouter, newUserHandler)
 	logout.RegisterLogoutRoutes(securedRouter, newLogoutHandler)
+	sendEmail.RegisterSendEmailRoutes(securedRouter, newSendEmailHandler)
 
 	//background services
 	background_jobs.StartCleanExpiredJwtTokens(newTokenService)
 
-	log.Info().Msg("Server started on port 8080")
-	log.Fatal().Err(http.ListenAndServe(":8080", router))
+	log.Info().Msg(fmt.Sprintf("Server started on port %d", configModel.Server.Port))
+	log.Fatal().Err(http.ListenAndServe(fmt.Sprintf(":%d", configModel.Server.Port), router)).
+		Msg("Server failed to start")
 }

@@ -50,7 +50,7 @@ func (h *ClinicHandler) GetClinic(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid appointmentRepository ID", http.StatusBadRequest)
 		return
 	}
-	claims, err := helpers.TokenEmailHelper(r)
+	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -85,11 +85,13 @@ func (h *ClinicHandler) CreateClinic(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
 	clinic, err = h.clinicService.CreateClinic(clinic)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
 	err = json.NewEncoder(w).Encode(clinic)
 	if err != nil {
 		return
@@ -104,7 +106,7 @@ func (h *ClinicHandler) UpdateClinic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := helpers.TokenEmailHelper(r)
+	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
