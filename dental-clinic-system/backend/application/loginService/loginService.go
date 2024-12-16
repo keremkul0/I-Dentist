@@ -1,11 +1,12 @@
 package loginService
 
 import (
+	"context"
 	"dental-clinic-system/models"
 )
 
 type LoginRepository interface {
-	Login(email string, password string) (models.Login, error)
+	Login(ctx context.Context, email string, password string) (models.Login, error)
 }
 
 type loginService struct {
@@ -18,6 +19,6 @@ func NewLoginService(loginRepository LoginRepository) *loginService {
 	}
 }
 
-func (s *loginService) Login(email string, password string) (models.Login, error) {
-	return s.loginRepository.Login(email, password)
+func (s *loginService) Login(ctx context.Context, email string, password string) (models.Login, error) {
+	return s.loginRepository.Login(ctx, email, password)
 }

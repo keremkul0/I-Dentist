@@ -1,12 +1,12 @@
 package redisRepository
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
+	"encoding/gob"
 	"errors"
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
 	"time"
 )
 
@@ -20,43 +20,48 @@ type redisRepository struct {
 	rdb *redis.Client
 }
 
-func (r *redisRepository) SetData(data any) (string, error) {
-
+func (r *redisRepository) SetData(ctx context.Context, data any) (string, error) {
 	if data == nil {
 		return "", errors.New("data is nil")
 	}
 
-	marshalledData, err := json.Marshal(data)
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(data)
 	if err != nil {
-		log.Printf("Failed to marshal data: %v", err)
-		return "", errors.New("marshal error")
+		return "", errors.New("gob encode error")
 	}
 
-	ctx := context.Background()
 	cacheKey := uuid.New().String()
-	err = r.rdb.Set(ctx, cacheKey, marshalledData, 10*time.Minute).Err()
+	err = r.rdb.Set(ctx, cacheKey, buf.Bytes(), 5*time.Minute).Err()
 	if err != nil {
-		log.Printf("Failed to set cache: %v", err)
 		return "", errors.New("redis set error")
 	}
 
 	return cacheKey, nil
 }
 
-func (r *redisRepository) GetData(cacheKey string) (any, error) {
-	ctx := context.Background()
-	data, err := r.rdb.Get(ctx, cacheKey).Result()
+func (r *redisRepository) GetData(ctx context.Context, cacheKey string, target any) error {
+	data, err := r.rdb.Get(ctx, cacheKey).Bytes()
 	if err != nil {
-		log.Printf("Failed to get cache: %v", err)
-		return nil, errors.New("redis get error")
+		return errors.New("redis get error")
 	}
 
-	var unmarshalledData any
-	err = json.Unmarshal([]byte(data), &unmarshalledData)
+	buf := bytes.NewBuffer(data)
+	dec := gob.NewDecoder(buf)
+	err = dec.Decode(target)
 	if err != nil {
-		log.Printf("Failed to unmarshal data: %v", err)
-		return nil, errors.New("unmarshal error")
+		return errors.New("gob decode error")
 	}
 
-	return unmarshalledData, nil
+	return nil
+}
+
+func (r *redisRepository) DeleteData(ctx context.Context, ID string) error {
+	err := r.rdb.Del(ctx, ID).Err()
+	if err != nil {
+		return errors.New("redis delete error")
+	}
+
+	return nil
 }

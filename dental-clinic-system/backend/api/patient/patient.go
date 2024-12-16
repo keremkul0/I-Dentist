@@ -1,24 +1,26 @@
 package patient
 
 import (
+	"context"
 	"dental-clinic-system/helpers"
 	"dental-clinic-system/models"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type UserService interface {
-	GetUserByEmail(email string) (models.UserGetModel, error)
+	GetUserByEmail(ctx context.Context, email string) (models.UserGetModel, error)
 }
 
 type PatientService interface {
-	GetPatients(ClinicID uint) ([]models.Patient, error)
-	GetPatient(id uint) (models.Patient, error)
-	CreatePatient(patient models.Patient) (models.Patient, error)
-	UpdatePatient(patient models.Patient) (models.Patient, error)
-	DeletePatient(id uint) error
+	GetPatients(ctx context.Context, ClinicID uint) ([]models.Patient, error)
+	GetPatient(ctx context.Context, id uint) (models.Patient, error)
+	CreatePatient(ctx context.Context, patient models.Patient) (models.Patient, error)
+	UpdatePatient(ctx context.Context, patient models.Patient) (models.Patient, error)
+	DeletePatient(ctx context.Context, id uint) error
 }
 
 func NewPatientController(patientService PatientService, userService UserService) *PatientHandler {
@@ -31,19 +33,21 @@ type PatientHandler struct {
 }
 
 func (h *PatientHandler) GetPatients(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	user, err := h.userService.GetUserByEmail(claims.Email)
-
+	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	patients, err := h.patientService.GetPatients(user.ClinicID)
+	patients, err := h.patientService.GetPatients(ctx, user.ClinicID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -55,6 +59,9 @@ func (h *PatientHandler) GetPatients(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PatientHandler) GetPatient(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	params := mux.Vars(r)
 	idStr := params["id"]
 	id, err := strconv.Atoi(idStr)
@@ -62,20 +69,18 @@ func (h *PatientHandler) GetPatient(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid patient ID", http.StatusBadRequest)
 		return
 	}
-	patient, err := h.patientService.GetPatient(uint(id))
-
+	patient, err := h.patientService.GetPatient(ctx, uint(id))
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
 	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
-	user, err := h.userService.GetUserByEmail(claims.Email)
-
+	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -93,6 +98,9 @@ func (h *PatientHandler) GetPatient(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PatientHandler) CreatePatient(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	var patient models.Patient
 	err := json.NewDecoder(r.Body).Decode(&patient)
 	if err != nil {
@@ -105,15 +113,14 @@ func (h *PatientHandler) CreatePatient(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	user, err := h.userService.GetUserByEmail(claims.Email)
-
+	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusUnauthorized)
 		return
 	}
 
 	patient.ClinicID = user.ClinicID
-	patient, err = h.patientService.CreatePatient(patient)
+	patient, err = h.patientService.CreatePatient(ctx, patient)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -125,6 +132,9 @@ func (h *PatientHandler) CreatePatient(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PatientHandler) UpdatePatient(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	var patient models.Patient
 	err := json.NewDecoder(r.Body).Decode(&patient)
 	if err != nil {
@@ -137,15 +147,13 @@ func (h *PatientHandler) UpdatePatient(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	user, err := h.userService.GetUserByEmail(claims.Email)
-
+	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusUnauthorized)
 		return
 	}
 
-	GetPatient, err := h.patientService.GetPatient(patient.ID)
-
+	GetPatient, err := h.patientService.GetPatient(ctx, patient.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -156,7 +164,7 @@ func (h *PatientHandler) UpdatePatient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	patient, err = h.patientService.UpdatePatient(patient)
+	patient, err = h.patientService.UpdatePatient(ctx, patient)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -168,6 +176,9 @@ func (h *PatientHandler) UpdatePatient(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PatientHandler) DeletePatient(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	params := mux.Vars(r)
 	idStr := params["id"]
 	id, err := strconv.Atoi(idStr)
@@ -181,15 +192,13 @@ func (h *PatientHandler) DeletePatient(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	user, err := h.userService.GetUserByEmail(claims.Email)
-
+	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusUnauthorized)
 		return
 	}
 
-	GetPatient, err := h.patientService.GetPatient(uint(id))
-
+	GetPatient, err := h.patientService.GetPatient(ctx, uint(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -200,7 +209,7 @@ func (h *PatientHandler) DeletePatient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.patientService.DeletePatient(uint(id))
+	err = h.patientService.DeletePatient(ctx, uint(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return

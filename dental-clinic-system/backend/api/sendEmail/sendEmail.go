@@ -1,13 +1,14 @@
 package sendEmail
 
 import (
+	"context"
 	"dental-clinic-system/helpers"
 	"net/http"
 	"time"
 )
 
 type EmailService interface {
-	SendVerificationEmail(email string, token string) error
+	SendVerificationEmail(ctx context.Context, email string, token string) error
 }
 
 type SendEmailHandler struct {
@@ -19,6 +20,9 @@ func NewSendEmailController(service EmailService) *SendEmailHandler {
 }
 
 func (h *SendEmailHandler) SendVerificationEmail(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -26,17 +30,16 @@ func (h *SendEmailHandler) SendVerificationEmail(w http.ResponseWriter, r *http.
 	}
 
 	token, err := helpers.GenerateJWTToken(claims.Email, time.Now().Add(time.Minute*5))
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	err = h.EmailService.SendVerificationEmail(claims.Email, token)
-
+	err = h.EmailService.SendVerificationEmail(ctx, claims.Email, token)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
+	w.WriteHeader(http.StatusOK)
 }

@@ -1,6 +1,7 @@
 package tokenRepository
 
 import (
+	"context"
 	"dental-clinic-system/models"
 	"gorm.io/gorm"
 	"time"
@@ -14,21 +15,20 @@ type tokenRepository struct {
 	DB *gorm.DB
 }
 
-func (r *tokenRepository) DeleteExpiredTokensRepo() {
-	_ = r.DB.Unscoped().Where("expire_time < ?", time.Now().Unix()).Delete(&models.ExpiredTokens{}).Error
+func (r *tokenRepository) DeleteExpiredTokens(ctx context.Context) {
+	_ = r.DB.WithContext(ctx).Unscoped().Where("expire_time < ?", time.Now().Unix()).Delete(&models.ExpiredTokens{}).Error
 	return
 }
 
-func (r *tokenRepository) AddTokenToBlacklistRepo(token string, expireTime time.Time) {
-	r.DB.Create(&models.ExpiredTokens{
+func (r *tokenRepository) AddTokenToBlacklist(ctx context.Context, token string, expireTime time.Time) error {
+	return r.DB.WithContext(ctx).Create(&models.ExpiredTokens{
 		Token:      token,
 		ExpireTime: expireTime.Unix(),
-	})
-	return
+	}).Error
 }
 
-func (r *tokenRepository) IsTokenBlacklistedRepo(token string) bool {
+func (r *tokenRepository) IsTokenBlacklisted(ctx context.Context, token string) bool {
 	var count int64
-	r.DB.Model(&models.ExpiredTokens{}).Where("token = ?", token).Count(&count)
+	r.DB.WithContext(ctx).Model(&models.ExpiredTokens{}).Where("token = ?", token).Count(&count)
 	return count > 0
 }
