@@ -1,6 +1,7 @@
 package emailService
 
 import (
+	"context"
 	email_Templates "dental-clinic-system/email-templates"
 	"dental-clinic-system/models"
 	"gopkg.in/gomail.v2"
@@ -8,13 +9,13 @@ import (
 )
 
 type UserRepository interface {
-	GetUserByEmailRepo(email string) (models.User, error)
-	UpdateUserRepo(user models.User) (models.User, error)
+	GetUserByEmail(ctx context.Context, email string) (models.User, error)
+	UpdateUser(ctx context.Context, user models.User) (models.User, error)
 }
 
 type TokenRepository interface {
-	AddTokenToBlacklistRepo(token string, time time.Time)
-	IsTokenBlacklistedRepo(token string) bool
+	IsTokenBlacklisted(ctx context.Context, token string) bool
+	AddTokenToBlacklist(ctx context.Context, token string, expireTime time.Time) error
 }
 
 type emailService struct {
@@ -31,30 +32,33 @@ func NewEmailService(userRepository UserRepository, tokenRepository TokenReposit
 	}
 }
 
-func (s *emailService) SendVerificationEmail(email, token string) error {
-
+func (s *emailService) SendVerificationEmail(ctx context.Context, email, token string) error {
 	m, err := email_Templates.CreateVerificationEmail(email, token)
-
 	if err != nil {
 		return err
 	}
-
 	return s.Email.DialAndSend(m)
 }
 
-func (s *emailService) VerifyUserEmail(token string, email string) bool {
-	if s.tokenRepository.IsTokenBlacklistedRepo(token) {
+func (s *emailService) VerifyUserEmail(ctx context.Context, token string, email string) bool {
+	if s.tokenRepository.IsTokenBlacklisted(ctx, token) {
 		return false
 	}
 
-	user, err := s.userRepository.GetUserByEmailRepo(email)
+	user, err := s.userRepository.GetUserByEmail(ctx, email)
 	if err != nil {
 		return false
 	}
 
 	user.EmailVerified = true
-	_, err = s.userRepository.UpdateUserRepo(user)
+	_, err = s.userRepository.UpdateUser(ctx, user)
+	if err != nil {
+		return false
+	}
 
-	s.tokenRepository.AddTokenToBlacklistRepo(token, time.Now().Add(time.Minute*10))
+	err = s.tokenRepository.AddTokenToBlacklist(ctx, token, time.Now().Add(time.Minute*10))
+	if err != nil {
+		return false
+	}
 	return true
 }

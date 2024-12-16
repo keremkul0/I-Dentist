@@ -6,16 +6,14 @@ import (
 	"dental-clinic-system/models"
 	"encoding/json"
 	"github.com/gorilla/mux"
+	"net/http"
 	"strconv"
 	"sync"
 	"time"
-
-	"net/http"
 )
 
 type UserService interface {
-	GetUser(id uint) (models.UserGetModel, error)
-	GetUserByEmail(email string) (models.UserGetModel, error)
+	GetUserByEmail(ctx context.Context, email string) (models.UserGetModel, error)
 }
 
 type AppointmentService interface {
@@ -29,11 +27,10 @@ type AppointmentService interface {
 }
 
 type PatientService interface {
-	GetPatient(id uint) (models.Patient, error)
+	GetPatient(ctx context.Context, id uint) (models.Patient, error)
 }
 
 func NewAppointmentHandlerController(appointmentService AppointmentService, userService UserService, patientService PatientService) *AppointmentHandler {
-
 	return &AppointmentHandler{
 		appointmentService: appointmentService,
 		userService:        userService,
@@ -58,7 +55,7 @@ func (h *AppointmentHandler) GetAppointments(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	user, err := h.userService.GetUserByEmail(claims.Email)
+	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, "User not found: "+err.Error(), http.StatusNotFound)
 		return
@@ -95,7 +92,7 @@ func (h *AppointmentHandler) GetAppointment(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	user, err := h.userService.GetUserByEmail(claims.Email)
+	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, "User not found: "+err.Error(), http.StatusNotFound)
 		return
@@ -135,7 +132,7 @@ func (h *AppointmentHandler) CreateAppointment(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	user, err := h.userService.GetUserByEmail(claims.Email)
+	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, "User not found: "+err.Error(), http.StatusNotFound)
 		return
@@ -181,7 +178,7 @@ func (h *AppointmentHandler) UpdateAppointment(w http.ResponseWriter, r *http.Re
 
 	go func() {
 		defer wg.Done()
-		user, userErr = h.userService.GetUserByEmail(claims.Email)
+		user, userErr = h.userService.GetUserByEmail(ctx, claims.Email)
 	}()
 
 	go func() {
@@ -245,7 +242,7 @@ func (h *AppointmentHandler) DeleteAppointment(w http.ResponseWriter, r *http.Re
 
 	go func() {
 		defer wg.Done()
-		user, userErr = h.userService.GetUserByEmail(claims.Email)
+		user, userErr = h.userService.GetUserByEmail(ctx, claims.Email)
 	}()
 
 	go func() {
@@ -305,12 +302,12 @@ func (h *AppointmentHandler) GetDoctorAppointments(w http.ResponseWriter, r *htt
 
 	go func() {
 		defer wg.Done()
-		user, userErr = h.userService.GetUserByEmail(claims.Email)
+		user, userErr = h.userService.GetUserByEmail(ctx, claims.Email)
 	}()
 
 	go func() {
 		defer wg.Done()
-		doctor, doctorErr = h.userService.GetUser(uint(id))
+		doctor, doctorErr = h.userService.GetUserByEmail(ctx, idStr)
 	}()
 
 	wg.Wait()
@@ -370,12 +367,12 @@ func (h *AppointmentHandler) GetPatientAppointments(w http.ResponseWriter, r *ht
 
 	go func() {
 		defer wg.Done()
-		user, userErr = h.userService.GetUserByEmail(claims.Email)
+		user, userErr = h.userService.GetUserByEmail(ctx, claims.Email)
 	}()
 
 	go func() {
 		defer wg.Done()
-		patient, patientErr = h.patientService.GetPatient(uint(id))
+		patient, patientErr = h.patientService.GetPatient(ctx, uint(id))
 	}()
 
 	wg.Wait()

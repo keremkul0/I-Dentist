@@ -1,6 +1,7 @@
-package singUpUserService
+package signUpUserService
 
 import (
+	"context"
 	"dental-clinic-system/helpers"
 	"dental-clinic-system/mapper"
 	"dental-clinic-system/models"
@@ -9,11 +10,11 @@ import (
 )
 
 type UserRepository interface {
-	CheckUserExistRepo(user models.UserGetModel) bool
+	CheckUserExist(ctx context.Context, user models.UserGetModel) bool
 }
 
 type RedisRepository interface {
-	SetData(data any) (string, error)
+	SetData(ctx context.Context, data any) (string, error)
 }
 
 type signUpUserService struct {
@@ -28,10 +29,8 @@ func NewSignUpUserService(userRepository UserRepository, redisRepository RedisRe
 	}
 }
 
-func (s *signUpUserService) SignUpUserService(user models.User) (string, error) {
-
+func (s *signUpUserService) SignUpUser(ctx context.Context, user models.User) (string, error) {
 	err := validations.UserValidation(&user)
-
 	if err != nil {
 		return "", errors.New("User validation error")
 	}
@@ -39,12 +38,11 @@ func (s *signUpUserService) SignUpUserService(user models.User) (string, error) 
 	user.Password = helpers.HashPassword(user.Password)
 	userGetModel := mapper.UserMapper(user)
 
-	if s.userRepository.CheckUserExistRepo(userGetModel) {
+	if s.userRepository.CheckUserExist(ctx, userGetModel) {
 		return "", errors.New("User already exist")
 	}
 
-	userID, err := s.redisRepository.SetData(user)
-
+	userID, err := s.redisRepository.SetData(ctx, user)
 	if err != nil {
 		return "", errors.New("Cache user service error")
 	}

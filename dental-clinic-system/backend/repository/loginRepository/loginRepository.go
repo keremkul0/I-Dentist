@@ -1,6 +1,7 @@
 package loginRepository
 
 import (
+	"context"
 	"dental-clinic-system/models"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -14,18 +15,16 @@ type loginRepository struct {
 	DB *gorm.DB
 }
 
-func (r *loginRepository) Login(email string, password string) (models.Login, error) {
+func (r *loginRepository) Login(ctx context.Context, email string, password string) (models.Login, error) {
 	var user models.User
-	if err := r.DB.Where("email = ?", email).First(&user).Error; err != nil {
-		return models.Login{}, err
+	result := r.DB.WithContext(ctx).Where("email = ?", email).First(&user)
+	if result.Error != nil {
+		return models.Login{}, result.Error
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return models.Login{}, err
-	}
-
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	return models.Login{
 		Email:    user.Email,
 		Password: user.Password,
-	}, nil
+	}, err
 }

@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"dental-clinic-system/helpers"
 	"dental-clinic-system/mapper"
 	"dental-clinic-system/models"
@@ -8,16 +9,17 @@ import (
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type UserService interface {
-	GetUsers(ClinicID uint) ([]models.UserGetModel, error)
-	GetUser(id uint) (models.UserGetModel, error)
-	GetUserByEmail(email string) (models.UserGetModel, error)
-	CreateUser(user models.User) (models.UserGetModel, error)
-	UpdateUser(user models.User) (models.UserGetModel, error)
-	DeleteUser(id uint) error
-	CheckUserExist(user models.UserGetModel) bool
+	GetUsers(ctx context.Context, ClinicID uint) ([]models.UserGetModel, error)
+	GetUser(ctx context.Context, id uint) (models.UserGetModel, error)
+	GetUserByEmail(ctx context.Context, email string) (models.UserGetModel, error)
+	CreateUser(ctx context.Context, user models.User) (models.UserGetModel, error)
+	UpdateUser(ctx context.Context, user models.User) (models.UserGetModel, error)
+	DeleteUser(ctx context.Context, id uint) error
+	CheckUserExist(ctx context.Context, user models.UserGetModel) bool
 }
 
 type UserHandler struct {
@@ -29,20 +31,21 @@ func NewUserController(service UserService) *UserHandler {
 }
 
 func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
-
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	user, err := h.userService.GetUserByEmail(claims.Email)
-
+	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	users, err := h.userService.GetUsers(user.ClinicID)
+	users, err := h.userService.GetUsers(ctx, user.ClinicID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -54,6 +57,9 @@ func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	params := mux.Vars(r)
 	idStr := params["id"]
 	id, err := strconv.Atoi(idStr)
@@ -67,14 +73,13 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	user, err := h.userService.GetUserByEmail(claims.Email)
-
+	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	requestedUser, err := h.userService.GetUser(uint(id))
+	requestedUser, err := h.userService.GetUser(ctx, uint(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -92,12 +97,15 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) GetUserByEmail(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
-	user, err := h.userService.GetUserByEmail(claims.Email)
+	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -111,6 +119,9 @@ func (h *UserHandler) GetUserByEmail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
@@ -123,8 +134,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	mainUser, err := h.userService.GetUserByEmail(claims.Email)
-
+	mainUser, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -136,15 +146,14 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tempUserGetModel := mapper.UserMapper(user)
-	if h.userService.CheckUserExist(tempUserGetModel) {
+	if h.userService.CheckUserExist(ctx, tempUserGetModel) {
 		http.Error(w, "User already exists", http.StatusBadRequest)
 		return
 	}
 
 	user.Password = helpers.HashPassword(user.Password) // Hash the password if not already hashed
 
-	createdUser, err := h.userService.CreateUser(user)
-
+	createdUser, err := h.userService.CreateUser(ctx, user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -157,6 +166,9 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
@@ -169,8 +181,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	mainUser, err := h.userService.GetUserByEmail(claims.Email)
-
+	mainUser, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -181,7 +192,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createdUser, err := h.userService.UpdateUser(user)
+	createdUser, err := h.userService.UpdateUser(ctx, user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -193,6 +204,9 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	params := mux.Vars(r)
 	idStr := params["id"]
 	id, err := strconv.Atoi(idStr)
@@ -206,14 +220,13 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	mainUser, err := h.userService.GetUserByEmail(claims.Email)
-
+	mainUser, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	requestedUser, err := h.userService.GetUser(uint(id))
+	requestedUser, err := h.userService.GetUser(ctx, uint(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -229,7 +242,7 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.userService.DeleteUser(uint(id))
+	err = h.userService.DeleteUser(ctx, uint(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return

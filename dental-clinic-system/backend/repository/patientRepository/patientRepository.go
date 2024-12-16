@@ -1,6 +1,7 @@
 package patientRepository
 
 import (
+	"context"
 	"dental-clinic-system/models"
 	"gorm.io/gorm"
 )
@@ -13,29 +14,29 @@ type patientRepository struct {
 	DB *gorm.DB
 }
 
-func (r *patientRepository) GetPatients(ClinicID uint) ([]models.Patient, error) {
+func (r *patientRepository) GetPatients(ctx context.Context, ClinicID uint) ([]models.Patient, error) {
 	var patients []models.Patient
-	err := r.DB.Where("clinic_id = ?", ClinicID).Find(&patients).Error
-	return patients, err
+	result := r.DB.WithContext(ctx).Where("clinic_id = ?", ClinicID).Find(&patients)
+	return patients, result.Error
 }
 
-func (r *patientRepository) GetPatient(id uint) (models.Patient, error) {
+func (r *patientRepository) GetPatient(ctx context.Context, id uint) (models.Patient, error) {
 	var patient models.Patient
-	err := r.DB.First(&patient, id).Error
-	return patient, err
+	result := r.DB.WithContext(ctx).First(&patient, id)
+	return patient, result.Error
 }
 
-func (r *patientRepository) CreatePatient(patient models.Patient) (models.Patient, error) {
-	err := r.DB.Create(&patient).Error
-	return patient, err
+func (r *patientRepository) CreatePatient(ctx context.Context, patient models.Patient) (models.Patient, error) {
+	result := r.DB.WithContext(ctx).Create(&patient)
+	return patient, result.Error
 }
 
-func (r *patientRepository) UpdatePatient(patient models.Patient) (models.Patient, error) {
-	err := r.DB.Save(&patient).Error
-	return patient, err
+func (r *patientRepository) UpdatePatient(ctx context.Context, patient models.Patient) (models.Patient, error) {
+	result := r.DB.WithContext(ctx).Save(&patient)
+	return patient, result.Error
 }
 
-func (r *patientRepository) DeletePatient(id uint) error {
-	err := r.DB.Delete(&models.Patient{}, id).Error
-	return err
+func (r *patientRepository) DeletePatient(ctx context.Context, id uint) error {
+	result := r.DB.WithContext(ctx).Delete(&models.Patient{}, id)
+	return result.Error
 }

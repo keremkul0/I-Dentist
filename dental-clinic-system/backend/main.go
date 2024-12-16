@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"dental-clinic-system/api/appointment"
 	"dental-clinic-system/api/clinic"
 	"dental-clinic-system/api/login"
@@ -91,7 +92,7 @@ func main() {
 	newLoginService := loginService.NewLoginService(newLoginRepository)
 	newSignUpClinicService := signUpClinicService.NewSignUpClinicService(newClinicRepository, newUserRepository, newRedisRepository)
 	newTokenService := tokenService.NewTokenService(newTokenRepository)
-	newSignUpUserService := singUpUserService.NewSignUpUserService(newUserRepository, newRedisRepository)
+	newSignUpUserService := signUpUserService.NewSignUpUserService(newUserRepository, newRedisRepository)
 	newEmailService := emailService.NewEmailService(newUserRepository, newTokenRepository, *mailDialer)
 
 	//Middlewares
@@ -132,7 +133,8 @@ func main() {
 	sendEmail.RegisterSendEmailRoutes(securedRouter, newSendEmailHandler)
 
 	//background services
-	background_jobs.StartCleanExpiredJwtTokens(newTokenService)
+	ctx := context.Background()
+	background_jobs.StartCleanExpiredJwtTokens(ctx, newTokenService)
 
 	log.Info().Msg(fmt.Sprintf("Server started on port %d", configModel.Server.Port))
 	log.Fatal().Err(http.ListenAndServe(fmt.Sprintf(":%d", configModel.Server.Port), router)).

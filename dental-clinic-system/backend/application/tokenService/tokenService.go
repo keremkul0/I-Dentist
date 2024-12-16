@@ -1,13 +1,14 @@
 package tokenService
 
 import (
+	"context"
 	"time"
 )
 
 type TokenRepository interface {
-	DeleteExpiredTokensRepo()
-	AddTokenToBlacklistRepo(token string, expireTime time.Time)
-	IsTokenBlacklistedRepo(token string) bool
+	DeleteExpiredTokens(ctx context.Context)
+	AddTokenToBlacklist(ctx context.Context, token string, expireTime time.Time) error
+	IsTokenBlacklisted(ctx context.Context, token string) bool
 }
 
 type tokenService struct {
@@ -20,14 +21,14 @@ func NewTokenService(tokenRepository TokenRepository) *tokenService {
 	}
 }
 
-func (s *tokenService) DeleteExpiredTokensService() {
-	s.tokenRepository.DeleteExpiredTokensRepo()
+func (s *tokenService) DeleteExpiredTokens(ctx context.Context) {
+	s.tokenRepository.DeleteExpiredTokens(ctx)
 }
 
-func (s *tokenService) AddTokenToBlacklistService(token string, expireTime time.Time) {
-	s.tokenRepository.AddTokenToBlacklistRepo(token, expireTime)
+func (s *tokenService) AddTokenToBlacklist(ctx context.Context, token string, expireTime time.Time) error {
+	return s.tokenRepository.AddTokenToBlacklist(ctx, token, expireTime)
 }
 
-func (s *tokenService) IsTokenBlacklistedService(token string) bool {
-	return s.tokenRepository.IsTokenBlacklistedRepo(token)
+func (s *tokenService) IsTokenBlacklisted(ctx context.Context, token string) bool {
+	return s.tokenRepository.IsTokenBlacklisted(ctx, token)
 }
