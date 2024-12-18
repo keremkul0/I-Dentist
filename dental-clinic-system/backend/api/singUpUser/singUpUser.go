@@ -1,42 +1,44 @@
 package singUpUser
 
 import (
+	"context"
 	"dental-clinic-system/models"
 	"encoding/json"
 	"net/http"
+	"time"
 )
 
 type SignUpUserService interface {
-	SignUpUserService(user models.User) (string, error)
+	SignUpUser(ctx context.Context, user models.User) (string, error)
 }
 
 type SignUpUserHandler struct {
-	singUpUserService SignUpUserService
+	signUpUserService SignUpUserService
 }
 
-func NewSignUpUserHandler(singUpUserService SignUpUserService) *SignUpUserHandler {
+func NewSignUpUserHandler(signUpUserService SignUpUserService) *SignUpUserHandler {
 	return &SignUpUserHandler{
-		singUpUserService: singUpUserService,
+		signUpUserService: signUpUserService,
 	}
 }
 
 func (s *SignUpUserHandler) SignUpUser(w http.ResponseWriter, r *http.Request) {
-
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	var user models.User
-
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	cacheKey, err := s.singUpUserService.SignUpUserService(user)
+	cacheKey, err := s.signUpUserService.SignUpUser(ctx, user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Write response
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(cacheKey)

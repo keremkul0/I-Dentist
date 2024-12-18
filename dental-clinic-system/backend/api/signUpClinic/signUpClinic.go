@@ -1,13 +1,15 @@
 package signUpClinic
 
 import (
+	"context"
 	"dental-clinic-system/models"
 	"encoding/json"
 	"net/http"
+	"time"
 )
 
 type SignUpClinicService interface {
-	SignUpClinic(clinic models.Clinic, userCacheKey string) (models.Clinic, models.UserGetModel, error)
+	SignUpClinic(ctx context.Context, clinic models.Clinic, userCacheKey string) (models.Clinic, models.UserGetModel, error)
 }
 
 type SignUpClinicController struct {
@@ -19,6 +21,9 @@ func NewSignUpClinicController(service SignUpClinicService) *SignUpClinicControl
 }
 
 func (h *SignUpClinicController) SignUpClinic(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	var clinic models.Clinic
 	var id string
 
@@ -32,7 +37,7 @@ func (h *SignUpClinicController) SignUpClinic(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	clinic, userGetModel, err := h.service.SignUpClinic(clinic, id)
+	clinic, userGetModel, err := h.service.SignUpClinic(ctx, clinic, id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -44,8 +49,8 @@ func (h *SignUpClinicController) SignUpClinic(w http.ResponseWriter, r *http.Req
 	}{clinic, userGetModel})
 
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
-	return
 }

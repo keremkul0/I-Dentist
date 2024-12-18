@@ -1,24 +1,26 @@
 package clinic
 
 import (
+	"context"
 	"dental-clinic-system/helpers"
 	"dental-clinic-system/models"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type UserService interface {
-	GetUserByEmail(email string) (models.UserGetModel, error)
+	GetUserByEmail(ctx context.Context, email string) (models.UserGetModel, error)
 }
 
 type ClinicService interface {
-	GetClinics() ([]models.Clinic, error)
-	GetClinic(id uint) (models.Clinic, error)
-	CreateClinic(clinic models.Clinic) (models.Clinic, error)
-	UpdateClinic(clinic models.Clinic) (models.Clinic, error)
-	DeleteClinic(id uint) error
+	GetClinics(ctx context.Context) ([]models.Clinic, error)
+	GetClinic(ctx context.Context, id uint) (models.Clinic, error)
+	CreateClinic(ctx context.Context, clinic models.Clinic) (models.Clinic, error)
+	UpdateClinic(ctx context.Context, clinic models.Clinic) (models.Clinic, error)
+	DeleteClinic(ctx context.Context, id uint) error
 }
 
 func NewClinicHandlerController(clinicService ClinicService, userService UserService) *ClinicHandler {
@@ -31,7 +33,8 @@ type ClinicHandler struct {
 }
 
 func (h *ClinicHandler) GetClinics(w http.ResponseWriter, r *http.Request) {
-	clinics, err := h.clinicService.GetClinics()
+	ctx := r.Context()
+	clinics, err := h.clinicService.GetClinics(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -43,11 +46,14 @@ func (h *ClinicHandler) GetClinics(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ClinicHandler) GetClinic(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	params := mux.Vars(r)
 	idStr := params["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid appointmentRepository ID", http.StatusBadRequest)
+		http.Error(w, "Invalid clinic ID", http.StatusBadRequest)
 		return
 	}
 	claims, err := helpers.CookieTokenEmailHelper(r)
@@ -55,7 +61,7 @@ func (h *ClinicHandler) GetClinic(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
-	user, err := h.userService.GetUserByEmail(claims.Email)
+	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -66,7 +72,7 @@ func (h *ClinicHandler) GetClinic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clinic, err := h.clinicService.GetClinic(uint(id))
+	clinic, err := h.clinicService.GetClinic(ctx, uint(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -78,7 +84,9 @@ func (h *ClinicHandler) GetClinic(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ClinicHandler) CreateClinic(w http.ResponseWriter, r *http.Request) {
-
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	var clinic models.Clinic
 	err := json.NewDecoder(r.Body).Decode(&clinic)
 	if err != nil {
@@ -86,7 +94,7 @@ func (h *ClinicHandler) CreateClinic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clinic, err = h.clinicService.CreateClinic(clinic)
+	clinic, err = h.clinicService.CreateClinic(ctx, clinic)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -99,6 +107,9 @@ func (h *ClinicHandler) CreateClinic(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ClinicHandler) UpdateClinic(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	var clinic models.Clinic
 	err := json.NewDecoder(r.Body).Decode(&clinic)
 	if err != nil {
@@ -111,18 +122,18 @@ func (h *ClinicHandler) UpdateClinic(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
-	user, err := h.userService.GetUserByEmail(claims.Email)
+	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
-	if clinic.ID != user.ClinicID && helpers.ContainsRole(user, "Superadmin") {
+	if clinic.ID != user.ClinicID && !helpers.ContainsRole(user, "Superadmin") {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	clinic, err = h.clinicService.UpdateClinic(clinic)
+	clinic, err = h.clinicService.UpdateClinic(ctx, clinic)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -134,14 +145,17 @@ func (h *ClinicHandler) UpdateClinic(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ClinicHandler) DeleteClinic(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	params := mux.Vars(r)
 	idStr := params["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid appointmentRepository ID", http.StatusBadRequest)
+		http.Error(w, "Invalid clinic ID", http.StatusBadRequest)
 		return
 	}
-	err = h.clinicService.DeleteClinic(uint(id))
+	err = h.clinicService.DeleteClinic(ctx, uint(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
