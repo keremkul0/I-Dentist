@@ -6,7 +6,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func ConnectRedis(RDBConfig *config.RedisConfig) *redis.Client {
+func ConnectRedis(RDBConfig config.RedisConfig) *redis.Client {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     RDBConfig.Addr,
 		Password: RDBConfig.Password,

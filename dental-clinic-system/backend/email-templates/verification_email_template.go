@@ -15,7 +15,7 @@ func CreateVerificationEmail(email, token string) (*gomail.Message, error) {
 	//}
 	//htmlTemplate := string(htmlBytes)
 
-	tmpl, err := template.ParseFiles("GolandProjects\\I-Dentist\\dental-clinic-system\\Email_HTMLs\\verification_email_html.html")
+	tmpl, err := template.ParseFiles("..\\Email_HTMLs\\verification_email_html.html")
 	if err != nil {
 		log.Println("Şablon dosyası hatası:", err)
 		return nil, err
