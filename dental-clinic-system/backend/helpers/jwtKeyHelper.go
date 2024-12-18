@@ -2,8 +2,8 @@ package helpers
 
 var jWTKey []byte
 
-func NewJWTKeyHelper(jwtKey []byte) {
-	jWTKey = jwtKey
+func SetJWTKey(jwtKey string) {
+	jWTKey = []byte(jwtKey)
 	return
 }
 

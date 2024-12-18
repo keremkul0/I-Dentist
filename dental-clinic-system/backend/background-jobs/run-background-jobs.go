@@ -10,7 +10,9 @@ type TokenService interface {
 	DeleteExpiredTokens(ctx context.Context)
 }
 
-func StartCleanExpiredJwtTokens(ctx context.Context, tokenService TokenService) {
+func StartCleanExpiredJwtTokens(tokenService TokenService) {
+	ctx := context.Background()
+
 	c := cron.New()
 	cronExpression := fmt.Sprintf("@every %ds", 10)
 
