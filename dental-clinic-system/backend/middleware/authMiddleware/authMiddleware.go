@@ -1,19 +1,18 @@
 package authMiddleware
 
 import (
+	"context"
 	"dental-clinic-system/helpers"
 	"dental-clinic-system/models"
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
-	"time"
 )
 
 type TokenService interface {
-	DeleteExpiredTokensService()
-	AddTokenToBlacklistService(token string, expireTime time.Time)
-	IsTokenBlacklistedService(token string) bool
+	IsTokenBlacklisted(ctx context.Context, token string) bool
 }
+
 type AuthMiddleware struct {
 	TokenService TokenService
 }
@@ -24,6 +23,7 @@ func NewAuthMiddleware(tokenService TokenService) *AuthMiddleware {
 
 func (auth *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		cookie, err := r.Cookie("token")
 		if err != nil {
 			if errors.Is(http.ErrNoCookie, err) {
@@ -34,7 +34,7 @@ func (auth *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 			return
 		}
 
-		if auth.TokenService.IsTokenBlacklistedService(cookie.Value) {
+		if auth.TokenService.IsTokenBlacklisted(ctx, cookie.Value) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}

@@ -29,6 +29,7 @@ import (
 	"dental-clinic-system/helpers"
 	"dental-clinic-system/init_func"
 	"dental-clinic-system/middleware/authMiddleware"
+	"dental-clinic-system/middleware/contextTimeoutMiddleware"
 	"dental-clinic-system/repository/appointmentRepository"
 	"dental-clinic-system/repository/clinicRepository"
 	"dental-clinic-system/repository/loginRepository"
@@ -49,24 +50,27 @@ import (
 func main() {
 
 	configModel := init_func.SetConfig("resources")
+
 	zerolog.SetGlobalLevel(configModel.Log.Level)
-	db := init_func.ConnectDatabase(&configModel.Database)
-	Rdb := init_func.ConnectRedis(&configModel.Redis)
-	mailDialer := init_func.SetupMailDialer(&configModel.Email)
+
 	clientVault, err := vault.ConnectVault(configModel.Vault)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error connecting to vault")
 		panic("Error connecting to vault")
 	}
+
 	err = config.ReadConfigFromVault(clientVault, configModel)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error reading config from vault")
 		panic("Error reading config from vault")
 	}
-	init_func.MigrateDatabase(db)
-	helpers.NewJWTKeyHelper([]byte(configModel.JWT.SecretKey))
 
-	router := mux.NewRouter()
+	db := init_func.ConnectDatabase(configModel.Database)
+	Rdb := init_func.ConnectRedis(configModel.Redis)
+	mailDialer := init_func.SetupMailDialer(configModel.Email)
+
+	init_func.MigrateDatabase(db)
+	helpers.SetJWTKey(configModel.JWT.SecretKey)
 
 	//Repositories
 	newClinicRepository := clinicRepository.NewClinicRepository(db)
@@ -91,11 +95,8 @@ func main() {
 	newLoginService := loginService.NewLoginService(newLoginRepository)
 	newSignUpClinicService := signUpClinicService.NewSignUpClinicService(newClinicRepository, newUserRepository, newRedisRepository)
 	newTokenService := tokenService.NewTokenService(newTokenRepository)
-	newSignUpUserService := singUpUserService.NewSignUpUserService(newUserRepository, newRedisRepository)
-	newEmailService := emailService.NewEmailService(newUserRepository, newTokenRepository, *mailDialer)
-
-	//Middlewares
-	newAuthMiddleware := authMiddleware.NewAuthMiddleware(newTokenService)
+	newSignUpUserService := signUpUserService.NewSignUpUserService(newUserRepository, newRedisRepository)
+	newEmailService := emailService.NewEmailService(newUserRepository, newTokenRepository, mailDialer)
 
 	//Handlers
 	newClinicHandler := clinic.NewClinicHandlerController(newClinicService, newUserService)
@@ -111,8 +112,17 @@ func main() {
 	newVerifyEmailHandler := verifyEmail.NewVerifyEmailController(newEmailService)
 	newSendEmailHandler := sendEmail.NewSendEmailController(newEmailService)
 
-	//Middleware injection
+	//Create a new router
+	router := mux.NewRouter()
+
+	//Create subRouters
 	securedRouter := router.PathPrefix("/api").Subrouter()
+
+	//Middlewares
+	newAuthMiddleware := authMiddleware.NewAuthMiddleware(newTokenService)
+
+	//Middleware injection
+	router.Use(contextTimeoutMiddleware.TimeoutMiddleware(5))
 	securedRouter.Use(newAuthMiddleware.Authenticate)
 
 	// Register Routes

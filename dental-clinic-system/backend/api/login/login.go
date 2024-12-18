@@ -1,6 +1,7 @@
 package login
 
 import (
+	"context"
 	"dental-clinic-system/helpers"
 	"dental-clinic-system/models"
 	"encoding/json"
@@ -9,7 +10,7 @@ import (
 )
 
 type LoginService interface {
-	Login(email string, password string) (models.Login, error)
+	Login(ctx context.Context, email string, password string) (models.Login, error)
 }
 
 type LoginHandler struct {
@@ -21,12 +22,15 @@ func NewLoginController(service LoginService) *LoginHandler {
 }
 
 func (h *LoginHandler) Login(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	var creds models.Login
 	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
-	user, err := h.loginService.Login(creds.Email, creds.Password)
+	user, err := h.loginService.Login(ctx, creds.Email, creds.Password)
 	if err != nil {
 		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
 		return
@@ -44,4 +48,5 @@ func (h *LoginHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Value:   tokenString,
 		Expires: expirationTime,
 	})
+	w.WriteHeader(http.StatusOK)
 }

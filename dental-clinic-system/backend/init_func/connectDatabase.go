@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func ConnectDatabase(DBConfig *config.DatabaseConfig) *gorm.DB {
+func ConnectDatabase(DBConfig config.DatabaseConfig) *gorm.DB {
 	db, err := gorm.Open(postgres.Open(DBConfig.DNS))
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error connecting to database")

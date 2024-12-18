@@ -1,24 +1,26 @@
 package procedure
 
 import (
+	"context"
 	"dental-clinic-system/helpers"
 	"dental-clinic-system/models"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type ProcedureService interface {
-	GetProcedures(ClinicID uint) ([]models.Procedure, error)
-	GetProcedure(id uint) (models.Procedure, error)
-	CreateProcedure(procedure models.Procedure) (models.Procedure, error)
-	UpdateProcedure(procedure models.Procedure) (models.Procedure, error)
-	DeleteProcedure(id uint) error
+	GetProcedures(ctx context.Context, ClinicID uint) ([]models.Procedure, error)
+	GetProcedure(ctx context.Context, id uint) (models.Procedure, error)
+	CreateProcedure(ctx context.Context, procedure models.Procedure) (models.Procedure, error)
+	UpdateProcedure(ctx context.Context, procedure models.Procedure) (models.Procedure, error)
+	DeleteProcedure(ctx context.Context, id uint) error
 }
 
 type UserService interface {
-	GetUserByEmail(email string) (models.UserGetModel, error)
+	GetUserByEmail(ctx context.Context, email string) (models.UserGetModel, error)
 }
 
 func NewProcedureController(procedureService ProcedureService, userService UserService) *ProcedureHandler {
@@ -34,21 +36,21 @@ type ProcedureHandler struct {
 }
 
 func (h *ProcedureHandler) GetProcedures(w http.ResponseWriter, r *http.Request) {
-
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	user, err := h.userService.GetUserByEmail(claims.Email)
-
+	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusUnauthorized)
 		return
 	}
 
-	procedures, err := h.procedureService.GetProcedures(user.ClinicID)
-
+	procedures, err := h.procedureService.GetProcedures(ctx, user.ClinicID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -60,6 +62,9 @@ func (h *ProcedureHandler) GetProcedures(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *ProcedureHandler) GetProcedure(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	params := mux.Vars(r)
 	idStr := params["id"]
 	id, err := strconv.Atoi(idStr)
@@ -73,15 +78,13 @@ func (h *ProcedureHandler) GetProcedure(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	user, err := h.userService.GetUserByEmail(claims.Email)
-
+	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusUnauthorized)
 		return
 	}
 
-	procedure, err := h.procedureService.GetProcedure(uint(id))
-
+	procedure, err := h.procedureService.GetProcedure(ctx, uint(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -99,6 +102,9 @@ func (h *ProcedureHandler) GetProcedure(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *ProcedureHandler) CreateProcedure(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	var procedure models.Procedure
 	err := json.NewDecoder(r.Body).Decode(&procedure)
 	if err != nil {
@@ -111,16 +117,14 @@ func (h *ProcedureHandler) CreateProcedure(w http.ResponseWriter, r *http.Reques
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	user, err := h.userService.GetUserByEmail(claims.Email)
-
+	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusUnauthorized)
 		return
 	}
 
 	procedure.ClinicID = user.ClinicID
-
-	procedure, err = h.procedureService.CreateProcedure(procedure)
+	procedure, err = h.procedureService.CreateProcedure(ctx, procedure)
 	if err != nil {
 		http.Error(w, "Failed to create procedure", http.StatusBadRequest)
 		return
@@ -133,6 +137,9 @@ func (h *ProcedureHandler) CreateProcedure(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *ProcedureHandler) UpdateProcedure(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	var procedure models.Procedure
 	err := json.NewDecoder(r.Body).Decode(&procedure)
 	if err != nil {
@@ -145,8 +152,7 @@ func (h *ProcedureHandler) UpdateProcedure(w http.ResponseWriter, r *http.Reques
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	user, err := h.userService.GetUserByEmail(claims.Email)
-
+	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusUnauthorized)
 		return
@@ -158,8 +164,7 @@ func (h *ProcedureHandler) UpdateProcedure(w http.ResponseWriter, r *http.Reques
 	}
 
 	procedure.ClinicID = user.ClinicID
-
-	procedure, err = h.procedureService.UpdateProcedure(procedure)
+	procedure, err = h.procedureService.UpdateProcedure(ctx, procedure)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -171,6 +176,9 @@ func (h *ProcedureHandler) UpdateProcedure(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *ProcedureHandler) DeleteProcedure(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	params := mux.Vars(r)
 	idStr := params["id"]
 	id, err := strconv.Atoi(idStr)
@@ -184,8 +192,7 @@ func (h *ProcedureHandler) DeleteProcedure(w http.ResponseWriter, r *http.Reques
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	user, err := h.userService.GetUserByEmail(claims.Email)
-
+	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusUnauthorized)
 		return
@@ -196,7 +203,7 @@ func (h *ProcedureHandler) DeleteProcedure(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	procedure, err := h.procedureService.GetProcedure(uint(id))
+	procedure, err := h.procedureService.GetProcedure(ctx, uint(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -207,7 +214,7 @@ func (h *ProcedureHandler) DeleteProcedure(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = h.procedureService.DeleteProcedure(uint(id))
+	err = h.procedureService.DeleteProcedure(ctx, uint(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return

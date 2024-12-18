@@ -67,7 +67,7 @@ func ReadConfigFromVault(client *api.Client, model *ConfigModel) error {
 	}
 	model.JWT.SecretKey = jwtKey
 
-	secret, err = client.Logical().Read("secret/mail_password")
+	secret, err = client.Logical().Read("secret/email_password")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error reading secret from vault")
 		return err
