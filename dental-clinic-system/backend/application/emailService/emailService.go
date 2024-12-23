@@ -71,12 +71,6 @@ func (s *emailService) VerifyUserEmail(ctx context.Context, token string, email 
 
 func (s *emailService) createVerificationEmail(email, token string) (*gomail.Message, error) {
 
-	//htmlBytes, err := os.ReadFile("./dental-clinic-system/Email_HTMLs/verification_email_html.html")
-	//if err != nil {
-	//	log.Fatalf("Şablon dosyası okunamadı: %v", err)
-	//}
-	//htmlTemplate := string(htmlBytes)
-
 	tmpl, err := template.ParseFiles("..\\Email_HTMLs\\verification_email_html.html")
 	if err != nil {
 		log.Println("Şablon dosyası hatası:", err)
