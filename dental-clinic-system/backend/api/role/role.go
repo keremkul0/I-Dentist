@@ -1,24 +1,34 @@
 package role
 
 import (
-	"dental-clinic-system/application/roleService"
+	"context"
 	"dental-clinic-system/models"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
+	"time"
 )
 
-func NewRoleController(roleService roleService.RoleService) *RoleHandler {
-	return &RoleHandler{roleService: roleService}
+type RoleService interface {
+	GetRoles(ctx context.Context) ([]models.Role, error)
+	GetRole(ctx context.Context, id uint) (models.Role, error)
+	CreateRole(ctx context.Context, role models.Role) (models.Role, error)
+	UpdateRole(ctx context.Context, role models.Role) (models.Role, error)
+	DeleteRole(ctx context.Context, id uint) error
 }
 
 type RoleHandler struct {
-	roleService roleService.RoleService
+	roleService RoleService
+}
+
+func NewRoleController(roleService RoleService) *RoleHandler {
+	return &RoleHandler{roleService: roleService}
 }
 
 func (h *RoleHandler) GetRoles(w http.ResponseWriter, r *http.Request) {
-	roles, err := h.roleService.GetRoles()
+	ctx := r.Context()
+	roles, err := h.roleService.GetRoles(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -30,6 +40,9 @@ func (h *RoleHandler) GetRoles(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *RoleHandler) GetRole(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	params := mux.Vars(r)
 	idStr := params["id"]
 	id, err := strconv.Atoi(idStr)
@@ -37,7 +50,7 @@ func (h *RoleHandler) GetRole(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid role ID", http.StatusBadRequest)
 		return
 	}
-	role, err := h.roleService.GetRole(uint(id))
+	role, err := h.roleService.GetRole(ctx, uint(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -49,13 +62,16 @@ func (h *RoleHandler) GetRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *RoleHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	var role models.Role
 	err := json.NewDecoder(r.Body).Decode(&role)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	role, err = h.roleService.CreateRole(role)
+	role, err = h.roleService.CreateRole(ctx, role)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -67,13 +83,16 @@ func (h *RoleHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *RoleHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	var role models.Role
 	err := json.NewDecoder(r.Body).Decode(&role)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	role, err = h.roleService.UpdateRole(role)
+	role, err = h.roleService.UpdateRole(ctx, role)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -85,6 +104,9 @@ func (h *RoleHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *RoleHandler) DeleteRole(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelFunc()
 	params := mux.Vars(r)
 	idStr := params["id"]
 	id, err := strconv.Atoi(idStr)
@@ -92,7 +114,7 @@ func (h *RoleHandler) DeleteRole(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid role ID", http.StatusBadRequest)
 		return
 	}
-	err = h.roleService.DeleteRole(uint(id))
+	err = h.roleService.DeleteRole(ctx, uint(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return

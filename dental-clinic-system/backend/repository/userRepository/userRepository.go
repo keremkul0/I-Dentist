@@ -1,19 +1,10 @@
 package userRepository
 
 import (
+	"context"
 	"dental-clinic-system/models"
 	"gorm.io/gorm"
 )
-
-type UserRepository interface {
-	GetUsersRepo(ClinicID uint) ([]models.User, error)
-	GetUserRepo(id uint) (models.User, error)
-	GetUserByEmailRepo(email string) (models.User, error)
-	CreateUserRepo(user models.User) (models.User, error)
-	UpdateUserRepo(user models.User) (models.User, error)
-	DeleteUserRepo(id uint) error
-	CheckUserExistRepo(user models.UserGetModel) bool
-}
 
 func NewUserRepository(db *gorm.DB) *userRepository {
 	return &userRepository{DB: db}
@@ -23,56 +14,41 @@ type userRepository struct {
 	DB *gorm.DB
 }
 
-func (r *userRepository) GetUsersRepo(ClinicID uint) ([]models.User, error) {
+func (r *userRepository) GetUsers(ctx context.Context, ClinicID uint) ([]models.User, error) {
 	var users []models.User
-
-	result := r.DB.Where("clinic_id = ?", ClinicID).Find(&users)
-	if result.Error != nil {
-		return []models.User{}, result.Error
-	}
-
-	return users, nil
+	err := r.DB.WithContext(ctx).Where("clinic_id = ?", ClinicID).Find(&users).Error
+	return users, err
 }
 
-func (r *userRepository) GetUserRepo(id uint) (models.User, error) {
+func (r *userRepository) GetUser(ctx context.Context, id uint) (models.User, error) {
 	var user models.User
-
-	result := r.DB.Where("id = ?", id).First(&user)
-	if result.Error != nil {
-		return models.User{}, result.Error
-	}
-
-	return user, nil
+	err := r.DB.WithContext(ctx).Where("id = ?", id).First(&user).Error
+	return user, err
 }
 
-func (r *userRepository) GetUserByEmailRepo(email string) (models.User, error) {
+func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (models.User, error) {
 	var user models.User
-
-	result := r.DB.Where("email = ?", email).First(&user)
-	if result.Error != nil {
-		return models.User{}, result.Error
-	}
-
-	return user, nil
+	err := r.DB.WithContext(ctx).Where("email = ?", email).First(&user).Error
+	return user, err
 }
 
-func (r *userRepository) CreateUserRepo(user models.User) (models.User, error) {
-	r.DB.Create(&user)
-	return r.GetUserRepo(user.ID)
+func (r *userRepository) CreateUser(ctx context.Context, user models.User) (models.User, error) {
+	err := r.DB.WithContext(ctx).Create(&user).Error
+	return user, err
 }
 
-func (r *userRepository) UpdateUserRepo(user models.User) (models.User, error) {
-	r.DB.Save(&user)
-	return r.GetUserRepo(user.ID)
+func (r *userRepository) UpdateUser(ctx context.Context, user models.User) (models.User, error) {
+	err := r.DB.WithContext(ctx).Save(&user).Error
+	return user, err
 }
 
-func (r *userRepository) DeleteUserRepo(id uint) error {
-	r.DB.Delete(&models.User{}, id)
-	return nil
+func (r *userRepository) DeleteUser(ctx context.Context, id uint) error {
+	err := r.DB.WithContext(ctx).Delete(&models.User{}, id).Error
+	return err
 }
 
-func (r *userRepository) CheckUserExistRepo(user models.UserGetModel) bool {
+func (r *userRepository) CheckUserExist(ctx context.Context, user models.UserGetModel) bool {
 	var count int64
-	r.DB.Model(&models.User{}).Where("national_id = ? OR email = ? OR phone_number = ?", user.NationalID, user.Email, user.PhoneNumber).Count(&count)
+	r.DB.WithContext(ctx).Model(&models.User{}).Where("national_id = ? OR email = ? OR phone_number = ?", user.NationalID, user.Email, user.PhoneNumber).Count(&count)
 	return count > 0
 }

@@ -1,44 +1,44 @@
 package clinicService
 
 import (
+	"context"
 	"dental-clinic-system/models"
-	"dental-clinic-system/repository/clinicRepository"
 )
 
-type ClinicService interface {
-	GetClinics() ([]models.Clinic, error)
-	GetClinic(id uint) (models.Clinic, error)
-	CreateClinic(clinic models.Clinic) (models.Clinic, error)
-	UpdateClinic(clinic models.Clinic) (models.Clinic, error)
-	DeleteClinic(id uint) error
+type ClinicRepository interface {
+	GetClinics(ctx context.Context) ([]models.Clinic, error)
+	GetClinic(ctx context.Context, id uint) (models.Clinic, error)
+	CreateClinic(ctx context.Context, clinic models.Clinic) (models.Clinic, error)
+	UpdateClinic(ctx context.Context, clinic models.Clinic) (models.Clinic, error)
+	DeleteClinic(ctx context.Context, id uint) error
 }
 
 type clinicService struct {
-	clinicRepository clinicRepository.ClinicRepository
+	clinicRepository ClinicRepository
 }
 
-func NewClinicService(clinicRepository clinicRepository.ClinicRepository) *clinicService {
+func NewClinicService(clinicRepository ClinicRepository) *clinicService {
 	return &clinicService{
 		clinicRepository: clinicRepository,
 	}
 }
 
-func (s *clinicService) GetClinics() ([]models.Clinic, error) {
-	return s.clinicRepository.GetClinics()
+func (s *clinicService) GetClinics(ctx context.Context) ([]models.Clinic, error) {
+	return s.clinicRepository.GetClinics(ctx)
 }
 
-func (s *clinicService) GetClinic(id uint) (models.Clinic, error) {
-	return s.clinicRepository.GetClinic(id)
+func (s *clinicService) GetClinic(ctx context.Context, id uint) (models.Clinic, error) {
+	return s.clinicRepository.GetClinic(ctx, id)
 }
 
-func (s *clinicService) CreateClinic(clinic models.Clinic) (models.Clinic, error) {
-	return s.clinicRepository.CreateClinic(clinic)
+func (s *clinicService) CreateClinic(ctx context.Context, clinic models.Clinic) (models.Clinic, error) {
+	return s.clinicRepository.CreateClinic(ctx, clinic)
 }
 
-func (s *clinicService) UpdateClinic(clinic models.Clinic) (models.Clinic, error) {
-	return s.clinicRepository.UpdateClinic(clinic)
+func (s *clinicService) UpdateClinic(ctx context.Context, clinic models.Clinic) (models.Clinic, error) {
+	return s.clinicRepository.UpdateClinic(ctx, clinic)
 }
 
-func (s *clinicService) DeleteClinic(id uint) error {
-	return s.clinicRepository.DeleteClinic(id)
+func (s *clinicService) DeleteClinic(ctx context.Context, id uint) error {
+	return s.clinicRepository.DeleteClinic(ctx, id)
 }

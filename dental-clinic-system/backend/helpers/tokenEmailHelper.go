@@ -1,27 +1,29 @@
 package helpers
 
 import (
-	"dental-clinic-system/api/auth"
+	"dental-clinic-system/models"
+	"errors"
 	"github.com/golang-jwt/jwt/v5"
-	"net/http"
 )
 
-func TokenEmailHelper(r *http.Request) *auth.Claims {
-	// Extract email from JWT
-	cookie, err := r.Cookie("token")
-	if err != nil {
-		return nil
+func TokenEmailHelper(tokenStr string) (*models.Claims, error) {
+	// Token boş mu kontrol et
+	if tokenStr == "" {
+		return nil, errors.New("token is required")
 	}
 
-	tokenStr := cookie.Value
-	claims := &auth.Claims{}
+	// Claims yapısını oluştur
+	claims := &models.Claims{}
 	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-		return auth.JwtKey, nil
+		return GetJWTKey(), nil // JWT anahtarını sağlayan fonksiyon
 	})
 
-	if err != nil || !token.Valid {
-		return nil
+	if err != nil {
+		return nil, err
+	}
+	if !token.Valid {
+		return nil, errors.New("token is invalid")
 	}
 
-	return claims
+	return claims, nil
 }

@@ -1,44 +1,44 @@
 package patientService
 
 import (
+	"context"
 	"dental-clinic-system/models"
-	"dental-clinic-system/repository/patientRepository"
 )
 
-type PatientService interface {
-	GetPatients(ClinicID uint) ([]models.Patient, error)
-	GetPatient(id uint) (models.Patient, error)
-	CreatePatient(patient models.Patient) (models.Patient, error)
-	UpdatePatient(patient models.Patient) (models.Patient, error)
-	DeletePatient(id uint) error
+type PatientRepository interface {
+	GetPatients(ctx context.Context, ClinicID uint) ([]models.Patient, error)
+	GetPatient(ctx context.Context, id uint) (models.Patient, error)
+	CreatePatient(ctx context.Context, patient models.Patient) (models.Patient, error)
+	UpdatePatient(ctx context.Context, patient models.Patient) (models.Patient, error)
+	DeletePatient(ctx context.Context, id uint) error
 }
 
 type patientService struct {
-	patientRepository patientRepository.PatientRepository
+	patientRepository PatientRepository
 }
 
-func NewPatientService(patientRepository patientRepository.PatientRepository) *patientService {
+func NewPatientService(patientRepository PatientRepository) *patientService {
 	return &patientService{
 		patientRepository: patientRepository,
 	}
 }
 
-func (s *patientService) GetPatients(ClinicID uint) ([]models.Patient, error) {
-	return s.patientRepository.GetPatients(ClinicID)
+func (s *patientService) GetPatients(ctx context.Context, ClinicID uint) ([]models.Patient, error) {
+	return s.patientRepository.GetPatients(ctx, ClinicID)
 }
 
-func (s *patientService) GetPatient(id uint) (models.Patient, error) {
-	return s.patientRepository.GetPatient(id)
+func (s *patientService) GetPatient(ctx context.Context, id uint) (models.Patient, error) {
+	return s.patientRepository.GetPatient(ctx, id)
 }
 
-func (s *patientService) CreatePatient(patient models.Patient) (models.Patient, error) {
-	return s.patientRepository.CreatePatient(patient)
+func (s *patientService) CreatePatient(ctx context.Context, patient models.Patient) (models.Patient, error) {
+	return s.patientRepository.CreatePatient(ctx, patient)
 }
 
-func (s *patientService) UpdatePatient(patient models.Patient) (models.Patient, error) {
-	return s.patientRepository.UpdatePatient(patient)
+func (s *patientService) UpdatePatient(ctx context.Context, patient models.Patient) (models.Patient, error) {
+	return s.patientRepository.UpdatePatient(ctx, patient)
 }
 
-func (s *patientService) DeletePatient(id uint) error {
-	return s.patientRepository.DeletePatient(id)
+func (s *patientService) DeletePatient(ctx context.Context, id uint) error {
+	return s.patientRepository.DeletePatient(ctx, id)
 }

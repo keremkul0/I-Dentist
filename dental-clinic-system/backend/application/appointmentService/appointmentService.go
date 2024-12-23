@@ -1,44 +1,54 @@
 package appointmentService
 
 import (
+	"context"
 	"dental-clinic-system/models"
-	"dental-clinic-system/repository/appointmentRepository"
 )
 
-type AppointmentService interface {
-	GetAppointments(ClinicID uint) ([]models.Appointment, error)
-	GetAppointment(id uint) (models.Appointment, error)
-	CreateAppointment(appointment models.Appointment) (models.Appointment, error)
-	UpdateAppointment(appointment models.Appointment) (models.Appointment, error)
-	DeleteAppointment(id uint) error
+type AppointmentRepository interface {
+	GetAppointments(ctx context.Context, ClinicID uint) ([]models.Appointment, error)
+	GetAppointment(ctx context.Context, id uint) (models.Appointment, error)
+	CreateAppointment(ctx context.Context, appointment models.Appointment) (models.Appointment, error)
+	UpdateAppointment(ctx context.Context, appointment models.Appointment) (models.Appointment, error)
+	DeleteAppointment(ctx context.Context, id uint) error
+	GetDoctorAppointments(ctx context.Context, id uint) ([]models.Appointment, error)
+	GetPatientAppointments(ctx context.Context, id uint) ([]models.Appointment, error)
 }
 
 type appointmentService struct {
-	appointmentRepository appointmentRepository.AppointmentRepository
+	appointmentRepository AppointmentRepository
 }
 
-func NewAppointmentService(appointmentRepository appointmentRepository.AppointmentRepository) *appointmentService {
+func NewAppointmentService(appointmentRepository AppointmentRepository) *appointmentService {
 	return &appointmentService{
 		appointmentRepository: appointmentRepository,
 	}
 }
 
-func (s *appointmentService) GetAppointments(ClinicID uint) ([]models.Appointment, error) {
-	return s.appointmentRepository.GetAppointmentsRepo(ClinicID)
+func (s *appointmentService) GetAppointments(ctx context.Context, ClinicID uint) ([]models.Appointment, error) {
+	return s.appointmentRepository.GetAppointments(ctx, ClinicID)
 }
 
-func (s *appointmentService) GetAppointment(id uint) (models.Appointment, error) {
-	return s.appointmentRepository.GetAppointmentRepo(id)
+func (s *appointmentService) GetAppointment(ctx context.Context, id uint) (models.Appointment, error) {
+	return s.appointmentRepository.GetAppointment(ctx, id)
 }
 
-func (s *appointmentService) CreateAppointment(appointment models.Appointment) (models.Appointment, error) {
-	return s.appointmentRepository.CreateAppointmentRepo(appointment)
+func (s *appointmentService) CreateAppointment(ctx context.Context, appointment models.Appointment) (models.Appointment, error) {
+	return s.appointmentRepository.CreateAppointment(ctx, appointment)
 }
 
-func (s *appointmentService) UpdateAppointment(appointment models.Appointment) (models.Appointment, error) {
-	return s.appointmentRepository.UpdateAppointmentRepo(appointment)
+func (s *appointmentService) UpdateAppointment(ctx context.Context, appointment models.Appointment) (models.Appointment, error) {
+	return s.appointmentRepository.UpdateAppointment(ctx, appointment)
 }
 
-func (s *appointmentService) DeleteAppointment(id uint) error {
-	return s.appointmentRepository.DeleteAppointmentRepo(id)
+func (s *appointmentService) DeleteAppointment(ctx context.Context, id uint) error {
+	return s.appointmentRepository.DeleteAppointment(ctx, id)
+}
+
+func (s *appointmentService) GetDoctorAppointments(ctx context.Context, id uint) ([]models.Appointment, error) {
+	return s.appointmentRepository.GetDoctorAppointments(ctx, id)
+}
+
+func (s *appointmentService) GetPatientAppointments(ctx context.Context, id uint) ([]models.Appointment, error) {
+	return s.appointmentRepository.GetPatientAppointments(ctx, id)
 }
