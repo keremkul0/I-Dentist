@@ -22,8 +22,6 @@ func NewLogoutController(tokenService TokenService) *LogoutController {
 
 func (h *LogoutController) Logout(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
-	defer cancelFunc()
 	token, err := r.Cookie("token")
 	if err != nil {
 		http.Error(w, "No token found", http.StatusUnauthorized)

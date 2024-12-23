@@ -4,7 +4,6 @@ import (
 	"context"
 	"dental-clinic-system/helpers"
 	"net/http"
-	"time"
 )
 
 type EmailService interface {
@@ -21,8 +20,6 @@ func NewVerifyEmailController(service EmailService) *VerifyEmailHandler {
 
 func (h *VerifyEmailHandler) VerifyUserEmail(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
-	defer cancelFunc()
 	token := r.URL.Query().Get("token")
 	if token == "" {
 		http.Error(w, "Token is required", http.StatusBadRequest)
@@ -34,7 +31,7 @@ func (h *VerifyEmailHandler) VerifyUserEmail(w http.ResponseWriter, r *http.Requ
 		http.Error(w, "Invalid token", http.StatusBadRequest)
 		return
 	}
-	
+
 	if h.EmailService.VerifyUserEmail(ctx, token, claims.Email) {
 		_, err := w.Write([]byte("Email verified"))
 		if err != nil {

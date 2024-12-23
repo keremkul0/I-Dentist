@@ -21,8 +21,6 @@ func NewSendEmailController(service EmailService) *SendEmailHandler {
 
 func (h *SendEmailHandler) SendVerificationEmail(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
-	defer cancelFunc()
 	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)

@@ -5,7 +5,6 @@ import (
 	"dental-clinic-system/models"
 	"encoding/json"
 	"net/http"
-	"time"
 )
 
 type SignUpUserService interface {
@@ -24,8 +23,6 @@ func NewSignUpUserHandler(signUpUserService SignUpUserService) *SignUpUserHandle
 
 func (s *SignUpUserHandler) SignUpUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
-	defer cancelFunc()
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {

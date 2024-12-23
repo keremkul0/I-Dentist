@@ -23,8 +23,6 @@ func NewLoginController(service LoginService) *LoginHandler {
 
 func (h *LoginHandler) Login(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
-	defer cancelFunc()
 	var creds models.Login
 	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)

@@ -5,7 +5,6 @@ import (
 	"dental-clinic-system/models"
 	"encoding/json"
 	"net/http"
-	"time"
 )
 
 type SignUpClinicService interface {
@@ -22,8 +21,6 @@ func NewSignUpClinicController(service SignUpClinicService) *SignUpClinicControl
 
 func (h *SignUpClinicController) SignUpClinic(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
-	defer cancelFunc()
 	var clinic models.Clinic
 	var id string
 

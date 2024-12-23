@@ -28,8 +28,6 @@ func NewRoleController(roleService RoleService) *RoleHandler {
 
 func (h *RoleHandler) GetRoles(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
-	defer cancelFunc()
 	roles, err := h.roleService.GetRoles(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)

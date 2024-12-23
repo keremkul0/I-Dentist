@@ -47,8 +47,6 @@ func (h *ClinicHandler) GetClinics(w http.ResponseWriter, r *http.Request) {
 
 func (h *ClinicHandler) GetClinic(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
-	defer cancelFunc()
 	params := mux.Vars(r)
 	idStr := params["id"]
 	id, err := strconv.Atoi(idStr)
