@@ -19,8 +19,9 @@ type TokenRepository interface {
 	IsTokenBlacklisted(ctx context.Context, token string) bool
 	AddTokenToBlacklist(ctx context.Context, token string, expireTime time.Time) error
 }
+
 type Mailer interface {
-	SendMail(to string, subject string, body string) error
+	SendMail(massage gomail.Message) error
 }
 
 type emailService struct {
@@ -38,11 +39,11 @@ func NewEmailService(userRepository UserRepository, tokenRepository TokenReposit
 }
 
 func (s *emailService) SendVerificationEmail(ctx context.Context, email, token string) error {
-	_, err := s.createVerificationEmail(email, token)
+	m, err := s.createVerificationEmail(email, token)
 	if err != nil {
 		return err
 	}
-	return s.mailer.SendMail(email, "Email Verification", "test")
+	return s.mailer.SendMail(*m)
 }
 
 func (s *emailService) VerifyUserEmail(ctx context.Context, token string, email string) bool {

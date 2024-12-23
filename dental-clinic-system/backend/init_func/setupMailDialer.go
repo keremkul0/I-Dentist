@@ -37,15 +37,9 @@ func SetupMailDialer(emailConfig config.EmailConfig) *goMail {
 	return &goMail{dialer: mailDialer, from: emailConfig.User}
 }
 
-func (g *goMail) SendMail(to string, subject string, body string) error {
-	message := gomail.NewMessage()
-	message.SetHeader("From", g.from)
-	message.SetHeader("To", to)
-	message.SetHeader("Subject", subject)
-	message.SetBody("text/plain", body)
-
+func (g *goMail) SendMail(Message gomail.Message) error {
 	// Send the email
-	if err := g.dialer.DialAndSend(message); err != nil {
+	if err := g.dialer.DialAndSend(&Message); err != nil {
 		return err
 	}
 	return nil

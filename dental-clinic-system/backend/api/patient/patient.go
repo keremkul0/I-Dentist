@@ -34,8 +34,6 @@ type PatientHandler struct {
 
 func (h *PatientHandler) GetPatients(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
-	defer cancelFunc()
 	claims, err := helpers.CookieTokenEmailHelper(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
