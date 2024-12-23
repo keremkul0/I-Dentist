@@ -1,33 +1,33 @@
 package userService
 
 import (
-	"dental-clinic-system/helpers"
+	"context"
+	"dental-clinic-system/mapper"
 	"dental-clinic-system/models"
-	"dental-clinic-system/repository/userRepository"
 )
 
-type UserService interface {
-	GetUsers(ClinicID uint) ([]models.UserGetModel, error)
-	GetUser(id uint) (models.UserGetModel, error)
-	GetUserByEmail(email string) (models.UserGetModel, error)
-	CreateUser(user models.User) (models.UserGetModel, error)
-	UpdateUser(user models.User) (models.UserGetModel, error)
-	DeleteUser(id uint) error
-	CheckUserExist(user models.UserGetModel) bool
+type UserRepository interface {
+	GetUsers(ctx context.Context, ClinicID uint) ([]models.User, error)
+	GetUser(ctx context.Context, id uint) (models.User, error)
+	GetUserByEmail(ctx context.Context, email string) (models.User, error)
+	CreateUser(ctx context.Context, user models.User) (models.User, error)
+	UpdateUser(ctx context.Context, user models.User) (models.User, error)
+	DeleteUser(ctx context.Context, id uint) error
+	CheckUserExist(ctx context.Context, user models.UserGetModel) bool
 }
 
 type userService struct {
-	userRepository userRepository.UserRepository
+	userRepository UserRepository
 }
 
-func NewUserService(userRepository userRepository.UserRepository) *userService {
+func NewUserService(userRepository UserRepository) *userService {
 	return &userService{
 		userRepository: userRepository,
 	}
 }
 
-func (s *userService) GetUsers(ClinicID uint) ([]models.UserGetModel, error) {
-	users, err := s.userRepository.GetUsersRepo(ClinicID)
+func (s *userService) GetUsers(ctx context.Context, ClinicID uint) ([]models.UserGetModel, error) {
+	users, err := s.userRepository.GetUsers(ctx, ClinicID)
 	if err != nil {
 		return nil, err
 	}
@@ -35,52 +35,52 @@ func (s *userService) GetUsers(ClinicID uint) ([]models.UserGetModel, error) {
 	var usersGetModel []models.UserGetModel
 
 	for _, user := range users {
-		usersGetModel = append(usersGetModel, helpers.UserConvertor(user))
+		usersGetModel = append(usersGetModel, mapper.UserMapper(user))
 	}
 
 	return usersGetModel, nil
 }
 
-func (s *userService) GetUser(id uint) (models.UserGetModel, error) {
-	user, err := s.userRepository.GetUserRepo(id)
+func (s *userService) GetUser(ctx context.Context, id uint) (models.UserGetModel, error) {
+	user, err := s.userRepository.GetUser(ctx, id)
 	if err != nil {
 		return models.UserGetModel{}, err
 	}
 
-	return helpers.UserConvertor(user), nil
+	return mapper.UserMapper(user), nil
 }
 
-func (s *userService) GetUserByEmail(email string) (models.UserGetModel, error) {
-	user, err := s.userRepository.GetUserByEmailRepo(email)
+func (s *userService) GetUserByEmail(ctx context.Context, email string) (models.UserGetModel, error) {
+	user, err := s.userRepository.GetUserByEmail(ctx, email)
 	if err != nil {
 		return models.UserGetModel{}, err
 	}
 
-	return helpers.UserConvertor(user), nil
+	return mapper.UserMapper(user), nil
 }
 
-func (s *userService) CreateUser(user models.User) (models.UserGetModel, error) {
-	user, err := s.userRepository.CreateUserRepo(user)
+func (s *userService) CreateUser(ctx context.Context, user models.User) (models.UserGetModel, error) {
+	user, err := s.userRepository.CreateUser(ctx, user)
 	if err != nil {
 		return models.UserGetModel{}, err
 	}
 
-	return helpers.UserConvertor(user), nil
+	return mapper.UserMapper(user), nil
 }
 
-func (s *userService) UpdateUser(user models.User) (models.UserGetModel, error) {
-	user, err := s.userRepository.UpdateUserRepo(user)
+func (s *userService) UpdateUser(ctx context.Context, user models.User) (models.UserGetModel, error) {
+	user, err := s.userRepository.UpdateUser(ctx, user)
 	if err != nil {
 		return models.UserGetModel{}, err
 	}
 
-	return helpers.UserConvertor(user), nil
+	return mapper.UserMapper(user), nil
 }
 
-func (s *userService) DeleteUser(id uint) error {
-	return s.userRepository.DeleteUserRepo(id)
+func (s *userService) DeleteUser(ctx context.Context, id uint) error {
+	return s.userRepository.DeleteUser(ctx, id)
 }
 
-func (s *userService) CheckUserExist(user models.UserGetModel) bool {
-	return s.userRepository.CheckUserExistRepo(user)
+func (s *userService) CheckUserExist(ctx context.Context, user models.UserGetModel) bool {
+	return s.userRepository.CheckUserExist(ctx, user)
 }

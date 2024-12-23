@@ -1,17 +1,10 @@
 package procedureRepository
 
 import (
+	"context"
 	"dental-clinic-system/models"
 	"gorm.io/gorm"
 )
-
-type ProcedureRepository interface {
-	GetProcedures(ClinicID uint) ([]models.Procedure, error)
-	GetProcedure(id uint) (models.Procedure, error)
-	CreateProcedure(procedure models.Procedure) (models.Procedure, error)
-	UpdateProcedure(procedure models.Procedure) (models.Procedure, error)
-	DeleteProcedure(id uint) error
-}
 
 func NewProcedureRepository(db *gorm.DB) *procedureRepository {
 	return &procedureRepository{DB: db}
@@ -21,39 +14,29 @@ type procedureRepository struct {
 	DB *gorm.DB
 }
 
-func (r *procedureRepository) GetProcedures(ClinicID uint) ([]models.Procedure, error) {
+func (r *procedureRepository) GetProcedures(ctx context.Context, ClinicID uint) ([]models.Procedure, error) {
 	var procedures []models.Procedure
-	if result := r.DB.Where("clinic_id = ?", ClinicID).Find(&procedures); result.Error != nil {
-		return []models.Procedure{}, result.Error
-	}
-	return procedures, nil
+	result := r.DB.WithContext(ctx).Where("clinic_id = ?", ClinicID).Find(&procedures)
+	return procedures, result.Error
 }
 
-func (r *procedureRepository) GetProcedure(id uint) (models.Procedure, error) {
+func (r *procedureRepository) GetProcedure(ctx context.Context, id uint) (models.Procedure, error) {
 	var procedure models.Procedure
-	if result := r.DB.First(&procedure, id); result.Error != nil {
-		return models.Procedure{}, result.Error
-	}
-	return procedure, nil
+	result := r.DB.WithContext(ctx).First(&procedure, id)
+	return procedure, result.Error
 }
 
-func (r *procedureRepository) CreateProcedure(procedure models.Procedure) (models.Procedure, error) {
-	if result := r.DB.Create(&procedure); result.Error != nil {
-		return models.Procedure{}, result.Error
-	}
-	return procedure, nil
+func (r *procedureRepository) CreateProcedure(ctx context.Context, procedure models.Procedure) (models.Procedure, error) {
+	result := r.DB.WithContext(ctx).Create(&procedure)
+	return procedure, result.Error
 }
 
-func (r *procedureRepository) UpdateProcedure(procedure models.Procedure) (models.Procedure, error) {
-	if result := r.DB.Save(&procedure); result.Error != nil {
-		return models.Procedure{}, result.Error
-	}
-	return procedure, nil
+func (r *procedureRepository) UpdateProcedure(ctx context.Context, procedure models.Procedure) (models.Procedure, error) {
+	result := r.DB.WithContext(ctx).Save(&procedure)
+	return procedure, result.Error
 }
 
-func (r *procedureRepository) DeleteProcedure(id uint) error {
-	if result := r.DB.Delete(&models.Procedure{}, id); result.Error != nil {
-		return result.Error
-	}
-	return nil
+func (r *procedureRepository) DeleteProcedure(ctx context.Context, id uint) error {
+	result := r.DB.WithContext(ctx).Delete(&models.Procedure{}, id)
+	return result.Error
 }

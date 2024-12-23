@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            color: #333333;
+            margin-bottom: 20px;
+        }
+        .button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .verify-button {
+            text-decoration: none;
+            background-color: #007bff;
+            color: #ffffff;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .verify-button:hover {
+            background-color: #0056b3;
+        }
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #888888;
+            margin-top: 20px;
+        }
+    </style>
+    <title></title>
+</head>
+<body>
+<div class="email-container">
+    <h1 class="header">E-posta Doğrulama</h1>
+    <p>Merhaba,</p>
+    <p>I-Dentist hesabınızı doğrulamak için aşağıdaki butona tıklayın:</p>
+    <div class="button-container">
+        <a href="{{.VERIFY_LINK}}" class="verify-button">E-postayı Doğrula</a>
+    </div>
+    <p>Eğer bu isteği siz yapmadıysanız, bu e-postayı dikkate almayın.</p>
+    <p>Teşekkürler,<br>I-Dentist Ekibi</p>
+    <div class="footer">
+        © 2024 I-Dentist. Tüm hakları saklıdır.
+    </div>
+</div>
+</body>
+</html>
