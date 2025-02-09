@@ -2,14 +2,14 @@ package roleService
 
 import (
 	"context"
-	"dental-clinic-system/models"
+	"dental-clinic-system/models/user"
 )
 
 type RoleRepository interface {
-	GetRoles(ctx context.Context) ([]models.Role, error)
-	GetRole(ctx context.Context, id uint) (models.Role, error)
-	CreateRole(ctx context.Context, role models.Role) (models.Role, error)
-	UpdateRole(ctx context.Context, role models.Role) (models.Role, error)
+	GetRoles(ctx context.Context) ([]user.Role, error)
+	GetRole(ctx context.Context, id uint) (user.Role, error)
+	CreateRole(ctx context.Context, role user.Role) (user.Role, error)
+	UpdateRole(ctx context.Context, role user.Role) (user.Role, error)
 	DeleteRole(ctx context.Context, id uint) error
 }
 
@@ -23,19 +23,19 @@ func NewRoleService(roleRepository RoleRepository) *roleService {
 	}
 }
 
-func (s *roleService) GetRoles(ctx context.Context) ([]models.Role, error) {
+func (s *roleService) GetRoles(ctx context.Context) ([]user.Role, error) {
 	return s.roleRepository.GetRoles(ctx)
 }
 
-func (s *roleService) GetRole(ctx context.Context, id uint) (models.Role, error) {
+func (s *roleService) GetRole(ctx context.Context, id uint) (user.Role, error) {
 	return s.roleRepository.GetRole(ctx, id)
 }
 
-func (s *roleService) CreateRole(ctx context.Context, role models.Role) (models.Role, error) {
+func (s *roleService) CreateRole(ctx context.Context, role user.Role) (user.Role, error) {
 	return s.roleRepository.CreateRole(ctx, role)
 }
 
-func (s *roleService) UpdateRole(ctx context.Context, role models.Role) (models.Role, error) {
+func (s *roleService) UpdateRole(ctx context.Context, role user.Role) (user.Role, error) {
 	return s.roleRepository.UpdateRole(ctx, role)
 }
 

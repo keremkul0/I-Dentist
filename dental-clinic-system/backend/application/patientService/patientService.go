@@ -2,14 +2,14 @@ package patientService
 
 import (
 	"context"
-	"dental-clinic-system/models"
+	"dental-clinic-system/models/patient"
 )
 
 type PatientRepository interface {
-	GetPatients(ctx context.Context, ClinicID uint) ([]models.Patient, error)
-	GetPatient(ctx context.Context, id uint) (models.Patient, error)
-	CreatePatient(ctx context.Context, patient models.Patient) (models.Patient, error)
-	UpdatePatient(ctx context.Context, patient models.Patient) (models.Patient, error)
+	GetPatients(ctx context.Context, ClinicID uint) ([]patient.Patient, error)
+	GetPatient(ctx context.Context, id uint) (patient.Patient, error)
+	CreatePatient(ctx context.Context, patient patient.Patient) (patient.Patient, error)
+	UpdatePatient(ctx context.Context, patient patient.Patient) (patient.Patient, error)
 	DeletePatient(ctx context.Context, id uint) error
 }
 
@@ -23,19 +23,19 @@ func NewPatientService(patientRepository PatientRepository) *patientService {
 	}
 }
 
-func (s *patientService) GetPatients(ctx context.Context, ClinicID uint) ([]models.Patient, error) {
+func (s *patientService) GetPatients(ctx context.Context, ClinicID uint) ([]patient.Patient, error) {
 	return s.patientRepository.GetPatients(ctx, ClinicID)
 }
 
-func (s *patientService) GetPatient(ctx context.Context, id uint) (models.Patient, error) {
+func (s *patientService) GetPatient(ctx context.Context, id uint) (patient.Patient, error) {
 	return s.patientRepository.GetPatient(ctx, id)
 }
 
-func (s *patientService) CreatePatient(ctx context.Context, patient models.Patient) (models.Patient, error) {
+func (s *patientService) CreatePatient(ctx context.Context, patient patient.Patient) (patient.Patient, error) {
 	return s.patientRepository.CreatePatient(ctx, patient)
 }
 
-func (s *patientService) UpdatePatient(ctx context.Context, patient models.Patient) (models.Patient, error) {
+func (s *patientService) UpdatePatient(ctx context.Context, patient patient.Patient) (patient.Patient, error) {
 	return s.patientRepository.UpdatePatient(ctx, patient)
 }
 

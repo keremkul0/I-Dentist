@@ -82,17 +82,17 @@ func main() {
 	helpers.SetJWTKey(configModel.JWT.SecretKey)
 
 	//Repositories
-	newClinicRepository := clinicRepository.NewClinicRepository(db)
-	newAppointmentRepository := appointmentRepository.NewAppointmentRepository(db)
-	newPatientRepository := patientRepository.NewPatientRepository(db)
-	newProcedureRepository := procedureRepository.NewProcedureRepository(db)
-	newRoleRepository := roleRepository.NewRoleRepository(db)
-	newUserRepository := userRepository.NewUserRepository(db)
-	newLoginRepository := loginRepository.NewLoginRepository(db)
-	newTokenRepository := tokenRepository.NewTokenRepository(db)
+	newClinicRepository := clinicRepository.NewRepository(db)
+	newAppointmentRepository := appointmentRepository.NewRepository(db)
+	newPatientRepository := patientRepository.NewRepository(db)
+	newProcedureRepository := procedureRepository.NewRepository(db)
+	newRoleRepository := roleRepository.NewRepository(db)
+	newUserRepository := userRepository.NewRepository(db)
+	newLoginRepository := loginRepository.NewRepository(db)
+	newTokenRepository := tokenRepository.NewRepository(db)
 
 	//Redis Repository
-	newRedisRepository := redisRepository.NewRedisRepository(Rdb)
+	newRedisRepository := redisRepository.NewRepository(Rdb)
 
 	//Services
 	newClinicService := clinicService.NewClinicService(newClinicRepository)
@@ -109,7 +109,7 @@ func main() {
 
 	//Handlers
 	newClinicHandler := clinic.NewClinicHandlerController(newClinicService, newUserService)
-	newAppointmentHandler := appointment.NewAppointmentHandlerController(newAppointmentService, newUserService, newPatientService)
+	newAppointmentHandler := appointment.NewAppointmentHandler(newAppointmentService, newUserService, newPatientService)
 	newPatientHandler := patient.NewPatientController(newPatientService, newUserService)
 	newProcedureHandler := procedure.NewProcedureController(newProcedureService, newUserService)
 	newRoleHandler := role.NewRoleController(newRoleService)

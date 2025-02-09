@@ -3,7 +3,8 @@ package patient
 import (
 	"context"
 	"dental-clinic-system/helpers"
-	"dental-clinic-system/models"
+	"dental-clinic-system/models/patient"
+	"dental-clinic-system/models/user"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -12,14 +13,14 @@ import (
 )
 
 type UserService interface {
-	GetUserByEmail(ctx context.Context, email string) (models.UserGetModel, error)
+	GetUserByEmail(ctx context.Context, email string) (user.UserGetModel, error)
 }
 
 type PatientService interface {
-	GetPatients(ctx context.Context, ClinicID uint) ([]models.Patient, error)
-	GetPatient(ctx context.Context, id uint) (models.Patient, error)
-	CreatePatient(ctx context.Context, patient models.Patient) (models.Patient, error)
-	UpdatePatient(ctx context.Context, patient models.Patient) (models.Patient, error)
+	GetPatients(ctx context.Context, ClinicID uint) ([]patient.Patient, error)
+	GetPatient(ctx context.Context, id uint) (patient.Patient, error)
+	CreatePatient(ctx context.Context, patient patient.Patient) (patient.Patient, error)
+	UpdatePatient(ctx context.Context, patient patient.Patient) (patient.Patient, error)
 	DeletePatient(ctx context.Context, id uint) error
 }
 
@@ -99,7 +100,7 @@ func (h *PatientHandler) CreatePatient(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
 	defer cancelFunc()
-	var patient models.Patient
+	var patient patient.Patient
 	err := json.NewDecoder(r.Body).Decode(&patient)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -133,7 +134,7 @@ func (h *PatientHandler) UpdatePatient(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
 	defer cancelFunc()
-	var patient models.Patient
+	var patient patient.Patient
 	err := json.NewDecoder(r.Body).Decode(&patient)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

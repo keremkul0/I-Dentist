@@ -3,7 +3,7 @@ package emailService
 import (
 	"bytes"
 	"context"
-	"dental-clinic-system/models"
+	"dental-clinic-system/models/user"
 	"gopkg.in/gomail.v2"
 	"html/template"
 	"log"
@@ -11,8 +11,8 @@ import (
 )
 
 type UserRepository interface {
-	GetUserByEmail(ctx context.Context, email string) (models.User, error)
-	UpdateUser(ctx context.Context, user models.User) (models.User, error)
+	GetUserByEmail(ctx context.Context, email string) (user.User, error)
+	UpdateUser(ctx context.Context, user user.User) (user.User, error)
 }
 
 type TokenRepository interface {

@@ -2,85 +2,240 @@ package userService
 
 import (
 	"context"
+	"errors"
+	"gorm.io/gorm"
+
 	"dental-clinic-system/mapper"
-	"dental-clinic-system/models"
+	"dental-clinic-system/models/user"
+
+	"github.com/rs/zerolog/log"
 )
 
+// ErrUserNotFound Error types
+var (
+	ErrUserNotFound = errors.New("user not found")
+)
+
+// UserRepository defines the interface for user-related database operations
 type UserRepository interface {
-	GetUsers(ctx context.Context, ClinicID uint) ([]models.User, error)
-	GetUser(ctx context.Context, id uint) (models.User, error)
-	GetUserByEmail(ctx context.Context, email string) (models.User, error)
-	CreateUser(ctx context.Context, user models.User) (models.User, error)
-	UpdateUser(ctx context.Context, user models.User) (models.User, error)
+	GetUsers(ctx context.Context, clinicID uint) ([]user.User, error)
+	GetUser(ctx context.Context, id uint) (user.User, error)
+	GetUserByEmail(ctx context.Context, email string) (user.User, error)
+	CreateUser(ctx context.Context, usr user.User) (user.User, error)
+	UpdateUser(ctx context.Context, usr user.User) (user.User, error)
 	DeleteUser(ctx context.Context, id uint) error
-	CheckUserExist(ctx context.Context, user models.UserGetModel) bool
+	CheckUserExist(ctx context.Context, userModel user.UserGetModel) (bool, error)
 }
 
-type userService struct {
+// UserService handles user-related business logic
+type UserService struct {
 	userRepository UserRepository
 }
 
-func NewUserService(userRepository UserRepository) *userService {
-	return &userService{
-		userRepository: userRepository,
+// NewUserService creates a new instance of UserService
+func NewUserService(userRepo UserRepository) *UserService {
+	return &UserService{
+		userRepository: userRepo,
 	}
 }
 
-func (s *userService) GetUsers(ctx context.Context, ClinicID uint) ([]models.UserGetModel, error) {
-	users, err := s.userRepository.GetUsers(ctx, ClinicID)
+// GetUsers retrieves all users for a specific clinic and maps them to UserGetModel
+func (s *UserService) GetUsers(ctx context.Context, clinicID uint) ([]user.UserGetModel, error) {
+	log.Info().
+		Str("operation", "GetUsers").
+		Uint("clinic_id", clinicID).
+		Msg("Fetching users for clinic")
+
+	users, err := s.userRepository.GetUsers(ctx, clinicID)
 	if err != nil {
+		log.Error().
+			Str("operation", "GetUsers").
+			Err(err).
+			Uint("clinic_id", clinicID).
+			Msg("Failed to retrieve users")
 		return nil, err
 	}
 
-	var usersGetModel []models.UserGetModel
-
-	for _, user := range users {
-		usersGetModel = append(usersGetModel, mapper.UserMapper(user))
+	var usersGetModel []user.UserGetModel
+	for _, usr := range users {
+		usersGetModel = append(usersGetModel, mapper.MapUserToUserGetModel(usr))
 	}
+
+	log.Info().
+		Str("operation", "GetUsers").
+		Int("count", len(usersGetModel)).
+		Msgf("Retrieved %d users successfully", len(usersGetModel))
 
 	return usersGetModel, nil
 }
 
-func (s *userService) GetUser(ctx context.Context, id uint) (models.UserGetModel, error) {
-	user, err := s.userRepository.GetUser(ctx, id)
+// GetUser retrieves a single user by its ID and maps it to UserGetModel
+func (s *UserService) GetUser(ctx context.Context, id uint) (user.UserGetModel, error) {
+	log.Info().
+		Str("operation", "GetUser").
+		Uint("user_id", id).
+		Msg("Fetching user by ID")
+
+	usr, err := s.userRepository.GetUser(ctx, id)
 	if err != nil {
-		return models.UserGetModel{}, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Warn().
+				Str("operation", "GetUser").
+				Err(err).
+				Uint("user_id", id).
+				Msg("User not found")
+			return user.UserGetModel{}, ErrUserNotFound
+		}
+		log.Error().
+			Str("operation", "GetUser").
+			Err(err).
+			Uint("user_id", id).
+			Msg("Failed to retrieve user")
+		return user.UserGetModel{}, err
 	}
 
-	return mapper.UserMapper(user), nil
+	log.Info().
+		Str("operation", "GetUser").
+		Uint("user_id", id).
+		Msg("User retrieved successfully")
+
+	return mapper.MapUserToUserGetModel(usr), nil
 }
 
-func (s *userService) GetUserByEmail(ctx context.Context, email string) (models.UserGetModel, error) {
-	user, err := s.userRepository.GetUserByEmail(ctx, email)
+// GetUserByEmail retrieves a single user by its email and maps it to UserGetModel
+func (s *UserService) GetUserByEmail(ctx context.Context, email string) (user.UserGetModel, error) {
+	log.Info().
+		Str("operation", "GetUserByEmail").
+		Str("email", email).
+		Msg("Fetching user by email")
+
+	usr, err := s.userRepository.GetUserByEmail(ctx, email)
 	if err != nil {
-		return models.UserGetModel{}, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Warn().
+				Str("operation", "GetUserByEmail").
+				Err(err).
+				Str("email", email).
+				Msg("User not found")
+			return user.UserGetModel{}, ErrUserNotFound
+		}
+		log.Error().
+			Str("operation", "GetUserByEmail").
+			Err(err).
+			Str("email", email).
+			Msg("Failed to retrieve user by email")
+		return user.UserGetModel{}, err
 	}
 
-	return mapper.UserMapper(user), nil
+	log.Info().
+		Str("operation", "GetUserByEmail").
+		Str("email", email).
+		Msg("User retrieved by email successfully")
+
+	return mapper.MapUserToUserGetModel(usr), nil
 }
 
-func (s *userService) CreateUser(ctx context.Context, user models.User) (models.UserGetModel, error) {
-	user, err := s.userRepository.CreateUser(ctx, user)
+// CreateUser creates a new user record and maps it to UserGetModel
+func (s *UserService) CreateUser(ctx context.Context, newUsr user.User) (user.UserGetModel, error) {
+	log.Info().
+		Str("operation", "CreateUser").
+		Str("email", newUsr.Email).
+		Msg("Creating new user")
+
+	usr, err := s.userRepository.CreateUser(ctx, newUsr)
 	if err != nil {
-		return models.UserGetModel{}, err
+		log.Error().
+			Str("operation", "CreateUser").
+			Err(err).
+			Msg("Failed to create user")
+		return user.UserGetModel{}, err
 	}
 
-	return mapper.UserMapper(user), nil
+	log.Info().
+		Str("operation", "CreateUser").
+		Uint("user_id", usr.ID).
+		Msg("User created successfully")
+
+	return mapper.MapUserToUserGetModel(usr), nil
 }
 
-func (s *userService) UpdateUser(ctx context.Context, user models.User) (models.UserGetModel, error) {
-	user, err := s.userRepository.UpdateUser(ctx, user)
+// UpdateUser updates an existing user record and maps it to UserGetModel
+func (s *UserService) UpdateUser(ctx context.Context, updatedUsr user.User) (user.UserGetModel, error) {
+	log.Info().
+		Str("operation", "UpdateUser").
+		Uint("user_id", updatedUsr.ID).
+		Msg("Updating user")
+
+	usr, err := s.userRepository.UpdateUser(ctx, updatedUsr)
 	if err != nil {
-		return models.UserGetModel{}, err
+		log.Error().
+			Str("operation", "UpdateUser").
+			Err(err).
+			Uint("user_id", updatedUsr.ID).
+			Msg("Failed to update user")
+		return user.UserGetModel{}, err
 	}
 
-	return mapper.UserMapper(user), nil
+	log.Info().
+		Str("operation", "UpdateUser").
+		Uint("user_id", usr.ID).
+		Msg("User updated successfully")
+
+	return mapper.MapUserToUserGetModel(usr), nil
 }
 
-func (s *userService) DeleteUser(ctx context.Context, id uint) error {
-	return s.userRepository.DeleteUser(ctx, id)
+// DeleteUser deletes a user record by its ID
+func (s *UserService) DeleteUser(ctx context.Context, id uint) error {
+	log.Info().
+		Str("operation", "DeleteUser").
+		Uint("user_id", id).
+		Msg("Deleting user")
+
+	err := s.userRepository.DeleteUser(ctx, id)
+	if err != nil {
+		log.Error().
+			Str("operation", "DeleteUser").
+			Err(err).
+			Uint("user_id", id).
+			Msg("Failed to delete user")
+		return err
+	}
+
+	log.Info().
+		Str("operation", "DeleteUser").
+		Uint("user_id", id).
+		Msg("User deleted successfully")
+
+	return nil
 }
 
-func (s *userService) CheckUserExist(ctx context.Context, user models.UserGetModel) bool {
-	return s.userRepository.CheckUserExist(ctx, user)
+// CheckUserExist checks if a user exists based on national ID, email, or phone number
+func (s *UserService) CheckUserExist(ctx context.Context, userModel user.UserGetModel) (bool, error) {
+	log.Info().
+		Str("operation", "CheckUserExist").
+		Str("email", userModel.Email).
+		Str("national_id", userModel.NationalID).
+		Str("phone_number", userModel.PhoneNumber).
+		Msg("Checking if user exists")
+
+	exists, err := s.userRepository.CheckUserExist(ctx, userModel)
+	if err != nil {
+		log.Error().
+			Str("operation", "CheckUserExist").
+			Err(err).
+			Msg("Failed to check user existence")
+		return false, err
+	}
+
+	if exists {
+		log.Info().
+			Str("operation", "CheckUserExist").
+			Msg("User exists")
+	} else {
+		log.Info().
+			Str("operation", "CheckUserExist").
+			Msg("User does not exist")
+	}
+
+	return exists, nil
 }

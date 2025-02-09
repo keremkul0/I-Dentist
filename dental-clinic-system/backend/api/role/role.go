@@ -2,7 +2,7 @@ package role
 
 import (
 	"context"
-	"dental-clinic-system/models"
+	"dental-clinic-system/models/user"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -11,10 +11,10 @@ import (
 )
 
 type RoleService interface {
-	GetRoles(ctx context.Context) ([]models.Role, error)
-	GetRole(ctx context.Context, id uint) (models.Role, error)
-	CreateRole(ctx context.Context, role models.Role) (models.Role, error)
-	UpdateRole(ctx context.Context, role models.Role) (models.Role, error)
+	GetRoles(ctx context.Context) ([]user.Role, error)
+	GetRole(ctx context.Context, id uint) (user.Role, error)
+	CreateRole(ctx context.Context, role user.Role) (user.Role, error)
+	UpdateRole(ctx context.Context, role user.Role) (user.Role, error)
 	DeleteRole(ctx context.Context, id uint) error
 }
 
@@ -65,7 +65,7 @@ func (h *RoleHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
 	defer cancelFunc()
-	var role models.Role
+	var role user.Role
 	err := json.NewDecoder(r.Body).Decode(&role)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -86,7 +86,7 @@ func (h *RoleHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
 	defer cancelFunc()
-	var role models.Role
+	var role user.Role
 	err := json.NewDecoder(r.Body).Decode(&role)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

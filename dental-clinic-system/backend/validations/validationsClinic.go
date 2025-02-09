@@ -1,13 +1,13 @@
 package validations
 
 import (
-	"dental-clinic-system/models"
+	"dental-clinic-system/models/clinic"
 	"errors"
 	"regexp"
 	"strings"
 )
 
-func ClinicValidation(clinic *models.Clinic) error {
+func ClinicValidation(clinic *clinic.Clinic) error {
 	err := ClinicNameValidation(clinic)
 	if err != nil {
 		return err
@@ -31,7 +31,7 @@ func ClinicValidation(clinic *models.Clinic) error {
 	return nil
 }
 
-func ClinicNameValidation(clinic *models.Clinic) error {
+func ClinicNameValidation(clinic *clinic.Clinic) error {
 
 	if clinic.Name == "" {
 		return errors.New("Clinic name can not be empty")
@@ -45,7 +45,7 @@ func ClinicNameValidation(clinic *models.Clinic) error {
 	return nil
 }
 
-func ClinicAddressValidation(clinic *models.Clinic) error {
+func ClinicAddressValidation(clinic *clinic.Clinic) error {
 
 	if clinic.Address == "" {
 		return errors.New("Clinic address can not be empty")
@@ -59,7 +59,7 @@ func ClinicAddressValidation(clinic *models.Clinic) error {
 	return nil
 }
 
-func ClinicPhoneNumberValidation(clinic *models.Clinic) error {
+func ClinicPhoneNumberValidation(clinic *clinic.Clinic) error {
 
 	if clinic.PhoneNumber == "" {
 		return errors.New("Clinic phone number can not be empty")
@@ -74,7 +74,7 @@ func ClinicPhoneNumberValidation(clinic *models.Clinic) error {
 	return nil
 }
 
-func ClinicEmailValidation(clinic *models.Clinic) error {
+func ClinicEmailValidation(clinic *clinic.Clinic) error {
 
 	if clinic.Email == "" {
 		return errors.New("Clinic email can not be empty")

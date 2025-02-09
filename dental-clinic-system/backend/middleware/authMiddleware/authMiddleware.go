@@ -3,7 +3,7 @@ package authMiddleware
 import (
 	"context"
 	"dental-clinic-system/helpers"
-	"dental-clinic-system/models"
+	"dental-clinic-system/models/claims"
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
@@ -39,7 +39,7 @@ func (auth *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 			return
 		}
 
-		claims := &models.Claims{}
+		claims := &claims.Claims{}
 		token, err := jwt.ParseWithClaims(cookie.Value, claims, func(token *jwt.Token) (interface{}, error) {
 			return helpers.GetJWTKey(), nil
 		})

@@ -3,14 +3,14 @@ package login
 import (
 	"context"
 	"dental-clinic-system/helpers"
-	"dental-clinic-system/models"
+	"dental-clinic-system/models/auth"
 	"encoding/json"
 	"net/http"
 	"time"
 )
 
 type LoginService interface {
-	Login(ctx context.Context, email string, password string) (models.Login, error)
+	Login(ctx context.Context, email string, password string) (auth.Login, error)
 }
 
 type LoginHandler struct {
@@ -23,7 +23,7 @@ func NewLoginController(service LoginService) *LoginHandler {
 
 func (h *LoginHandler) Login(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	var creds models.Login
+	var creds auth.Login
 	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return

@@ -1,7 +1,7 @@
 package helpers
 
 import (
-	"dental-clinic-system/models"
+	"dental-clinic-system/models/claims"
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"net/http/httptest"
@@ -11,7 +11,7 @@ import (
 
 func TestTokenEmailHelper(t *testing.T) {
 	// Setup a valid JWT token
-	claims := &models.Claims{
+	claims := &claims.Claims{
 		Email: "test@example.com",
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),

@@ -1,19 +1,19 @@
 package validations
 
 import (
-	"dental-clinic-system/models"
+	"dental-clinic-system/models/user"
 	"testing"
 )
 
 func TestUserValidation(t *testing.T) {
 	tests := []struct {
 		name    string
-		user    *models.User
+		user    *user.User
 		wantErr bool
 	}{
 		{
 			name: "Valid user",
-			user: &models.User{
+			user: &user.User{
 				FirstName:   "John",
 				LastName:    "Doe",
 				Email:       "john.doe@example.com",
@@ -26,7 +26,7 @@ func TestUserValidation(t *testing.T) {
 		},
 		{
 			name: "Empty first name",
-			user: &models.User{
+			user: &user.User{
 				FirstName:   "",
 				LastName:    "Doe",
 				Email:       "john.doe@example.com",
@@ -39,7 +39,7 @@ func TestUserValidation(t *testing.T) {
 		},
 		{
 			name: "Invalid email",
-			user: &models.User{
+			user: &user.User{
 				FirstName:   "John",
 				LastName:    "Doe",
 				Email:       "invalid-email",
@@ -52,7 +52,7 @@ func TestUserValidation(t *testing.T) {
 		},
 		{
 			name: "Short password",
-			user: &models.User{
+			user: &user.User{
 				FirstName:   "John",
 				LastName:    "Doe",
 				Email:       "john.doe@example.com",
@@ -65,7 +65,7 @@ func TestUserValidation(t *testing.T) {
 		},
 		{
 			name: "Invalid phone number",
-			user: &models.User{
+			user: &user.User{
 				FirstName:   "John",
 				LastName:    "Doe",
 				Email:       "john.doe@example.com",
@@ -78,7 +78,7 @@ func TestUserValidation(t *testing.T) {
 		},
 		{
 			name: "Invalid national ID",
-			user: &models.User{
+			user: &user.User{
 				FirstName:   "John",
 				LastName:    "Doe",
 				Email:       "john.doe@example.com",
