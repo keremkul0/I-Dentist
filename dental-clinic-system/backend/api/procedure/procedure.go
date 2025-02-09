@@ -3,7 +3,8 @@ package procedure
 import (
 	"context"
 	"dental-clinic-system/helpers"
-	"dental-clinic-system/models"
+	"dental-clinic-system/models/procedure"
+	"dental-clinic-system/models/user"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -12,15 +13,15 @@ import (
 )
 
 type ProcedureService interface {
-	GetProcedures(ctx context.Context, ClinicID uint) ([]models.Procedure, error)
-	GetProcedure(ctx context.Context, id uint) (models.Procedure, error)
-	CreateProcedure(ctx context.Context, procedure models.Procedure) (models.Procedure, error)
-	UpdateProcedure(ctx context.Context, procedure models.Procedure) (models.Procedure, error)
+	GetProcedures(ctx context.Context, ClinicID uint) ([]procedure.Procedure, error)
+	GetProcedure(ctx context.Context, id uint) (procedure.Procedure, error)
+	CreateProcedure(ctx context.Context, procedure procedure.Procedure) (procedure.Procedure, error)
+	UpdateProcedure(ctx context.Context, procedure procedure.Procedure) (procedure.Procedure, error)
 	DeleteProcedure(ctx context.Context, id uint) error
 }
 
 type UserService interface {
-	GetUserByEmail(ctx context.Context, email string) (models.UserGetModel, error)
+	GetUserByEmail(ctx context.Context, email string) (user.UserGetModel, error)
 }
 
 func NewProcedureController(procedureService ProcedureService, userService UserService) *ProcedureHandler {
@@ -103,7 +104,7 @@ func (h *ProcedureHandler) CreateProcedure(w http.ResponseWriter, r *http.Reques
 	ctx := r.Context()
 	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
 	defer cancelFunc()
-	var procedure models.Procedure
+	var procedure procedure.Procedure
 	err := json.NewDecoder(r.Body).Decode(&procedure)
 	if err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
@@ -138,7 +139,7 @@ func (h *ProcedureHandler) UpdateProcedure(w http.ResponseWriter, r *http.Reques
 	ctx := r.Context()
 	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
 	defer cancelFunc()
-	var procedure models.Procedure
+	var procedure procedure.Procedure
 	err := json.NewDecoder(r.Body).Decode(&procedure)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

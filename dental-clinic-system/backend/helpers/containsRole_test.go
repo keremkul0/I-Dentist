@@ -1,13 +1,13 @@
 package helpers
 
 import (
-	"dental-clinic-system/models"
+	"dental-clinic-system/models/user"
 	"testing"
 )
 
 func TestContainsRole(t *testing.T) {
 	type args struct {
-		user     models.UserGetModel
+		user     user.UserGetModel
 		roleName string
 	}
 	tests := []struct {
@@ -18,8 +18,8 @@ func TestContainsRole(t *testing.T) {
 		{
 			name: "Role exists",
 			args: args{
-				user: models.UserGetModel{
-					Roles: []*models.Role{{Name: "admin"}, {Name: "user"}},
+				user: user.UserGetModel{
+					Roles: []*user.Role{{Name: "admin"}, {Name: "user"}},
 				},
 				roleName: "admin",
 			},
@@ -28,8 +28,8 @@ func TestContainsRole(t *testing.T) {
 		{
 			name: "Role does not exist",
 			args: args{
-				user: models.UserGetModel{
-					Roles: []*models.Role{{Name: "user"}},
+				user: user.UserGetModel{
+					Roles: []*user.Role{{Name: "user"}},
 				},
 				roleName: "admin",
 			},
@@ -38,8 +38,8 @@ func TestContainsRole(t *testing.T) {
 		{
 			name: "Case insensitive match",
 			args: args{
-				user: models.UserGetModel{
-					Roles: []*models.Role{{Name: "Admin"}},
+				user: user.UserGetModel{
+					Roles: []*user.Role{{Name: "Admin"}},
 				},
 				roleName: "admin",
 			},
@@ -48,8 +48,8 @@ func TestContainsRole(t *testing.T) {
 		{
 			name: "Empty roles",
 			args: args{
-				user: models.UserGetModel{
-					Roles: []*models.Role{},
+				user: user.UserGetModel{
+					Roles: []*user.Role{},
 				},
 				roleName: "admin",
 			},
@@ -58,8 +58,8 @@ func TestContainsRole(t *testing.T) {
 		{
 			name: "Empty role name",
 			args: args{
-				user: models.UserGetModel{
-					Roles: []*models.Role{{Name: "admin"}},
+				user: user.UserGetModel{
+					Roles: []*user.Role{{Name: "admin"}},
 				},
 				roleName: "",
 			},

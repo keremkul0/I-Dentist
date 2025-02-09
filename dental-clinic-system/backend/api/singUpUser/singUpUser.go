@@ -2,13 +2,13 @@ package singUpUser
 
 import (
 	"context"
-	"dental-clinic-system/models"
+	"dental-clinic-system/models/user"
 	"encoding/json"
 	"net/http"
 )
 
 type SignUpUserService interface {
-	SignUpUser(ctx context.Context, user models.User) (string, error)
+	SignUpUser(ctx context.Context, user user.User) (string, error)
 }
 
 type SignUpUserHandler struct {
@@ -23,7 +23,7 @@ func NewSignUpUserHandler(signUpUserService SignUpUserService) *SignUpUserHandle
 
 func (s *SignUpUserHandler) SignUpUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	var user models.User
+	var user user.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

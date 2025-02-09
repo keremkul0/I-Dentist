@@ -1,19 +1,19 @@
 package validations
 
 import (
-	"dental-clinic-system/models"
+	"dental-clinic-system/models/clinic"
 	"testing"
 )
 
 func TestClinicValidation(t *testing.T) {
 	tests := []struct {
 		name    string
-		clinic  *models.Clinic
+		clinic  *clinic.Clinic
 		wantErr bool
 	}{
 		{
 			name: "Valid clinic",
-			clinic: &models.Clinic{
+			clinic: &clinic.Clinic{
 				Name:        "Healthy Smiles",
 				Address:     "123 Dental St",
 				PhoneNumber: "1234567890",
@@ -23,7 +23,7 @@ func TestClinicValidation(t *testing.T) {
 		},
 		{
 			name: "Empty clinic name",
-			clinic: &models.Clinic{
+			clinic: &clinic.Clinic{
 				Name:        "",
 				Address:     "123 Dental St",
 				PhoneNumber: "1234567890",
@@ -33,7 +33,7 @@ func TestClinicValidation(t *testing.T) {
 		},
 		{
 			name: "Invalid clinic email",
-			clinic: &models.Clinic{
+			clinic: &clinic.Clinic{
 				Name:        "Healthy Smiles",
 				Address:     "123 Dental St",
 				PhoneNumber: "1234567890",
@@ -43,7 +43,7 @@ func TestClinicValidation(t *testing.T) {
 		},
 		{
 			name: "Short clinic address",
-			clinic: &models.Clinic{
+			clinic: &clinic.Clinic{
 				Name:        "Healthy Smiles",
 				Address:     "1",
 				PhoneNumber: "1234567890",
@@ -53,7 +53,7 @@ func TestClinicValidation(t *testing.T) {
 		},
 		{
 			name: "Invalid clinic phone number",
-			clinic: &models.Clinic{
+			clinic: &clinic.Clinic{
 				Name:        "Healthy Smiles",
 				Address:     "123 Dental St",
 				PhoneNumber: "12345",
