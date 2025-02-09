@@ -4,13 +4,13 @@ import (
 	"context"
 	"dental-clinic-system/helpers"
 	"dental-clinic-system/mapper"
-	"dental-clinic-system/models"
+	"dental-clinic-system/models/user"
 	"dental-clinic-system/validations"
 	"errors"
 )
 
 type UserRepository interface {
-	CheckUserExist(ctx context.Context, user models.UserGetModel) bool
+	CheckUserExist(ctx context.Context, userModel user.UserGetModel) (bool, error)
 }
 
 type RedisRepository interface {
@@ -29,16 +29,20 @@ func NewSignUpUserService(userRepository UserRepository, redisRepository RedisRe
 	}
 }
 
-func (s *signUpUserService) SignUpUser(ctx context.Context, user models.User) (string, error) {
+func (s *signUpUserService) SignUpUser(ctx context.Context, user user.User) (string, error) {
 	err := validations.UserValidation(&user)
 	if err != nil {
 		return "", errors.New("User validation error")
 	}
 
 	user.Password = helpers.HashPassword(user.Password)
-	userGetModel := mapper.UserMapper(user)
+	userGetModel := mapper.MapUserToUserGetModel(user)
 
-	if s.userRepository.CheckUserExist(ctx, userGetModel) {
+	exists, err := s.userRepository.CheckUserExist(ctx, userGetModel)
+	if err != nil {
+		return "", errors.New("Error checking user existence")
+	}
+	if exists {
 		return "", errors.New("User already exist")
 	}
 

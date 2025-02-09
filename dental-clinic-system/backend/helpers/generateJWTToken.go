@@ -1,7 +1,7 @@
 package helpers
 
 import (
-	"dental-clinic-system/models"
+	"dental-clinic-system/models/claims"
 	"github.com/golang-jwt/jwt/v5"
 	"log"
 	"time"
@@ -9,7 +9,7 @@ import (
 
 func GenerateJWTToken(email string, expirationTime time.Time) (string, error) {
 
-	claims := &models.Claims{
+	claims := &claims.Claims{
 		Email: email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
