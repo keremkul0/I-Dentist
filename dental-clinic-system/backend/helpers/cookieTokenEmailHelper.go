@@ -1,13 +1,13 @@
 package helpers
 
 import (
-	"dental-clinic-system/models"
+	"dental-clinic-system/models/claims"
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 )
 
-func CookieTokenEmailHelper(r *http.Request) (*models.Claims, error) {
+func CookieTokenEmailHelper(r *http.Request) (*claims.Claims, error) {
 	// Extract email from JWT
 	cookie, err := r.Cookie("token")
 	if err != nil {
@@ -15,7 +15,7 @@ func CookieTokenEmailHelper(r *http.Request) (*models.Claims, error) {
 	}
 
 	tokenStr := cookie.Value
-	claims := &models.Claims{}
+	claims := &claims.Claims{}
 	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
 		return GetJWTKey(), nil
 	})

@@ -1,7 +1,7 @@
 package validations
 
 import (
-	"dental-clinic-system/models"
+	"dental-clinic-system/models/user"
 	"errors"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func UserValidation(user *models.User) error {
+func UserValidation(user *user.User) error {
 	err := UserNamesValidation(user)
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func UserValidation(user *models.User) error {
 	return nil
 }
 
-func UserNamesValidation(user *models.User) error {
+func UserNamesValidation(user *user.User) error {
 	if user.FirstName == "" || user.LastName == "" {
 		return errors.New("First name or last name is can not be empty")
 	}
@@ -63,7 +63,7 @@ func UserNamesValidation(user *models.User) error {
 
 }
 
-func UserEmailValidation(user *models.User) error {
+func UserEmailValidation(user *user.User) error {
 	if user.Email == "" {
 		return errors.New("Email can not be empty")
 	}
@@ -78,7 +78,7 @@ func UserEmailValidation(user *models.User) error {
 	return nil
 }
 
-func UserPasswordValidation(user *models.User) error {
+func UserPasswordValidation(user *user.User) error {
 	if user.Password == "" {
 		return errors.New("Password can not be empty")
 	}
@@ -94,7 +94,7 @@ func UserPasswordValidation(user *models.User) error {
 	return nil
 }
 
-func ValidateUserPhones(user *models.User) error {
+func ValidateUserPhones(user *user.User) error {
 	countryCodePattern := `^\+?[0-9]{1,3}$`
 	if !regexp.MustCompile(countryCodePattern).MatchString(user.CountryCode) {
 		return errors.New("Country code must be 1 to 3 digits, and can start with '+'")
@@ -108,7 +108,7 @@ func ValidateUserPhones(user *models.User) error {
 	return nil
 }
 
-func ValidateUserNationalID(user *models.User) error {
+func ValidateUserNationalID(user *user.User) error {
 	nationalIDPattern := `^[1-9]{1}[0-9]{9}[02468]{1}$`
 	if !regexp.MustCompile(nationalIDPattern).MatchString(user.NationalID) {
 		return errors.New("National ID must be exactly 11 digits")
