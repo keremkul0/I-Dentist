@@ -1,0 +1,273 @@
+name: I-Dentist CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  GO_VERSION: '1.22'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/i-dentist-api
+
+jobs:
+  test:
+    name: Test & Quality Check
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: ${{secrets.POSTGRES_USER}}
+          POSTGRES_PASSWORD: ${{secrets.DB_PASSWORD}}
+          POSTGRES_DB: ${{secrets.POSTGRES_DB}}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      vault:
+        image: hashicorp/vault:1.15
+        env:
+          VAULT_DEV_ROOT_TOKEN_ID: ${{secrets.VAULT_DEV_TOKEN}}
+          VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+        ports:
+          - 8200:8200
+        options: >-
+          --cap-add=IPC_LOCK
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('dental-clinic-system/backend/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install dependencies
+        run: |
+          cd dental-clinic-system/backend
+          go mod download
+          go mod tidy
+          go mod verify
+
+      - name: Setup test configuration
+        run: |
+          cd dental-clinic-system/backend
+          # Test için application.yml oluştur
+          cat > resources/application.yml << EOF
+          test:
+            server:
+              port: 8080
+            database:
+              dns: "host=${{secrets.DB_HOST}} user=${{secrets.POSTGRES_USER}} password=${{secrets.DB_PASSWORD}} dbname=${{secrets.POSTGRES_DB}} port=5432 sslmode=disable TimeZone=UTC"
+            vault:
+              addr: "${{secrets.VAULT_ADDR}}"
+              initialRootToken: "${{secrets.VAULT_DEV_TOKEN}}"
+            redis:
+              addr: ${{secrets.REDIS_ADDR}}
+              password: ${{secrets.REDIS_PASSWORD}}
+              db: 0
+            log:
+              level: 0
+          EOF
+
+      - name: Setup Vault test secrets
+        run: |
+          echo "Waiting for Vault service to be ready..."
+          for i in {1..30}; do
+            if curl -s -f http://localhost:8200/v1/sys/health > /dev/null 2>&1; then
+              echo "Vault is ready!"
+              break
+            fi
+            echo "Attempt $i: Vault not ready yet, waiting..."
+            sleep 5
+          done
+          
+          # Test vault connection
+          curl -s http://localhost:8200/v1/sys/health || {
+            echo "ERROR: Cannot connect to Vault service"
+            echo "Checking if Vault container is running..."
+            docker ps | grep vault || echo "No Vault container found"
+            exit 1
+          }
+          
+
+          echo "Setting up secrets via HTTP API..."
+          
+
+          curl -X POST \
+            -H "X-Vault-Token: $VAULT_DEV_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"type": "kv", "options": {"version": "2"}}' \
+            http://localhost:8200/v1/sys/mounts/secret 2>/dev/null || \
+            echo "KV engine might already be enabled"
+          
+
+          curl -X POST \
+            -H "X-Vault-Token: $VAULT_DEV_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"data\": {\"token\": \"$TEST_JWT_SECRET\"}}" \
+            http://localhost:8200/v1/secret/data/jwt_token || {
+            echo "ERROR: Failed to set JWT token secret"
+            exit 1
+          }
+          
+          # Email password secret'ını ekle
+          curl -X POST \
+            -H "X-Vault-Token: $VAULT_DEV_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"data\": {\"password\": \"$TEST_EMAIL_PASSWORD\"}}" \
+            http://localhost:8200/v1/secret/data/email_password || {
+            echo "ERROR: Failed to set email password secret"
+            exit 1
+          }
+          
+
+          echo "Verifying secrets..."
+          RESPONSE=$(curl -s -X GET \
+            -H "X-Vault-Token: $VAULT_DEV_TOKEN" \
+            http://localhost:8200/v1/secret/data/jwt_token)
+          
+          if echo "$RESPONSE" | jq -e '.data.data.token' > /dev/null 2>&1; then
+            echo "JWT token secret verified successfully"
+          else
+            echo "Could not verify JWT token"
+          fi
+          
+          echo "Vault secrets setup completed successfully!"
+        env:
+          VAULT_ADDR: http://localhost:8200
+          VAULT_TOKEN: ${{secrets.VAULT_DEV_TOKEN}}
+          TEST_JWT_SECRET: ${{ secrets.TEST_JWT_SECRET }}
+          TEST_EMAIL_PASSWORD: ${{ secrets.TEST_EMAIL_PASSWORD }}
+
+      - name: Run existing tests
+        run: |
+          cd dental-clinic-system/backend
+          go test -v -race -coverprofile=coverage.out ./...
+        env:
+          ENV: test
+
+      - name: Generate coverage report
+        run: |
+          cd dental-clinic-system/backend
+          go tool cover -html=coverage.out -o coverage.html
+          go tool cover -func=coverage.out
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./dental-clinic-system/backend/coverage.out
+          fail_ci_if_error: false
+
+      - name: Run Go vet
+        run: |
+          cd dental-clinic-system/backend
+          go vet ./...
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          working-directory: dental-clinic-system/backend
+          args: --timeout=5m
+        continue-on-error: true
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build binary
+        run: |
+          cd dental-clinic-system/backend
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -ldflags '-w -s' -o i-dentist-api .
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: i-dentist-api-${{ github.sha }}
+          path: dental-clinic-system/backend/i-dentist-api
+          retention-days: 30
+
+  docker:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    if: github.event_name == 'push'
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./dental-clinic-system/backend
+          file: ./dental-clinic-system/backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
