@@ -86,17 +86,20 @@ jobs:
             server:
               port: 8080
             database:
-              dns: "host=${{secrets.DB_HOST}} user=${{secrets.POSTGRES_USER}} password=${{secrets.DB_PASSWORD}} dbname=${{secrets.POSTGRES_DB}} port=5432 sslmode=disable TimeZone=UTC"
+              dns: "host=localhost user=${{secrets.POSTGRES_USER}} password=${{secrets.DB_PASSWORD}} dbname=${{secrets.POSTGRES_DB}} port=5432 sslmode=disable TimeZone=UTC"
             vault:
-              addr: "${{secrets.VAULT_ADDR}}"
+              addr: "http://localhost:8200"
               initialRootToken: "${{secrets.VAULT_DEV_TOKEN}}"
             redis:
-              addr: ${{secrets.REDIS_ADDR}}
-              password: ${{secrets.REDIS_PASSWORD}}
+              addr: localhost:6379
+              password: ""
               db: 0
             log:
               level: 0
           EOF
+
+      - name: Install jq for JSON parsing
+        run: sudo apt-get update && sudo apt-get install -y jq
 
       - name: Setup Vault test secrets
         run: |
@@ -123,7 +126,7 @@ jobs:
           
 
           curl -X POST \
-            -H "X-Vault-Token: $VAULT_DEV_TOKEN" \
+            -H "X-Vault-Token: ${{secrets.VAULT_DEV_TOKEN}}" \
             -H "Content-Type: application/json" \
             -d '{"type": "kv", "options": {"version": "2"}}' \
             http://localhost:8200/v1/sys/mounts/secret 2>/dev/null || \
@@ -131,7 +134,7 @@ jobs:
           
 
           curl -X POST \
-            -H "X-Vault-Token: $VAULT_DEV_TOKEN" \
+            -H "X-Vault-Token: ${{secrets.VAULT_DEV_TOKEN}}" \
             -H "Content-Type: application/json" \
             -d "{\"data\": {\"token\": \"$TEST_JWT_SECRET\"}}" \
             http://localhost:8200/v1/secret/data/jwt_token || {
@@ -141,7 +144,7 @@ jobs:
           
           # Email password secret'ını ekle
           curl -X POST \
-            -H "X-Vault-Token: $VAULT_DEV_TOKEN" \
+            -H "X-Vault-Token: ${{secrets.VAULT_DEV_TOKEN}}" \
             -H "Content-Type: application/json" \
             -d "{\"data\": {\"password\": \"$TEST_EMAIL_PASSWORD\"}}" \
             http://localhost:8200/v1/secret/data/email_password || {
@@ -152,13 +155,15 @@ jobs:
 
           echo "Verifying secrets..."
           RESPONSE=$(curl -s -X GET \
-            -H "X-Vault-Token: $VAULT_DEV_TOKEN" \
+            -H "X-Vault-Token: ${{secrets.VAULT_DEV_TOKEN}}" \
             http://localhost:8200/v1/secret/data/jwt_token)
           
           if echo "$RESPONSE" | jq -e '.data.data.token' > /dev/null 2>&1; then
             echo "JWT token secret verified successfully"
           else
             echo "Could not verify JWT token"
+            echo "Response: $RESPONSE"
+            exit 1
           fi
           
           echo "Vault secrets setup completed successfully!"
