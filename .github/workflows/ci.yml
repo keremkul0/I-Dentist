@@ -225,7 +225,7 @@ jobs:
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -ldflags '-w -s' -o i-dentist-api .
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: i-dentist-api-${{ github.sha }}
           path: dental-clinic-system/backend/i-dentist-api
