@@ -2,9 +2,10 @@ package contextTimeoutMiddleware
 
 import (
 	"context"
-	"github.com/gorilla/mux"
 	"net/http"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 func TimeoutMiddleware(timeoutValue int) mux.MiddlewareFunc {

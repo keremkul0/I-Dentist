@@ -2,9 +2,10 @@ package helpers
 
 import (
 	"dental-clinic-system/models/claims"
-	"github.com/golang-jwt/jwt/v5"
 	"log"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func GenerateJWTToken(email string, expirationTime time.Time) (string, error) {

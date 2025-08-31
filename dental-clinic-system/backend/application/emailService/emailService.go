@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"context"
 	"dental-clinic-system/models/user"
-	"gopkg.in/gomail.v2"
 	"html/template"
 	"log"
 	"time"
+
+	"gopkg.in/gomail.v2"
 )
 
 type UserRepository interface {

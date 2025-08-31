@@ -3,6 +3,7 @@ package procedureRepository
 import (
 	"context"
 	"dental-clinic-system/models/procedure"
+
 	"gorm.io/gorm"
 
 	"github.com/rs/zerolog/log"

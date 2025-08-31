@@ -6,9 +6,10 @@ import (
 	"dental-clinic-system/mapper"
 	"dental-clinic-system/models/user"
 	"encoding/json"
-	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 type UserService interface {

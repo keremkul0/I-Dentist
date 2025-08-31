@@ -3,6 +3,7 @@ package helpers
 import (
 	"dental-clinic-system/models/claims"
 	"errors"
+
 	"github.com/golang-jwt/jwt/v5"
 )
 

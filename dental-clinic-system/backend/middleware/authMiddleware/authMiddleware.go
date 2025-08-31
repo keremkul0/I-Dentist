@@ -5,8 +5,9 @@ import (
 	"dental-clinic-system/helpers"
 	"dental-clinic-system/models/claims"
 	"errors"
-	"github.com/golang-jwt/jwt/v5"
 	"net/http"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type TokenService interface {

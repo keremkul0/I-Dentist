@@ -3,6 +3,7 @@ package init_func
 import (
 	"dental-clinic-system/config"
 	"fmt"
+
 	"github.com/rs/zerolog/log"
 	"gopkg.in/gomail.v2"
 )

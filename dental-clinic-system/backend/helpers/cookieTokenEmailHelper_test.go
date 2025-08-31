@@ -2,11 +2,12 @@ package helpers
 
 import (
 	"dental-clinic-system/models/claims"
-	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func TestTokenEmailHelper(t *testing.T) {

@@ -2,6 +2,7 @@ package clinic
 
 import (
 	"errors"
+
 	"gorm.io/gorm"
 )
 

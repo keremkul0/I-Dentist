@@ -43,17 +43,18 @@ import (
 	"dental-clinic-system/vault"
 	"errors"
 	"fmt"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
 	"github.com/hashicorp/vault/api"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 func main() {

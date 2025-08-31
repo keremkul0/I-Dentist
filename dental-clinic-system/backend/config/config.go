@@ -1,10 +1,11 @@
 package config
 
 import (
+	"os"
+
 	"github.com/hashicorp/vault/api"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
-	"os"
 )
 
 const (

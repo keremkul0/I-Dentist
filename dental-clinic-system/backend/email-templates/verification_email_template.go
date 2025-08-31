@@ -2,9 +2,10 @@ package email_templates
 
 import (
 	"bytes"
-	"gopkg.in/gomail.v2"
 	"html/template"
 	"log"
+
+	"gopkg.in/gomail.v2"
 )
 
 func CreateVerificationEmail(email, token string) (*gomail.Message, error) {

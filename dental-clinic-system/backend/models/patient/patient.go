@@ -2,6 +2,7 @@ package patient
 
 import (
 	"dental-clinic-system/models/clinic"
+
 	"gorm.io/gorm"
 )
 

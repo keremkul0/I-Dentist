@@ -1,8 +1,9 @@
 package user
 
 import (
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type UserGetModel struct {

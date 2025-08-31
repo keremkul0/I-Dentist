@@ -2,6 +2,7 @@ package init_func
 
 import (
 	"dental-clinic-system/config"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/rs/zerolog/log"
 )

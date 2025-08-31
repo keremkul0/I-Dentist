@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"dental-clinic-system/models/appointment"
+
 	"gorm.io/gorm"
 
 	"github.com/rs/zerolog/log"

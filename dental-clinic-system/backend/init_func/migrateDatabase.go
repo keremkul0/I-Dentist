@@ -7,6 +7,7 @@ import (
 	"dental-clinic-system/models/procedure"
 	"dental-clinic-system/models/token"
 	"dental-clinic-system/models/user"
+
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )

@@ -2,13 +2,12 @@ package userService
 
 import (
 	"context"
-	"errors"
-	"gorm.io/gorm"
-
 	"dental-clinic-system/mapper"
 	"dental-clinic-system/models/user"
+	"errors"
 
 	"github.com/rs/zerolog/log"
+	"gorm.io/gorm"
 )
 
 // ErrUserNotFound Error types

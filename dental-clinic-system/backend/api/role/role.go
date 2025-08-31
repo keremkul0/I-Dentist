@@ -4,10 +4,11 @@ import (
 	"context"
 	"dental-clinic-system/models/user"
 	"encoding/json"
-	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 type RoleService interface {
