@@ -2,6 +2,7 @@ package init_func
 
 import (
 	"dental-clinic-system/config"
+
 	"github.com/rs/zerolog/log"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

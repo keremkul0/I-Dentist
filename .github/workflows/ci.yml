@@ -2,9 +2,9 @@ name: I-Dentist CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, dev, "feature/**" ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, dev, "feature/**" ]
 
 env:
   GO_VERSION: '1.22'

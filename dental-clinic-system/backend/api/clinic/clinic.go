@@ -7,9 +7,10 @@ import (
 	"dental-clinic-system/models/user"
 	"encoding/json"
 	"errors"
-	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
 
 	"github.com/rs/zerolog/log"
 )
