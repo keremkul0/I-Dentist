@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.23-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -ldflags '-w -s' -o i-dentist-api .
 
 # Final stage
-FROM alpine:latest
+FROM alpine:1.22
 
 RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /root/
