@@ -14,7 +14,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -ldflags '-w -s' -o i-dentist-api .
 
 # Final stage
-FROM alpine:1.22
+FROM alpine:3.18
 
 RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /root/
