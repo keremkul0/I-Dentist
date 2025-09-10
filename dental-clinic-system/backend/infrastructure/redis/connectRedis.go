@@ -1,7 +1,7 @@
-package init_func
+package redis
 
 import (
-	"dental-clinic-system/config"
+	"dental-clinic-system/infrastructure/config"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/rs/zerolog/log"

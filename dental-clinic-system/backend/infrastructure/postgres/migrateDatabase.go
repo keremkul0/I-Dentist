@@ -1,4 +1,4 @@
-package init_func
+package postgres
 
 import (
 	"dental-clinic-system/models/appointment"

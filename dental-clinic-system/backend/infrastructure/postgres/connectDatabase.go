@@ -1,7 +1,7 @@
-package init_func
+package postgres
 
 import (
-	"dental-clinic-system/config"
+	"dental-clinic-system/infrastructure/config"
 
 	"github.com/rs/zerolog/log"
 	"gorm.io/driver/postgres"

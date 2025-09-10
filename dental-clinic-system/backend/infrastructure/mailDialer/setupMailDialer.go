@@ -1,7 +1,7 @@
-package init_func
+package mailDialer
 
 import (
-	"dental-clinic-system/config"
+	"dental-clinic-system/infrastructure/config"
 	"fmt"
 
 	"github.com/rs/zerolog/log"

@@ -16,7 +16,7 @@ var (
 	ErrUserNotFound       = errors.New("user not found")
 	ErrUserAlreadyExist   = errors.New("user already exists")
 	ErrClinicAlreadyExist = errors.New("clinic already exists")
-	ErrClinicValidation   = errors.New("clinic validation error")
+	ErrClinicValidation   = errors.New("clinic validation errors")
 )
 
 // UserRepository defines the interface for user-related database operations

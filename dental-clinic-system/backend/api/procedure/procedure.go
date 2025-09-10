@@ -2,7 +2,7 @@ package procedure
 
 import (
 	"context"
-	"dental-clinic-system/helpers"
+	"dental-clinic-system/models/claims"
 	"dental-clinic-system/models/procedure"
 	"dental-clinic-system/models/user"
 	"encoding/json"
@@ -25,21 +25,33 @@ type UserService interface {
 	GetUserByEmail(ctx context.Context, email string) (user.UserGetModel, error)
 }
 
-func NewProcedureController(procedureService ProcedureService, userService UserService) *ProcedureHandler {
+type RoleService interface {
+	UserHasRole(user user.UserGetModel, roleName string) bool
+}
+
+type JwtService interface {
+	ParseTokenFromCookie(r *http.Request) (*claims.Claims, error)
+}
+
+func NewProcedureController(procedureService ProcedureService, userService UserService, roleService RoleService, jwtService JwtService) *ProcedureHandler {
 	return &ProcedureHandler{
 		procedureService: procedureService,
 		userService:      userService,
+		roleService:      roleService,
+		jwtService:       jwtService,
 	}
 }
 
 type ProcedureHandler struct {
 	procedureService ProcedureService
 	userService      UserService
+	roleService      RoleService
+	jwtService       JwtService
 }
 
 func (h *ProcedureHandler) GetProcedures(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -73,7 +85,7 @@ func (h *ProcedureHandler) GetProcedure(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -112,7 +124,7 @@ func (h *ProcedureHandler) CreateProcedure(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -147,7 +159,7 @@ func (h *ProcedureHandler) UpdateProcedure(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -158,7 +170,7 @@ func (h *ProcedureHandler) UpdateProcedure(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if !(helpers.ContainsRole(user, "Clinic Admin") || helpers.ContainsRole(user, "Superadmin")) {
+	if !(h.roleService.UserHasRole(user, "Clinic Admin") || h.roleService.UserHasRole(user, "Superadmin")) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -187,7 +199,7 @@ func (h *ProcedureHandler) DeleteProcedure(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -198,7 +210,7 @@ func (h *ProcedureHandler) DeleteProcedure(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if !(helpers.ContainsRole(user, "Clinic Admin") || helpers.ContainsRole(user, "Superadmin")) {
+	if !(h.roleService.UserHasRole(user, "Clinic Admin") || h.roleService.UserHasRole(user, "Superadmin")) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}

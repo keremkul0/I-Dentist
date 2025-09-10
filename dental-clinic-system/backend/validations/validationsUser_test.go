@@ -95,7 +95,7 @@ func TestUserValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := UserValidation(tt.user)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("UserValidation() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("UserValidation() errors = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

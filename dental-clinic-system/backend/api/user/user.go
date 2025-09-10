@@ -2,8 +2,8 @@ package user
 
 import (
 	"context"
-	"dental-clinic-system/helpers"
-	"dental-clinic-system/mapper"
+	"dental-clinic-system/models/claims"
+	"dental-clinic-system/models/errors"
 	"dental-clinic-system/models/user"
 	"encoding/json"
 	"net/http"
@@ -20,19 +20,30 @@ type UserService interface {
 	UpdateUser(ctx context.Context, user user.User) (user.UserGetModel, error)
 	DeleteUser(ctx context.Context, id uint) error
 	CheckUserExist(ctx context.Context, user user.UserGetModel) (bool, error)
+	CreateUserWithAuthorization(ctx context.Context, newUser user.User, authUserEmail string) (user.UserGetModel, error)
+}
+
+type RoleService interface {
+	UserHasRole(user user.UserGetModel, roleName string) bool
+}
+
+type JwtService interface {
+	ParseTokenFromCookie(r *http.Request) (*claims.Claims, error)
 }
 
 type UserHandler struct {
 	userService UserService
+	roleService RoleService
+	jwtService  JwtService
 }
 
-func NewUserController(service UserService) *UserHandler {
-	return &UserHandler{userService: service}
+func NewUserController(service UserService, roleService RoleService, jwtService JwtService) *UserHandler {
+	return &UserHandler{userService: service, roleService: roleService, jwtService: jwtService}
 }
 
 func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -64,7 +75,7 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -94,7 +105,7 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) GetUserByEmail(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -121,45 +132,27 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := helpers.CookieTokenEmailHelper(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	authenticatedUser, err := h.userService.GetUserByEmail(ctx, claims.Email)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	if authenticatedUser.ClinicID != newUser.ClinicID || (!helpers.ContainsRole(authenticatedUser, "Clinic Admin") && (!helpers.ContainsRole(authenticatedUser, "Superadmin"))) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	tempUserGetModel := mapper.MapUserToUserGetModel(newUser)
-	exists, err := h.userService.CheckUserExist(ctx, tempUserGetModel)
+	createdUser, err := h.userService.CreateUserWithAuthorization(ctx, newUser, claims.Email)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if exists {
-		http.Error(w, "User already exists", http.StatusBadRequest)
-		return
-	}
-
-	newUser.Password = helpers.HashPassword(newUser.Password) // Hash the password if not already hashed
-
-	createdUser, err := h.userService.CreateUser(ctx, newUser)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		switch err.(type) {
+		case *errors.UnauthorizedError:
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+		case *errors.ValidationError:
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		default:
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		return
 	}
 
-	err = json.NewEncoder(w).Encode(createdUser)
-	if err != nil {
-		return
-	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(createdUser)
 }
 
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
@@ -171,7 +164,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -182,7 +175,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if authenticatedUser.ClinicID != updateUser.ClinicID || (!helpers.ContainsRole(authenticatedUser, "Clinic Admin") && (!helpers.ContainsRole(authenticatedUser, "Superadmin"))) {
+	if authenticatedUser.ClinicID != updateUser.ClinicID || (!h.roleService.UserHasRole(authenticatedUser, "Clinic Admin") && (!h.roleService.UserHasRole(authenticatedUser, "Superadmin"))) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -208,7 +201,7 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -225,12 +218,12 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if authenticatedUser.ClinicID != requestedUser.ClinicID || (!helpers.ContainsRole(authenticatedUser, "Clinic Admin") && (!helpers.ContainsRole(authenticatedUser, "Superadmin"))) {
+	if authenticatedUser.ClinicID != requestedUser.ClinicID || (!h.roleService.UserHasRole(authenticatedUser, "Clinic Admin") && (!h.roleService.UserHasRole(authenticatedUser, "Superadmin"))) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	if helpers.ContainsRole(requestedUser, "Superadmin") {
+	if h.roleService.UserHasRole(requestedUser, "Superadmin") {
 		http.Error(w, "Cannot delete Superadmin", http.StatusBadRequest)
 		return
 	}

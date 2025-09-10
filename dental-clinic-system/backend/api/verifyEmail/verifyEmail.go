@@ -2,7 +2,7 @@ package verifyEmail
 
 import (
 	"context"
-	"dental-clinic-system/helpers"
+	"dental-clinic-system/models/claims"
 	"net/http"
 )
 
@@ -10,12 +10,17 @@ type EmailService interface {
 	VerifyUserEmail(ctx context.Context, token string, email string) bool
 }
 
-type VerifyEmailHandler struct {
-	EmailService EmailService
+type JwtService interface {
+	ParseToken(tokenStr string) (*claims.Claims, error)
 }
 
-func NewVerifyEmailController(service EmailService) *VerifyEmailHandler {
-	return &VerifyEmailHandler{EmailService: service}
+type VerifyEmailHandler struct {
+	EmailService EmailService
+	jwtService   JwtService
+}
+
+func NewVerifyEmailController(service EmailService, jwtService JwtService) *VerifyEmailHandler {
+	return &VerifyEmailHandler{EmailService: service, jwtService: jwtService}
 }
 
 func (h *VerifyEmailHandler) VerifyUserEmail(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +31,7 @@ func (h *VerifyEmailHandler) VerifyUserEmail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	claims, err := helpers.TokenEmailHelper(token)
+	claims, err := h.jwtService.ParseToken(token)
 	if err != nil {
 		http.Error(w, "Invalid token", http.StatusBadRequest)
 		return

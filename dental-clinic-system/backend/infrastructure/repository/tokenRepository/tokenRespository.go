@@ -58,7 +58,7 @@ func (repo *Repository) AddTokenToBlacklist(ctx context.Context, tokenStr string
 			Str("operation", "AddTokenToBlacklist").
 			Err(result.Error).
 			Msg("Failed to add token to blacklist")
-		return errors.New("redis set error")
+		return errors.New("redis set errors")
 	}
 
 	log.Info().

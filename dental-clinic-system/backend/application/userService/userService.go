@@ -3,10 +3,13 @@ package userService
 import (
 	"context"
 	"dental-clinic-system/mapper"
+	modelerrors "dental-clinic-system/models/errors"
+
 	"dental-clinic-system/models/user"
 	"errors"
 
 	"github.com/rs/zerolog/log"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -29,12 +32,18 @@ type UserRepository interface {
 // UserService handles user-related business logic
 type UserService struct {
 	userRepository UserRepository
+	roleService    RoleService
+}
+
+type RoleService interface {
+	UserHasRole(user user.UserGetModel, roleName string) bool
 }
 
 // NewUserService creates a new instance of UserService
-func NewUserService(userRepo UserRepository) *UserService {
+func NewUserService(userRepo UserRepository, roleService RoleService) *UserService {
 	return &UserService{
 		userRepository: userRepo,
+		roleService:    roleService,
 	}
 }
 
@@ -156,6 +165,39 @@ func (s *UserService) CreateUser(ctx context.Context, newUsr user.User) (user.Us
 		Msg("User created successfully")
 
 	return mapper.MapUserToUserGetModel(usr), nil
+}
+
+func (s *UserService) CreateUserWithAuthorization(ctx context.Context, newUser user.User, authUserEmail string) (user.UserGetModel, error) {
+	authenticatedUser, err := s.GetUserByEmail(ctx, authUserEmail)
+	if err != nil {
+		return user.UserGetModel{}, err
+	}
+
+	if !s.canCreateUser(authenticatedUser, newUser) {
+		return user.UserGetModel{}, &modelerrors.UnauthorizedError{"Insufficient permissions"}
+	}
+
+	tempUserGetModel := mapper.MapUserToUserGetModel(newUser)
+	if exists, _ := s.CheckUserExist(ctx, tempUserGetModel); exists {
+		return user.UserGetModel{}, &modelerrors.ValidationError{"User already exists"}
+	}
+
+	newUser.Password = s.HashPassword(newUser.Password)
+
+	return s.CreateUser(ctx, newUser)
+}
+
+func (s *UserService) canCreateUser(authenticatedUser user.UserGetModel, newUser user.User) bool {
+	if authenticatedUser.ClinicID != newUser.ClinicID {
+		return false
+	}
+	return s.roleService.UserHasRole(authenticatedUser, "Clinic Admin") ||
+		s.roleService.UserHasRole(authenticatedUser, "Superadmin")
+}
+
+func (s *UserService) HashPassword(password string) string {
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	return string(hashedPassword)
 }
 
 // UpdateUser updates an existing user record and maps it to UserGetModel

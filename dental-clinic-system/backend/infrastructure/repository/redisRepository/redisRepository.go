@@ -41,7 +41,7 @@ func (repo *Repository) SetData(ctx context.Context, data any) (string, error) {
 			Str("operation", "SetData").
 			Err(err).
 			Msg("Failed to encode data with gob")
-		return "", errors.New("gob encode error")
+		return "", errors.New("gob encode errors")
 	}
 
 	cacheKey := uuid.New().String()
@@ -52,7 +52,7 @@ func (repo *Repository) SetData(ctx context.Context, data any) (string, error) {
 			Err(err).
 			Str("cache_key", cacheKey).
 			Msg("Failed to set data in Redis")
-		return "", errors.New("redis set error")
+		return "", errors.New("redis set errors")
 	}
 
 	log.Info().
@@ -72,14 +72,14 @@ func (repo *Repository) GetData(ctx context.Context, cacheKey string, target any
 				Str("operation", "GetData").
 				Str("cache_key", cacheKey).
 				Msg("No data found for the given cache key")
-			return errors.New("redis get error: key does not exist")
+			return errors.New("redis get errors: key does not exist")
 		}
 		log.Error().
 			Str("operation", "GetData").
 			Err(err).
 			Str("cache_key", cacheKey).
 			Msg("Failed to get data from Redis")
-		return errors.New("redis get error")
+		return errors.New("redis get errors")
 	}
 
 	buf := bytes.NewBuffer(data)
@@ -91,7 +91,7 @@ func (repo *Repository) GetData(ctx context.Context, cacheKey string, target any
 			Err(err).
 			Str("cache_key", cacheKey).
 			Msg("Failed to decode data with gob")
-		return errors.New("gob decode error")
+		return errors.New("gob decode errors")
 	}
 
 	log.Info().
@@ -111,7 +111,7 @@ func (repo *Repository) DeleteData(ctx context.Context, cacheKey string) error {
 			Err(err).
 			Str("cache_key", cacheKey).
 			Msg("Failed to delete data from Redis")
-		return errors.New("redis delete error")
+		return errors.New("redis delete errors")
 	}
 
 	log.Info().

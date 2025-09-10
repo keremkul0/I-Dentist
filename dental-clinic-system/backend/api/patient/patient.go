@@ -2,7 +2,7 @@ package patient
 
 import (
 	"context"
-	"dental-clinic-system/helpers"
+	"dental-clinic-system/models/claims"
 	"dental-clinic-system/models/patient"
 	"dental-clinic-system/models/user"
 	"encoding/json"
@@ -25,18 +25,23 @@ type PatientService interface {
 	DeletePatient(ctx context.Context, id uint) error
 }
 
-func NewPatientController(patientService PatientService, userService UserService) *PatientHandler {
-	return &PatientHandler{patientService: patientService, userService: userService}
+type JwtService interface {
+	ParseTokenFromCookie(r *http.Request) (*claims.Claims, error)
 }
 
 type PatientHandler struct {
 	patientService PatientService
 	userService    UserService
+	jwtService     JwtService
+}
+
+func NewPatientController(patientService PatientService, userService UserService, jwtService JwtService) *PatientHandler {
+	return &PatientHandler{patientService: patientService, userService: userService, jwtService: jwtService}
 }
 
 func (h *PatientHandler) GetPatients(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -75,7 +80,7 @@ func (h *PatientHandler) GetPatient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -108,7 +113,7 @@ func (h *PatientHandler) CreatePatient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -142,7 +147,7 @@ func (h *PatientHandler) UpdatePatient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -187,7 +192,7 @@ func (h *PatientHandler) DeletePatient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return

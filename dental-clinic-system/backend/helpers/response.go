@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-// ErrorResponse standardizes error responses
+// ErrorResponse standardizes errors responses
 type ErrorResponse struct {
 	Message string `json:"message"`
 }
@@ -16,13 +16,13 @@ type SuccessResponse struct {
 	Data interface{} `json:"data"`
 }
 
-// WriteJSONError sends a standardized JSON error response
+// WriteJSONError sends a standardized JSON errors response
 func WriteJSONError(w http.ResponseWriter, message string, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	resp := ErrorResponse{Message: message}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		log.Printf("Failed to write JSON error response: %v", err)
+		log.Printf("Failed to write JSON errors response: %v", err)
 	}
 }
 

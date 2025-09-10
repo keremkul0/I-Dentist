@@ -3,6 +3,7 @@ package roleService
 import (
 	"context"
 	"dental-clinic-system/models/user"
+	"strings"
 )
 
 type RoleRepository interface {
@@ -41,4 +42,14 @@ func (s *roleService) UpdateRole(ctx context.Context, role user.Role) (user.Role
 
 func (s *roleService) DeleteRole(ctx context.Context, id uint) error {
 	return s.roleRepository.DeleteRole(ctx, id)
+}
+
+func (s *roleService) UserHasRole(user user.UserGetModel, roleName string) bool {
+	for _, role := range user.Roles {
+		if strings.EqualFold(role.Name, roleName) {
+			return true
+		}
+	}
+
+	return false
 }

@@ -1,13 +1,11 @@
-package init_func
+package config
 
 import (
-	"dental-clinic-system/config"
-
 	"github.com/rs/zerolog/log"
 )
 
-func SetConfig(configPath string) *config.ConfigModel {
-	configModel := config.LoadConfig(configPath)
+func SetConfig(configPath string) *ConfigModel {
+	configModel := LoadConfig(configPath)
 	if configModel == nil {
 		log.Fatal().Msg("Error loading config")
 		panic("Error loading config")

@@ -2,7 +2,6 @@ package login
 
 import (
 	"context"
-	"dental-clinic-system/helpers"
 	"dental-clinic-system/models/auth"
 	"encoding/json"
 	"net/http"
@@ -13,12 +12,17 @@ type LoginService interface {
 	Login(ctx context.Context, email string, password string) (auth.Login, error)
 }
 
-type LoginHandler struct {
-	loginService LoginService
+type JwtService interface {
+	GenerateJWTToken(email string, time time.Time) (string, error)
 }
 
-func NewLoginController(service LoginService) *LoginHandler {
-	return &LoginHandler{loginService: service}
+type LoginHandler struct {
+	loginService LoginService
+	jwtService   JwtService
+}
+
+func NewLoginController(service LoginService, jwtService JwtService) *LoginHandler {
+	return &LoginHandler{loginService: service, jwtService: jwtService}
 }
 
 func (h *LoginHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -35,7 +39,7 @@ func (h *LoginHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	expirationTime := time.Now().Add(time.Hour * 24)
-	tokenString, err := helpers.GenerateJWTToken(user.Email, expirationTime)
+	tokenString, err := h.jwtService.GenerateJWTToken(user.Email, expirationTime)
 	if err != nil {
 		http.Error(w, "Could not create token", http.StatusInternalServerError)
 		return

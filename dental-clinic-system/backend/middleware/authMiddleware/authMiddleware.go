@@ -2,7 +2,6 @@ package authMiddleware
 
 import (
 	"context"
-	"dental-clinic-system/helpers"
 	"dental-clinic-system/models/claims"
 	"errors"
 	"net/http"
@@ -14,12 +13,17 @@ type TokenService interface {
 	IsTokenBlacklisted(ctx context.Context, token string) bool
 }
 
-type AuthMiddleware struct {
-	TokenService TokenService
+type JwtService interface {
+	GetJwtKey() []byte
 }
 
-func NewAuthMiddleware(tokenService TokenService) *AuthMiddleware {
-	return &AuthMiddleware{TokenService: tokenService}
+type AuthMiddleware struct {
+	TokenService TokenService
+	jwtService   JwtService
+}
+
+func NewAuthMiddleware(tokenService TokenService, jwtService JwtService) *AuthMiddleware {
+	return &AuthMiddleware{TokenService: tokenService, jwtService: jwtService}
 }
 
 func (auth *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
@@ -42,7 +46,7 @@ func (auth *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 
 		claims := &claims.Claims{}
 		token, err := jwt.ParseWithClaims(cookie.Value, claims, func(token *jwt.Token) (interface{}, error) {
-			return helpers.GetJWTKey(), nil
+			return auth.jwtService.GetJwtKey(), nil
 		})
 
 		if err != nil {

@@ -5,7 +5,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-//validation for int values has error in validator library
+//validation for int values has errors in validator library
 //so we need to use the min=0 to validate the int values instead of required
 
 type ConfigModel struct {
