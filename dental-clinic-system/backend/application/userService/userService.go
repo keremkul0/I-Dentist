@@ -174,12 +174,12 @@ func (s *UserService) CreateUserWithAuthorization(ctx context.Context, newUser u
 	}
 
 	if !s.canCreateUser(authenticatedUser, newUser) {
-		return user.UserGetModel{}, &modelerrors.UnauthorizedError{"Insufficient permissions"}
+		return user.UserGetModel{}, &modelerrors.UnauthorizedError{Message: "Insufficient permissions"}
 	}
 
 	tempUserGetModel := mapper.MapUserToUserGetModel(newUser)
 	if exists, _ := s.CheckUserExist(ctx, tempUserGetModel); exists {
-		return user.UserGetModel{}, &modelerrors.ValidationError{"User already exists"}
+		return user.UserGetModel{}, &modelerrors.ValidationError{Message: "User already exists"}
 	}
 
 	newUser.Password = s.HashPassword(newUser.Password)
