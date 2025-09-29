@@ -1,8 +1,9 @@
 package vault
 
 import (
-	"dental-clinic-system/config"
+	"dental-clinic-system/infrastructure/config"
 	"fmt"
+
 	"github.com/hashicorp/vault/api"
 
 	"github.com/rs/zerolog/log"

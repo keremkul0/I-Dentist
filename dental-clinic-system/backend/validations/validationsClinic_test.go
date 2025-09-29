@@ -67,7 +67,7 @@ func TestClinicValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ClinicValidation(tt.clinic)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("ClinicValidation() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("ClinicValidation() errors = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

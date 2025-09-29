@@ -2,7 +2,6 @@ package signUpUserService
 
 import (
 	"context"
-	"dental-clinic-system/helpers"
 	"dental-clinic-system/mapper"
 	"dental-clinic-system/models/user"
 	"dental-clinic-system/validations"
@@ -17,25 +16,31 @@ type RedisRepository interface {
 	SetData(ctx context.Context, data any) (string, error)
 }
 
+type UserService interface {
+	HashPassword(password string) string
+}
+
 type signUpUserService struct {
 	userRepository  UserRepository
 	redisRepository RedisRepository
+	userService     UserService
 }
 
-func NewSignUpUserService(userRepository UserRepository, redisRepository RedisRepository) *signUpUserService {
+func NewSignUpUserService(userRepository UserRepository, redisRepository RedisRepository, userService UserService) *signUpUserService {
 	return &signUpUserService{
 		userRepository:  userRepository,
 		redisRepository: redisRepository,
+		userService:     userService,
 	}
 }
 
 func (s *signUpUserService) SignUpUser(ctx context.Context, user user.User) (string, error) {
 	err := validations.UserValidation(&user)
 	if err != nil {
-		return "", errors.New("User validation error")
+		return "", errors.New("User validation errors")
 	}
 
-	user.Password = helpers.HashPassword(user.Password)
+	user.Password = s.userService.HashPassword(user.Password)
 	userGetModel := mapper.MapUserToUserGetModel(user)
 
 	exists, err := s.userRepository.CheckUserExist(ctx, userGetModel)
@@ -48,7 +53,7 @@ func (s *signUpUserService) SignUpUser(ctx context.Context, user user.User) (str
 
 	userID, err := s.redisRepository.SetData(ctx, user)
 	if err != nil {
-		return "", errors.New("Cache user service error")
+		return "", errors.New("Cache user service errors")
 	}
 
 	return userID, nil

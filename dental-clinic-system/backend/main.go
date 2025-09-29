@@ -17,6 +17,7 @@ import (
 	"dental-clinic-system/application/appointmentService"
 	"dental-clinic-system/application/clinicService"
 	"dental-clinic-system/application/emailService"
+	"dental-clinic-system/application/jwtService"
 	"dental-clinic-system/application/loginService"
 	"dental-clinic-system/application/patientService"
 	"dental-clinic-system/application/procedureService"
@@ -26,39 +27,41 @@ import (
 	"dental-clinic-system/application/tokenService"
 	"dental-clinic-system/application/userService"
 	"dental-clinic-system/background-jobs"
-	"dental-clinic-system/config"
-	"dental-clinic-system/helpers"
-	"dental-clinic-system/init_func"
+	config2 "dental-clinic-system/infrastructure/config"
+	"dental-clinic-system/infrastructure/mailDialer"
+	"dental-clinic-system/infrastructure/postgres"
+	redis2 "dental-clinic-system/infrastructure/redis"
+	"dental-clinic-system/infrastructure/repository/appointmentRepository"
+	"dental-clinic-system/infrastructure/repository/clinicRepository"
+	"dental-clinic-system/infrastructure/repository/loginRepository"
+	"dental-clinic-system/infrastructure/repository/patientRepository"
+	"dental-clinic-system/infrastructure/repository/procedureRepository"
+	"dental-clinic-system/infrastructure/repository/redisRepository"
+	"dental-clinic-system/infrastructure/repository/roleRepository"
+	"dental-clinic-system/infrastructure/repository/tokenRepository"
+	"dental-clinic-system/infrastructure/repository/userRepository"
 	"dental-clinic-system/middleware/authMiddleware"
 	"dental-clinic-system/middleware/contextTimeoutMiddleware"
-	"dental-clinic-system/repository/appointmentRepository"
-	"dental-clinic-system/repository/clinicRepository"
-	"dental-clinic-system/repository/loginRepository"
-	"dental-clinic-system/repository/patientRepository"
-	"dental-clinic-system/repository/procedureRepository"
-	"dental-clinic-system/repository/redisRepository"
-	"dental-clinic-system/repository/roleRepository"
-	"dental-clinic-system/repository/tokenRepository"
-	"dental-clinic-system/repository/userRepository"
 	"dental-clinic-system/vault"
 	"errors"
 	"fmt"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
 	"github.com/hashicorp/vault/api"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 func main() {
 
-	configModel := init_func.SetConfig("resources")
+	configModel := config2.SetConfig("resources")
 
 	zerolog.SetGlobalLevel(configModel.Log.Level)
 
@@ -68,18 +71,19 @@ func main() {
 		panic("Error connecting to vault")
 	}
 
-	err = config.ReadConfigFromVault(clientVault, configModel)
+	err = config2.ReadConfigFromVault(clientVault, configModel)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error reading config from vault")
 		panic("Error reading config from vault")
 	}
 
-	db := init_func.ConnectDatabase(configModel.Database)
-	Rdb := init_func.ConnectRedis(configModel.Redis)
-	mailDialer := init_func.SetupMailDialer(configModel.Email)
+	db := postgres.ConnectDatabase(configModel.Database)
+	Rdb := redis2.ConnectRedis(configModel.Redis)
+	mailDialer := mailDialer.SetupMailDialer(configModel.Email)
 
-	init_func.MigrateDatabase(db)
-	helpers.SetJWTKey(configModel.JWT.SecretKey)
+	postgres.MigrateDatabase(db)
+
+	//helpers.SetJWTKey(configModel.JWT.SecretKey)
 
 	//Repositories
 	newClinicRepository := clinicRepository.NewRepository(db)
@@ -100,26 +104,27 @@ func main() {
 	newPatientService := patientService.NewPatientService(newPatientRepository)
 	newProcedureService := procedureService.NewProcedureService(newProcedureRepository)
 	newRoleService := roleService.NewRoleService(newRoleRepository)
-	newUserService := userService.NewUserService(newUserRepository)
+	newUserService := userService.NewUserService(newUserRepository, newRoleService)
 	newLoginService := loginService.NewLoginService(newLoginRepository)
 	newSignUpClinicService := signUpClinicService.NewSignUpClinicService(newClinicRepository, newUserRepository, newRedisRepository)
 	newTokenService := tokenService.NewTokenService(newTokenRepository)
-	newSignUpUserService := signUpUserService.NewSignUpUserService(newUserRepository, newRedisRepository)
+	newSignUpUserService := signUpUserService.NewSignUpUserService(newUserRepository, newRedisRepository, newUserService)
 	newEmailService := emailService.NewEmailService(newUserRepository, newTokenRepository, mailDialer)
+	newJwtService := jwtService.NewJwtService(configModel.JWT.SecretKey)
 
 	//Handlers
-	newClinicHandler := clinic.NewClinicHandlerController(newClinicService, newUserService)
-	newAppointmentHandler := appointment.NewAppointmentHandler(newAppointmentService, newUserService, newPatientService)
-	newPatientHandler := patient.NewPatientController(newPatientService, newUserService)
-	newProcedureHandler := procedure.NewProcedureController(newProcedureService, newUserService)
+	newClinicHandler := clinic.NewClinicHandlerController(newClinicService, newUserService, newRoleService, newJwtService)
+	newAppointmentHandler := appointment.NewAppointmentHandler(newAppointmentService, newUserService, newPatientService, newJwtService)
+	newPatientHandler := patient.NewPatientController(newPatientService, newUserService, newJwtService)
+	newProcedureHandler := procedure.NewProcedureController(newProcedureService, newUserService, newRoleService, newJwtService)
 	newRoleHandler := role.NewRoleController(newRoleService)
-	newUserHandler := user.NewUserController(newUserService)
-	newLoginHandler := login.NewLoginController(newLoginService)
+	newUserHandler := user.NewUserController(newUserService, newRoleService, newJwtService)
+	newLoginHandler := login.NewLoginController(newLoginService, newJwtService)
 	newSignUpClinicHandler := signUpClinic.NewSignUpClinicController(newSignUpClinicService)
 	newSignUpUserHandler := singUpUser.NewSignUpUserHandler(newSignUpUserService)
 	newLogoutHandler := logout.NewLogoutController(newTokenService)
-	newVerifyEmailHandler := verifyEmail.NewVerifyEmailController(newEmailService)
-	newSendEmailHandler := sendEmail.NewSendEmailController(newEmailService)
+	newVerifyEmailHandler := verifyEmail.NewVerifyEmailController(newEmailService, newJwtService)
+	newSendEmailHandler := sendEmail.NewSendEmailController(newEmailService, newJwtService)
 
 	//Create a new router
 	router := mux.NewRouter()
@@ -128,7 +133,7 @@ func main() {
 	securedRouter := router.PathPrefix("/api").Subrouter()
 
 	//Middlewares
-	newAuthMiddleware := authMiddleware.NewAuthMiddleware(newTokenService)
+	newAuthMiddleware := authMiddleware.NewAuthMiddleware(newTokenService, newJwtService)
 
 	//Middleware injection
 	router.Use(contextTimeoutMiddleware.TimeoutMiddleware(5))

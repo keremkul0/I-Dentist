@@ -2,14 +2,15 @@ package clinic
 
 import (
 	"context"
-	"dental-clinic-system/helpers"
+	"dental-clinic-system/models/claims"
 	"dental-clinic-system/models/clinic"
 	"dental-clinic-system/models/user"
 	"encoding/json"
 	"errors"
-	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
 
 	"github.com/rs/zerolog/log"
 )
@@ -17,6 +18,10 @@ import (
 // UserService interface
 type UserService interface {
 	GetUserByEmail(ctx context.Context, email string) (user.UserGetModel, error)
+}
+
+type JwtService interface {
+	ParseTokenFromCookie(r *http.Request) (*claims.Claims, error)
 }
 
 // ClinicService interface
@@ -29,15 +34,21 @@ type ClinicService interface {
 	CheckClinicExist(ctx context.Context, cln clinic.Clinic) (bool, error)
 }
 
+type RoleService interface {
+	UserHasRole(user user.UserGetModel, roleName string) bool
+}
+
 // ClinicHandler handles HTTP requests for clinics
 type ClinicHandler struct {
 	clinicService ClinicService
 	userService   UserService
+	roleService   RoleService
+	jwtService    JwtService
 }
 
 // NewClinicHandlerController creates a new instance of ClinicHandler
-func NewClinicHandlerController(clinicService ClinicService, userService UserService) *ClinicHandler {
-	return &ClinicHandler{clinicService: clinicService, userService: userService}
+func NewClinicHandlerController(clinicService ClinicService, userService UserService, roleService RoleService, jwtService JwtService) *ClinicHandler {
+	return &ClinicHandler{clinicService: clinicService, userService: userService, roleService: roleService, jwtService: jwtService}
 }
 
 // GetClinics retrieves all clinics
@@ -80,7 +91,7 @@ func (h *ClinicHandler) GetClinic(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Extract authenticatedUser from cookie
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		log.Warn().
 			Str("operation", "GetClinic").
@@ -99,7 +110,7 @@ func (h *ClinicHandler) GetClinic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if authenticatedUser.ClinicID != uint(id) && !helpers.ContainsRole(authenticatedUser, "Superadmin") {
+	if authenticatedUser.ClinicID != uint(id) && !h.roleService.UserHasRole(authenticatedUser, "Superadmin") {
 		log.Warn().
 			Str("operation", "GetClinic").
 			Uint("user_clinic_id", authenticatedUser.ClinicID).
@@ -208,7 +219,7 @@ func (h *ClinicHandler) UpdateClinic(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Extract authenticatedUser from cookie
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		log.Warn().
 			Str("operation", "UpdateClinic").
@@ -227,7 +238,7 @@ func (h *ClinicHandler) UpdateClinic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if cln.ID != authenticatedUser.ClinicID && !helpers.ContainsRole(authenticatedUser, "Superadmin") {
+	if cln.ID != authenticatedUser.ClinicID && !h.roleService.UserHasRole(authenticatedUser, "Superadmin") {
 		log.Warn().
 			Str("operation", "UpdateClinic").
 			Uint("user_clinic_id", authenticatedUser.ClinicID).
@@ -291,7 +302,7 @@ func (h *ClinicHandler) DeleteClinic(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Extract authenticatedUser from cookie to authorize delete operation
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		log.Warn().
 			Str("operation", "DeleteClinic").
@@ -310,7 +321,7 @@ func (h *ClinicHandler) DeleteClinic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if authenticatedUser.ClinicID != uint(id) && !helpers.ContainsRole(authenticatedUser, "Superadmin") {
+	if authenticatedUser.ClinicID != uint(id) && !h.roleService.UserHasRole(authenticatedUser, "Superadmin") {
 		log.Warn().
 			Str("operation", "DeleteClinic").
 			Uint("user_clinic_id", authenticatedUser.ClinicID).
@@ -357,7 +368,7 @@ func (h *ClinicHandler) CheckClinicExist(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Extract authenticatedUser from cookie
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		log.Warn().
 			Str("operation", "CheckClinicExist").
@@ -376,7 +387,7 @@ func (h *ClinicHandler) CheckClinicExist(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if cln.ID != authenticatedUser.ClinicID && !helpers.ContainsRole(authenticatedUser, "Superadmin") {
+	if cln.ID != authenticatedUser.ClinicID && !h.roleService.UserHasRole(authenticatedUser, "Superadmin") {
 		log.Warn().
 			Str("operation", "CheckClinicExist").
 			Uint("user_clinic_id", authenticatedUser.ClinicID).

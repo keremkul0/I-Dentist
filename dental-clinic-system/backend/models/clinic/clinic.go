@@ -2,6 +2,7 @@ package clinic
 
 import (
 	"errors"
+
 	"gorm.io/gorm"
 )
 
@@ -17,7 +18,7 @@ type Clinic struct {
 var (
 	ErrClinicNotFound       = errors.New("clinic not found")
 	ErrClinicAlreadyExists  = errors.New("clinic already exists")
-	ErrClinicValidation     = errors.New("clinic validation error")
+	ErrClinicValidation     = errors.New("clinic validation errors")
 	ErrClinicCreation       = errors.New("failed to create clinic")
 	ErrClinicUpdate         = errors.New("failed to update clinic")
 	ErrClinicDeletion       = errors.New("failed to delete clinic")

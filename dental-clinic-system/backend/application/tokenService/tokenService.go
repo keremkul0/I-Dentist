@@ -32,3 +32,8 @@ func (s *tokenService) AddTokenToBlacklist(ctx context.Context, token string, ex
 func (s *tokenService) IsTokenBlacklisted(ctx context.Context, token string) bool {
 	return s.tokenRepository.IsTokenBlacklisted(ctx, token)
 }
+
+/*func (s *tokenService) GetJwtKey() []byte {
+	return s.jwtSecret
+}
+*/

@@ -3,10 +3,11 @@ package validations
 import (
 	"dental-clinic-system/models/user"
 	"errors"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"regexp"
 	"strings"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 func UserValidation(user *user.User) error {

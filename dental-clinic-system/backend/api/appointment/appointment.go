@@ -4,6 +4,7 @@ import (
 	"context"
 	"dental-clinic-system/helpers"
 	"dental-clinic-system/models/appointment"
+	"dental-clinic-system/models/claims"
 	"dental-clinic-system/models/patient"
 	"dental-clinic-system/models/user"
 	"encoding/json"
@@ -32,6 +33,10 @@ type AppointmentService interface {
 	GetPatientAppointments(ctx context.Context, id uint) ([]appointment.Appointment, error)
 }
 
+type JwtService interface {
+	ParseTokenFromCookie(r *http.Request) (*claims.Claims, error)
+}
+
 // PatientService defines methods to interact with patient data
 type PatientService interface {
 	GetPatient(ctx context.Context, id uint) (patient.Patient, error)
@@ -42,14 +47,16 @@ type AppointmentHandler struct {
 	appointmentService AppointmentService
 	userService        UserService
 	patientService     PatientService
+	jwtService         JwtService
 }
 
 // NewAppointmentHandler creates a new AppointmentHandler
-func NewAppointmentHandler(as AppointmentService, us UserService, ps PatientService) *AppointmentHandler {
+func NewAppointmentHandler(as AppointmentService, us UserService, ps PatientService, jwtService JwtService) *AppointmentHandler {
 	return &AppointmentHandler{
 		appointmentService: as,
 		userService:        us,
 		patientService:     ps,
+		jwtService:         jwtService,
 	}
 }
 
@@ -57,7 +64,7 @@ func NewAppointmentHandler(as AppointmentService, us UserService, ps PatientServ
 func (h *AppointmentHandler) GetAppointments(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
 		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
@@ -94,7 +101,7 @@ func (h *AppointmentHandler) GetAppointment(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
 		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
@@ -138,7 +145,7 @@ func (h *AppointmentHandler) CreateAppointment(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
 		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
@@ -178,7 +185,7 @@ func (h *AppointmentHandler) UpdateAppointment(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
 		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
@@ -248,7 +255,7 @@ func (h *AppointmentHandler) DeleteAppointment(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
 		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
@@ -314,7 +321,7 @@ func (h *AppointmentHandler) GetDoctorAppointments(w http.ResponseWriter, r *htt
 		return
 	}
 
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
 		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
@@ -381,7 +388,7 @@ func (h *AppointmentHandler) GetPatientAppointments(w http.ResponseWriter, r *ht
 		return
 	}
 
-	claims, err := helpers.CookieTokenEmailHelper(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
 		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)

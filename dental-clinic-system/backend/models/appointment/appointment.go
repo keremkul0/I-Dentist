@@ -3,8 +3,9 @@ package appointment
 import (
 	"dental-clinic-system/models/clinic"
 	"dental-clinic-system/models/user"
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Appointment struct {

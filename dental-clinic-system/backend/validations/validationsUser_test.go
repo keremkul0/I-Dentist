@@ -20,7 +20,7 @@ func TestUserValidation(t *testing.T) {
 				Password:    "securepassword",
 				CountryCode: "+1",
 				PhoneNumber: "1234567890",
-				NationalID:  "12345678901",
+				NationalID:  "12345678902",
 			},
 			wantErr: false,
 		},
@@ -84,7 +84,7 @@ func TestUserValidation(t *testing.T) {
 				Email:       "john.doe@example.com",
 				Password:    "securepassword",
 				CountryCode: "+1",
-				PhoneNumber: "1234567890",
+				PhoneNumber: "12345678901",
 				NationalID:  "12345",
 			},
 			wantErr: true,
@@ -95,7 +95,7 @@ func TestUserValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := UserValidation(tt.user)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("UserValidation() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("UserValidation() errors = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
