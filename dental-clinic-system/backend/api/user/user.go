@@ -152,7 +152,10 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(createdUser)
+	err = json.NewEncoder(w).Encode(createdUser)
+	if err != nil {
+		return
+	}
 }
 
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {

@@ -3,6 +3,7 @@ package procedureRepository
 import (
 	"context"
 	"dental-clinic-system/models/procedure"
+	"errors"
 
 	"gorm.io/gorm"
 
@@ -44,7 +45,7 @@ func (repo *Repository) GetProcedure(ctx context.Context, id uint) (procedure.Pr
 	var proc procedure.Procedure
 	result := repo.DB.WithContext(ctx).First(&proc, id)
 	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			log.Warn().
 				Str("operation", "GetProcedure").
 				Err(result.Error).

@@ -353,7 +353,7 @@ func (h *ClinicHandler) DeleteClinic(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// CheckClinicExistHandler checks if a clinic exists based on provided criteria
+// CheckClinicExist CheckClinicExistHandler checks if a clinic exists based on provided criteria
 func (h *ClinicHandler) CheckClinicExist(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var cln clinic.Clinic

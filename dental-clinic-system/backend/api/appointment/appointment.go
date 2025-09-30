@@ -64,14 +64,14 @@ func NewAppointmentHandler(as AppointmentService, us UserService, ps PatientServ
 func (h *AppointmentHandler) GetAppointments(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	parsedToken, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
 		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
 		return
 	}
 
-	authenticatedUser, err := h.userService.GetUserByEmail(ctx, claims.Email)
+	authenticatedUser, err := h.userService.GetUserByEmail(ctx, parsedToken.Email)
 	if err != nil {
 		log.Error().Err(err).Msg("User not found")
 		helpers.WriteJSONError(w, "User not found", http.StatusNotFound)
@@ -101,14 +101,14 @@ func (h *AppointmentHandler) GetAppointment(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	parsedToken, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
 		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
 		return
 	}
 
-	authenticatedUser, err := h.userService.GetUserByEmail(ctx, claims.Email)
+	authenticatedUser, err := h.userService.GetUserByEmail(ctx, parsedToken.Email)
 	if err != nil {
 		log.Error().Err(err).Msg("User not found")
 		helpers.WriteJSONError(w, "User not found", http.StatusNotFound)
@@ -145,14 +145,14 @@ func (h *AppointmentHandler) CreateAppointment(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	parsedToken, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
 		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
 		return
 	}
 
-	authenticatedUser, err := h.userService.GetUserByEmail(ctx, claims.Email)
+	authenticatedUser, err := h.userService.GetUserByEmail(ctx, parsedToken.Email)
 	if err != nil {
 		log.Error().Err(err).Msg("User not found")
 		helpers.WriteJSONError(w, "User not found", http.StatusNotFound)
@@ -185,7 +185,7 @@ func (h *AppointmentHandler) UpdateAppointment(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	parsedToken, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
 		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
@@ -201,7 +201,7 @@ func (h *AppointmentHandler) UpdateAppointment(w http.ResponseWriter, r *http.Re
 
 	go func() {
 		defer wg.Done()
-		authenticatedUser, userErr = h.userService.GetUserByEmail(ctx, claims.Email)
+		authenticatedUser, userErr = h.userService.GetUserByEmail(ctx, parsedToken.Email)
 	}()
 
 	go func() {
@@ -255,7 +255,7 @@ func (h *AppointmentHandler) DeleteAppointment(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	parsedToken, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
 		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
@@ -271,7 +271,7 @@ func (h *AppointmentHandler) DeleteAppointment(w http.ResponseWriter, r *http.Re
 
 	go func() {
 		defer wg.Done()
-		authenticatedUser, userErr = h.userService.GetUserByEmail(ctx, claims.Email)
+		authenticatedUser, userErr = h.userService.GetUserByEmail(ctx, parsedToken.Email)
 	}()
 
 	go func() {
@@ -321,7 +321,7 @@ func (h *AppointmentHandler) GetDoctorAppointments(w http.ResponseWriter, r *htt
 		return
 	}
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	parsedToken, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
 		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
@@ -337,7 +337,7 @@ func (h *AppointmentHandler) GetDoctorAppointments(w http.ResponseWriter, r *htt
 
 	go func() {
 		defer wg.Done()
-		authenticatedUser, userErr = h.userService.GetUserByEmail(ctx, claims.Email)
+		authenticatedUser, userErr = h.userService.GetUserByEmail(ctx, parsedToken.Email)
 	}()
 
 	go func() {
@@ -388,7 +388,7 @@ func (h *AppointmentHandler) GetPatientAppointments(w http.ResponseWriter, r *ht
 		return
 	}
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	parsedToken, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
 		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
@@ -404,7 +404,7 @@ func (h *AppointmentHandler) GetPatientAppointments(w http.ResponseWriter, r *ht
 
 	go func() {
 		defer wg.Done()
-		authenticatedUser, userErr = h.userService.GetUserByEmail(ctx, claims.Email)
+		authenticatedUser, userErr = h.userService.GetUserByEmail(ctx, parsedToken.Email)
 	}()
 
 	go func() {

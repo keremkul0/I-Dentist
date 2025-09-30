@@ -45,7 +45,7 @@ func (repo *Repository) GetUser(ctx context.Context, id uint) (user.User, error)
 	var usr user.User
 	result := repo.DB.WithContext(ctx).Where("id = ?", id).First(&usr)
 	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			log.Warn().
 				Str("operation", "GetUser").
 				Err(result.Error).

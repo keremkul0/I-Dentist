@@ -3,6 +3,7 @@ package roleRepository
 import (
 	"context"
 	"dental-clinic-system/models/user"
+	"errors"
 
 	"gorm.io/gorm"
 
@@ -42,7 +43,7 @@ func (repo *Repository) GetRole(ctx context.Context, id uint) (user.Role, error)
 	var rl user.Role
 	result := repo.DB.WithContext(ctx).First(&rl, id)
 	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			log.Warn().
 				Str("operation", "GetRole").
 				Err(result.Error).

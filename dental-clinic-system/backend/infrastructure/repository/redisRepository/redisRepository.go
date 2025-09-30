@@ -67,7 +67,7 @@ func (repo *Repository) SetData(ctx context.Context, data any) (string, error) {
 func (repo *Repository) GetData(ctx context.Context, cacheKey string, target any) error {
 	data, err := repo.rdb.Get(ctx, cacheKey).Bytes()
 	if err != nil {
-		if err == redis.Nil {
+		if errors.Is(err, redis.Nil) {
 			log.Warn().
 				Str("operation", "GetData").
 				Str("cache_key", cacheKey).

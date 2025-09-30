@@ -52,13 +52,13 @@ func (s *emailService) VerifyUserEmail(ctx context.Context, token string, email 
 		return false
 	}
 
-	user, err := s.userRepository.GetUserByEmail(ctx, email)
+	foundUser, err := s.userRepository.GetUserByEmail(ctx, email)
 	if err != nil {
 		return false
 	}
 
-	user.EmailVerified = true
-	_, err = s.userRepository.UpdateUser(ctx, user)
+	foundUser.EmailVerified = true
+	_, err = s.userRepository.UpdateUser(ctx, foundUser)
 	if err != nil {
 		return false
 	}
