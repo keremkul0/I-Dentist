@@ -1,14 +1,13 @@
 package sendEmail
 
 import (
-	"context"
 	"dental-clinic-system/models/claims"
 	"net/http"
 	"time"
 )
 
 type EmailService interface {
-	SendVerificationEmail(ctx context.Context, email string, token string) error
+	SendVerificationEmail(email string, token string) error
 }
 
 type JwtService interface {
@@ -26,7 +25,6 @@ func NewSendEmailController(service EmailService, jwtService JwtService) *SendEm
 }
 
 func (h *SendEmailHandler) SendVerificationEmail(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	claims, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -39,7 +37,7 @@ func (h *SendEmailHandler) SendVerificationEmail(w http.ResponseWriter, r *http.
 		return
 	}
 
-	err = h.EmailService.SendVerificationEmail(ctx, claims.Email, token)
+	err = h.EmailService.SendVerificationEmail(claims.Email, token)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return

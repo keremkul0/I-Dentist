@@ -21,6 +21,7 @@ func MigrateDatabase(db *gorm.DB) {
 		&user.Role{},
 		&user.User{},
 		&token.ExpiredTokens{},
+		&token.PasswordResetToken{},
 	)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error migrating models")
