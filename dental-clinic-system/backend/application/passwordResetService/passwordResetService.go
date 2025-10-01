@@ -8,7 +8,7 @@ import (
 )
 
 type EmailService interface {
-	SendPasswordResetEmail(ctx context.Context, email, token string) error
+	SendPasswordResetEmail(email, token string) error
 }
 
 type PasswordResetTokenRepository interface {
@@ -20,7 +20,7 @@ type PasswordResetTokenRepository interface {
 
 type UserRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (user.User, error)
-	UpdateUserPassword(ctx context.Context, userID uint, hashedPassword string) error
+	UpdateUser(ctx context.Context, updatedUser user.User) (user.User, error)
 }
 
 type PasswordResetService struct {
@@ -58,7 +58,7 @@ func (s *PasswordResetService) RequestPasswordReset(ctx context.Context, email s
 	}
 
 	// Email gönder
-	return s.emailService.SendPasswordResetEmail(ctx, email, resetToken.Token)
+	return s.emailService.SendPasswordResetEmail(email, resetToken.Token)
 }
 
 // ValidateResetToken - Token doğrulama
@@ -86,7 +86,8 @@ func (s *PasswordResetService) ResetPassword(ctx context.Context, tokenStr strin
 	}
 
 	// Şifreyi güncelle
-	err = s.userRepository.UpdateUserPassword(ctx, user.ID, newHashedPassword)
+	user.Password = newHashedPassword
+	_, err = s.userRepository.UpdateUser(ctx, user)
 	if err != nil {
 		return err
 	}

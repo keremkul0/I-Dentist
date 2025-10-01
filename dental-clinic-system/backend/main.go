@@ -4,6 +4,7 @@ import (
 	"context"
 	"dental-clinic-system/api/appointment"
 	"dental-clinic-system/api/clinic"
+	"dental-clinic-system/api/forgotPassword"
 	"dental-clinic-system/api/login"
 	"dental-clinic-system/api/logout"
 	"dental-clinic-system/api/patient"
@@ -19,6 +20,7 @@ import (
 	"dental-clinic-system/application/emailService"
 	"dental-clinic-system/application/jwtService"
 	"dental-clinic-system/application/loginService"
+	"dental-clinic-system/application/passwordResetService"
 	"dental-clinic-system/application/patientService"
 	"dental-clinic-system/application/procedureService"
 	"dental-clinic-system/application/roleService"
@@ -34,6 +36,7 @@ import (
 	"dental-clinic-system/infrastructure/repository/appointmentRepository"
 	"dental-clinic-system/infrastructure/repository/clinicRepository"
 	"dental-clinic-system/infrastructure/repository/loginRepository"
+	"dental-clinic-system/infrastructure/repository/passwordResetTokenRepository"
 	"dental-clinic-system/infrastructure/repository/patientRepository"
 	"dental-clinic-system/infrastructure/repository/procedureRepository"
 	"dental-clinic-system/infrastructure/repository/redisRepository"
@@ -94,6 +97,7 @@ func main() {
 	newUserRepository := userRepository.NewRepository(db)
 	newLoginRepository := loginRepository.NewRepository(db)
 	newTokenRepository := tokenRepository.NewRepository(db)
+	newPasswordResetTokenRepository := passwordResetTokenRepository.NewRepository(db)
 
 	//Redis Repository
 	newRedisRepository := redisRepository.NewRepository(Rdb)
@@ -111,6 +115,7 @@ func main() {
 	newSignUpUserService := signUpUserService.NewSignUpUserService(newUserRepository, newRedisRepository, newUserService)
 	newEmailService := emailService.NewEmailService(newUserRepository, newTokenRepository, mailDialer)
 	newJwtService := jwtService.NewJwtService(configModel.JWT.SecretKey)
+	newPasswordResetService := passwordResetService.NewPasswordResetService(newEmailService, newPasswordResetTokenRepository, newUserRepository)
 
 	//Handlers
 	newClinicHandler := clinic.NewClinicHandlerController(newClinicService, newUserService, newRoleService, newJwtService)
@@ -125,6 +130,7 @@ func main() {
 	newLogoutHandler := logout.NewLogoutController(newTokenService)
 	newVerifyEmailHandler := verifyEmail.NewVerifyEmailController(newEmailService, newJwtService)
 	newSendEmailHandler := sendEmail.NewSendEmailController(newEmailService, newJwtService)
+	newForgotPasswordHandler := forgotPassword.NewForgotPasswordController(newPasswordResetService)
 
 	//Create a new router
 	router := mux.NewRouter()
@@ -144,6 +150,7 @@ func main() {
 	signUpClinic.RegisterSignupClinicRoutes(router, newSignUpClinicHandler)
 	singUpUser.RegisterSignupUserRoutes(router, newSignUpUserHandler)
 	verifyEmail.RegisterVerifyEmailRoutes(router, newVerifyEmailHandler)
+	forgotPassword.RegisterForgotPasswordRoutes(router, newForgotPasswordHandler)
 
 	// Register Secured Routes
 	clinic.RegisterClinicRoutes(securedRouter, newClinicHandler)
