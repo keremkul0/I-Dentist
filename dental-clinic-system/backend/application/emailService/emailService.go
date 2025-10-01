@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"dental-clinic-system/models/user"
+	"github.com/rs/zerolog/log"
 	"html/template"
-	"log"
 	"time"
 
 	"gopkg.in/gomail.v2"
@@ -25,6 +25,9 @@ type Mailer interface {
 	SendMail(massage gomail.Message) error
 }
 
+type PasswordResetRepository interface {
+}
+
 type emailService struct {
 	userRepository  UserRepository
 	tokenRepository TokenRepository
@@ -40,11 +43,23 @@ func NewEmailService(userRepository UserRepository, tokenRepository TokenReposit
 }
 
 func (s *emailService) SendVerificationEmail(ctx context.Context, email, token string) error {
-	m, err := s.createVerificationEmail(email, token)
-	if err != nil {
-		return err
-	}
-	return s.mailer.SendMail(*m)
+	return s.sendTemplateEmail(ctx, email, "E-posta Doğrulama",
+		"..\\Email_HTMLs\\verification_email_html.html", map[string]string{
+			"VERIFY_LINK": "http://localhost:8080/verify-email?token=" + token,
+		},
+	)
+}
+
+func (s *emailService) SendPasswordResetEmail(ctx context.Context, email, token string) error {
+	return s.sendTemplateEmail(
+		ctx,
+		email,
+		"Şifre Sıfırlama",
+		"..\\Email_HTMLs\\password_reset_email.html",
+		map[string]string{
+			"RESET_LINK": "http://localhost:8080/reset-password?token=" + token,
+		},
+	)
 }
 
 func (s *emailService) VerifyUserEmail(ctx context.Context, token string, email string) bool {
@@ -70,27 +85,27 @@ func (s *emailService) VerifyUserEmail(ctx context.Context, token string, email 
 	return true
 }
 
-func (s *emailService) createVerificationEmail(email, token string) (*gomail.Message, error) {
-
-	tmpl, err := template.ParseFiles("..\\Email_HTMLs\\verification_email_html.html")
+func (s *emailService) sendTemplateEmail(ctx context.Context, to, subject, templateFile string, data map[string]string) error {
+	tmpl, err := template.ParseFiles(templateFile)
 	if err != nil {
-		log.Println("Şablon dosyası hatası:", err)
-		return nil, err
+		log.Error().Str("operation", "SendTemplateEmail").
+			Err(err).
+			Msg("Template file processing error")
+		return err
 	}
 
 	var body bytes.Buffer
-	err = tmpl.Execute(&body, map[string]string{
-		"VERIFY_LINK": "http://localhost:8080/verify-email?token=" + token,
-	})
+	err = tmpl.Execute(&body, data)
 	if err != nil {
-		log.Fatalf("Şablon işleme hatası: %v", err)
+		log.Error().Str("operation", "SendTemplateEmail").Err(err).Msg("Template proccessing error")
+		return err
 	}
 
 	m := gomail.NewMessage()
 	m.SetHeader("From", "noreply@i-dentist.com")
-	m.SetHeader("To", email)
-	m.SetHeader("Subject", "E-posta Doğrulama")
+	m.SetHeader("To", to)
+	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", body.String())
 
-	return m, nil
+	return s.mailer.SendMail(*m)
 }

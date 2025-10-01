@@ -1,4 +1,4 @@
-package passwordResetRepository
+package passwordResetTokenRepository
 
 import (
 	"context"
