@@ -34,7 +34,7 @@ func (repo *Repository) CreatePasswordResetToken(ctx context.Context, email stri
 			Str("email", email).
 			Msg("Failed to generate random token")
 
-		return token.PasswordResetToken{}, nil
+		return token.PasswordResetToken{}, err
 	}
 
 	// Create token record
