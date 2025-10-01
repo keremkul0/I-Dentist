@@ -9,6 +9,7 @@ import (
 	"dental-clinic-system/api/logout"
 	"dental-clinic-system/api/patient"
 	"dental-clinic-system/api/procedure"
+	"dental-clinic-system/api/resetPassword"
 	"dental-clinic-system/api/role"
 	"dental-clinic-system/api/sendEmail"
 	"dental-clinic-system/api/signUpClinic"
@@ -131,6 +132,7 @@ func main() {
 	newVerifyEmailHandler := verifyEmail.NewVerifyEmailController(newEmailService, newJwtService)
 	newSendEmailHandler := sendEmail.NewSendEmailController(newEmailService, newJwtService)
 	newForgotPasswordHandler := forgotPassword.NewForgotPasswordController(newPasswordResetService)
+	newResetPasswordHandler := resetPassword.NewResetPasswordController(newPasswordResetService)
 
 	//Create a new router
 	router := mux.NewRouter()
@@ -151,6 +153,7 @@ func main() {
 	singUpUser.RegisterSignupUserRoutes(router, newSignUpUserHandler)
 	verifyEmail.RegisterVerifyEmailRoutes(router, newVerifyEmailHandler)
 	forgotPassword.RegisterForgotPasswordRoutes(router, newForgotPasswordHandler)
+	resetPassword.RegisterResetPasswordRoutes(router, newResetPasswordHandler)
 
 	// Register Secured Routes
 	clinic.RegisterClinicRoutes(securedRouter, newClinicHandler)
