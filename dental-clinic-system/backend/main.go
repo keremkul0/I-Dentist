@@ -167,6 +167,7 @@ func main() {
 
 	//background services
 	background_jobs.StartCleanExpiredJwtTokens(newTokenService)
+	background_jobs.StartCleanExpiredPasswordResetTokens(newPasswordResetTokenRepository)
 
 	// HTTP Server
 	server := &http.Server{
