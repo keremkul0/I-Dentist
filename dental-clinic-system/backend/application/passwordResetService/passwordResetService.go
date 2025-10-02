@@ -16,6 +16,7 @@ type PasswordResetTokenRepository interface {
 	ValidatePasswordResetToken(ctx context.Context, tokenStr string, email string) (token.PasswordResetToken, error)
 	MarkTokenAsUsed(ctx context.Context, tokenID uint) error
 	InvalidateAllTokensForEmail(ctx context.Context, email string) error
+	DeleteExpiredTokens(ctx context.Context) error
 }
 
 type UserRepository interface {
@@ -94,4 +95,8 @@ func (s *PasswordResetService) ResetPassword(ctx context.Context, tokenStr strin
 
 	// Token'ı kullanılmış olarak işaretle
 	return s.passwordResetTokenRepository.MarkTokenAsUsed(ctx, resetToken.ID)
+}
+
+func (s *PasswordResetService) DeleteExpiredTokens(ctx context.Context) error {
+	return s.passwordResetTokenRepository.DeleteExpiredTokens(ctx)
 }

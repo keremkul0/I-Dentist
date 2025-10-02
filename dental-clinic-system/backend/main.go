@@ -115,7 +115,7 @@ func main() {
 	newSignUpClinicService := signUpClinicService.NewSignUpClinicService(newClinicRepository, newUserRepository, newRedisRepository)
 	newTokenService := tokenService.NewTokenService(newTokenRepository)
 	newSignUpUserService := signUpUserService.NewSignUpUserService(newUserRepository, newRedisRepository, newUserService)
-	newEmailService := emailService.NewEmailService(newUserRepository, newTokenRepository, mailDialerInstance)
+	newEmailService := emailService.NewEmailService(newUserRepository, newTokenRepository, mailDialer)
 	newJwtService := jwtService.NewJwtService(configModel.JWT.SecretKey)
 	newPasswordResetService := passwordResetService.NewPasswordResetService(newEmailService, newPasswordResetTokenRepository, newUserRepository)
 
