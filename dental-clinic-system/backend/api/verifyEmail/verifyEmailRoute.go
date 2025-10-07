@@ -1,9 +1,9 @@
 package verifyEmail
 
 import (
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 )
 
-func RegisterVerifyEmailRoutes(router *mux.Router, handler *VerifyEmailHandler) {
-	router.HandleFunc("/verify-email", handler.VerifyUserEmail).Methods("GET")
+func RegisterVerifyEmailRoutes(router fiber.Router, handler *VerifyEmailHandler) {
+	router.Get("/verify-email", handler.VerifyUserEmail)
 }
