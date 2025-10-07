@@ -1,13 +1,13 @@
 package clinic
 
 import (
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 )
 
-func RegisterClinicRoutes(router *mux.Router, handler *ClinicHandler) {
-	//router.HandleFunc("/clinics", handler.GetClinics).Methods("GET")
-	router.HandleFunc("/clinic/{id}", handler.GetClinic).Methods("GET")
-	//router.HandleFunc("/clinic", handler.CreateClinic).Methods("POST")
-	router.HandleFunc("/clinic/{id}", handler.UpdateClinic).Methods("PUT")
-	//router.HandleFunc("/clinic/{id}", handler.DeleteClinic).Methods("DELETE")
+func RegisterClinicRoutes(router fiber.Router, handler *ClinicHandler) {
+	//router.Get("/clinics", handler.GetClinics)
+	router.Get("/clinic/{id}", handler.GetClinic)
+	//router.Post("/clinic", handler.CreateClinic)
+	router.Put("/clinic/{id}", handler.UpdateClinic)
+	//router.Delete("/clinic/{id}", handler.DeleteClinic)
 }
