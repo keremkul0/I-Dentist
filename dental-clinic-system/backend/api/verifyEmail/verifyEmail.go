@@ -3,7 +3,8 @@ package verifyEmail
 import (
 	"context"
 	"dental-clinic-system/models/claims"
-	"net/http"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type EmailService interface {
@@ -23,27 +24,27 @@ func NewVerifyEmailController(service EmailService, jwtService JwtService) *Veri
 	return &VerifyEmailHandler{EmailService: service, jwtService: jwtService}
 }
 
-func (h *VerifyEmailHandler) VerifyUserEmail(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	token := r.URL.Query().Get("token")
+func (h *VerifyEmailHandler) VerifyUserEmail(c *fiber.Ctx) error {
+	ctx := c.Context()
+	token := c.Query("token")
 	if token == "" {
-		http.Error(w, "Token is required", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Token is required",
+		})
 	}
 
 	claims, err := h.jwtService.ParseToken(token)
 	if err != nil {
-		http.Error(w, "Invalid token", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid token",
+		})
 	}
 
 	if h.EmailService.VerifyUserEmail(ctx, token, claims.Email) {
-		_, err := w.Write([]byte("Email verified"))
-		if err != nil {
-			return
-		}
-		return
+		return c.Status(fiber.StatusOK).SendString("Email verified")
 	}
 
-	http.Error(w, "Invalid token", http.StatusBadRequest)
+	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+		"error": "Invalid token",
+	})
 }
