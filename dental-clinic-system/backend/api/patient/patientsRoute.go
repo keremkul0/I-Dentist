@@ -1,15 +1,13 @@
 package patient
 
 import (
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 )
 
-func RegisterPatientsRoutes(router *mux.Router, patientHandler *PatientHandler) {
-
-	router.HandleFunc("/patients", patientHandler.GetPatients).Methods("GET")
-	router.HandleFunc("/patients/{id}", patientHandler.GetPatient).Methods("GET")
-	router.HandleFunc("/patients", patientHandler.CreatePatient).Methods("POST")
-	router.HandleFunc("/patients/{id}", patientHandler.UpdatePatient).Methods("PUT")
-	router.HandleFunc("/patients/{id}", patientHandler.DeletePatient).Methods("DELETE")
-
+func RegisterPatientsRoutes(router fiber.Router, patientHandler *PatientHandler) {
+	router.Get("/patients", patientHandler.GetPatients)
+	router.Get("/patients/{id}", patientHandler.GetPatient)
+	router.Post("/patients", patientHandler.CreatePatient)
+	router.Put("/patients/{id}", patientHandler.UpdatePatient)
+	router.Delete("/patients/{id}", patientHandler.DeletePatient)
 }
