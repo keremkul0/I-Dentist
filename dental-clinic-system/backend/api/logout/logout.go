@@ -2,8 +2,9 @@ package logout
 
 import (
 	"context"
-	"net/http"
 	"time"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type TokenService interface {
@@ -20,24 +21,29 @@ func NewLogoutController(tokenService TokenService) *LogoutController {
 	}
 }
 
-func (h *LogoutController) Logout(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	token, err := r.Cookie("token")
-	if err != nil {
-		http.Error(w, "No token found", http.StatusUnauthorized)
-		return
+func (h *LogoutController) Logout(c *fiber.Ctx) error {
+	ctx := c.Context()
+	token := c.Cookies("token")
+	if token == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"message": "No token found",
+		})
 	}
 
-	err = h.tokenService.AddTokenToBlacklist(ctx, token.Value, time.Now().Add(24*time.Hour))
+	err := h.tokenService.AddTokenToBlacklist(ctx, token, time.Now().Add(24*time.Hour))
 	if err != nil {
-		http.Error(w, "logout failed", http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Logout failed",
+		})
 	}
 
-	http.SetCookie(w, &http.Cookie{
+	c.Cookie(&fiber.Cookie{
 		Name:    "token",
 		Value:   "",
 		Expires: time.Unix(0, 0),
 	})
-	w.WriteHeader(http.StatusOK)
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Logout successful",
+	})
 }
