@@ -4,8 +4,8 @@ import (
 	"context"
 	"dental-clinic-system/models/clinic"
 	"dental-clinic-system/models/user"
-	"encoding/json"
-	"net/http"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 // SignUpClinicService defines the interface for clinic signup service
@@ -36,28 +36,31 @@ type signUpClinicResponse struct {
 }
 
 // SignUpClinic handles the HTTP request for signing up a clinic
-func (h *SignUpClinicController) SignUpClinic(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (h *SignUpClinicController) SignUpClinic(c *fiber.Ctx) error {
+	ctx := c.Context()
 	var req signUpClinicRequest
 
 	// Decode the incoming JSON request
-	err := json.NewDecoder(r.Body).Decode(&req)
+	err := c.BodyParser(&req)
 	if err != nil {
-		http.Error(w, "Invalid request data: "+err.Error(), http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request data",
+		})
 	}
 
 	// Validate required fields
 	if req.Clinic == nil || req.ID == nil {
-		http.Error(w, "Clinic and ID information are required.", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Clinic ID information are required",
+		})
 	}
 
 	// Call the service layer to process the signup
 	updatedClinic, userGetModel, err := h.service.SignUpClinic(ctx, *req.Clinic, *req.ID)
 	if err != nil {
-		http.Error(w, "Clinic signup failed: "+err.Error(), http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Clinic signup failed:",
+		})
 	}
 
 	// Prepare the response
@@ -66,14 +69,5 @@ func (h *SignUpClinicController) SignUpClinic(w http.ResponseWriter, r *http.Req
 		User:   userGetModel,
 	}
 
-	// Set the Content-Type header and status code
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-
-	// Encode and send the response
-	err = json.NewEncoder(w).Encode(response)
-	if err != nil {
-		http.Error(w, "Failed to send response: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
+	return c.Status(fiber.StatusCreated).JSON(response)
 }
