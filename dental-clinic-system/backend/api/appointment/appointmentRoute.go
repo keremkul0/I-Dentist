@@ -1,13 +1,13 @@
 package appointment
 
 import (
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 )
 
-func RegisterAppointmentRoutes(router *mux.Router, handler *AppointmentHandler) {
-	router.HandleFunc("/appointments", handler.GetAppointments).Methods("GET")
-	router.HandleFunc("/appointment/{id}", handler.GetAppointment).Methods("GET")
-	router.HandleFunc("/appointments", handler.CreateAppointment).Methods("POST")
-	router.HandleFunc("/appointment/{id}", handler.UpdateAppointment).Methods("PUT")
-	router.HandleFunc("/appointment/{id}", handler.DeleteAppointment).Methods("DELETE")
+func RegisterAppointmentRoutes(router fiber.Router, handler *AppointmentHandler) {
+	router.Get("/appointments", handler.GetAppointments)
+	router.Get("/appointments/:id", handler.GetAppointment)
+	router.Post("/appointments", handler.CreateAppointment)
+	router.Put("/appointment/:id", handler.UpdateAppointment)
+	router.Delete("/appointment/:id", handler.DeleteAppointment)
 }
