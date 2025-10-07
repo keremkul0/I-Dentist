@@ -3,9 +3,9 @@ package jwtService
 import (
 	"dental-clinic-system/models/claims"
 	"errors"
-	"net/http"
 	"time"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -65,11 +65,11 @@ func (s *jwtService) ParseToken(tokenStr string) (*claims.Claims, error) {
 	return claims, nil
 }
 
-func (s *jwtService) ParseTokenFromCookie(r *http.Request) (*claims.Claims, error) {
-	cookie, err := r.Cookie("token")
-	if err != nil {
-		return nil, err
+func (s *jwtService) ParseTokenFromCookie(c *fiber.Ctx) (*claims.Claims, error) {
+	cookie := c.Cookies("token")
+	if cookie == "" {
+		return nil, errors.New("missing token cookie")
 	}
 
-	return s.ParseToken(cookie.Value)
+	return s.ParseToken(cookie)
 }
