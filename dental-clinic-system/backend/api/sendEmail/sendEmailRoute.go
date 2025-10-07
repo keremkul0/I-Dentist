@@ -1,9 +1,9 @@
 package sendEmail
 
 import (
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 )
 
-func RegisterSendEmailRoutes(router *mux.Router, handler *SendEmailHandler) {
-	router.HandleFunc("/send-verification-email", handler.SendVerificationEmail).Methods("POST")
+func RegisterSendEmailRoutes(router fiber.Router, handler *SendEmailHandler) {
+	router.Post("/send-verification-email", handler.SendVerificationEmail)
 }
