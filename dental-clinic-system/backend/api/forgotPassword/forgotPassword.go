@@ -2,8 +2,8 @@ package forgotPassword
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type ForgotPasswordRequest struct {
@@ -24,27 +24,25 @@ func NewForgotPasswordController(passwordResetService PasswordResetService) *For
 	}
 }
 
-func (h *ForgotPasswordHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func (h *ForgotPasswordHandler) ForgotPassword(c *fiber.Ctx) error {
 	var req ForgotPasswordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
-		return
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid JSON format",
+		})
 	}
 
 	if req.Email == "" {
-		http.Error(w, "Email is required", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Email is required",
+		})
 	}
 
-	ctx := r.Context()
+	ctx := c.Context()
 	_ = h.passwordResetService.RequestPasswordReset(ctx, req.Email)
 
 	// Güvenlik nedeniyle her durumda aynı response
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "If the email exists, a password reset link has been sent",
+	})
 }
