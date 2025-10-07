@@ -1,10 +1,10 @@
 package singUpUser
 
 import (
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 )
 
-func RegisterSignupUserRoutes(router *mux.Router, handler *SignUpUserHandler) {
+func RegisterSignupUserRoutes(router fiber.Router, handler *SignUpUserHandler) {
 
-	router.HandleFunc("/signup-user", handler.SignUpUser).Methods("POST")
+	router.Post("/signup-user", handler.SignUpUser)
 }
