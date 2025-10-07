@@ -1,9 +1,9 @@
 package login
 
 import (
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 )
 
-func RegisterAuthRoutes(router *mux.Router, handler *LoginHandler) {
-	router.HandleFunc("/login", handler.Login).Methods("POST")
+func RegisterAuthRoutes(router fiber.Router, handler *LoginHandler) {
+	router.Post("/login", handler.Login)
 }

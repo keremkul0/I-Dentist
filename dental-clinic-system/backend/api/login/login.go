@@ -3,9 +3,9 @@ package login
 import (
 	"context"
 	"dental-clinic-system/models/auth"
-	"encoding/json"
-	"net/http"
 	"time"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type LoginService interface {
@@ -25,30 +25,35 @@ func NewLoginController(service LoginService, jwtService JwtService) *LoginHandl
 	return &LoginHandler{loginService: service, jwtService: jwtService}
 }
 
-func (h *LoginHandler) Login(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (h *LoginHandler) Login(c *fiber.Ctx) error {
+	ctx := c.Context()
 	var creds auth.Login
-	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
-		return
+	if err := c.BodyParser(&creds); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request payload",
+		})
 	}
 	user, err := h.loginService.Login(ctx, creds.Email, creds.Password)
 	if err != nil {
-		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid email or password",
+		})
 	}
 
 	expirationTime := time.Now().Add(time.Hour * 24)
 	tokenString, err := h.jwtService.GenerateJWTToken(user.Email, expirationTime)
 	if err != nil {
-		http.Error(w, "Could not create token", http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Could not create token",
+		})
 	}
 
-	http.SetCookie(w, &http.Cookie{
+	c.Cookie(&fiber.Cookie{
 		Name:    "token",
 		Value:   tokenString,
-		Expires: expirationTime,
+		Expires: expirationTime})
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Login successful",
 	})
-	w.WriteHeader(http.StatusOK)
 }
