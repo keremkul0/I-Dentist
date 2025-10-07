@@ -1,13 +1,13 @@
 package user
 
 import (
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 )
 
-func RegisterUserRoutes(router *mux.Router, handler *UserHandler) {
-	router.HandleFunc("/users", handler.GetUsers).Methods("GET")
-	router.HandleFunc("/users/{id}", handler.GetUser).Methods("GET")
-	router.HandleFunc("/users", handler.CreateUser).Methods("POST")
-	router.HandleFunc("/users/{id}", handler.UpdateUser).Methods("PUT")
-	router.HandleFunc("/users/{id}", handler.DeleteUser).Methods("DELETE")
+func RegisterUserRoutes(router fiber.Router, handler *UserHandler) {
+	router.Get("/users", handler.GetUsers)
+	router.Get("/users/:id", handler.GetUser)
+	router.Post("/users", handler.CreateUser)
+	router.Put("/users/:id", handler.UpdateUser)
+	router.Delete("/users/:id", handler.DeleteUser)
 }
