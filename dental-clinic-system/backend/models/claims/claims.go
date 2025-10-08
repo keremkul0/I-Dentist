@@ -7,7 +7,7 @@ import (
 )
 
 type Claims struct {
-	Email string    `json:"email"`
-	Role  user.Role `json: "role"`
+	Email string       `json:"email"`
+	Roles []*user.Role `json:"roles"` // Çoklu rol desteği
 	jwt.RegisteredClaims
 }

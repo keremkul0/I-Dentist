@@ -2,6 +2,7 @@ package jwtService
 
 import (
 	"dental-clinic-system/models/claims"
+	"dental-clinic-system/models/user"
 	"errors"
 	"time"
 
@@ -19,16 +20,17 @@ func NewJwtService(jwtSecret string) *jwtService {
 	}
 }
 
-func (s *jwtService) GenerateJWTToken(email string, expirationTime time.Time) (string, error) {
+func (s *jwtService) GenerateJWTToken(email string, roles []*user.Role, expirationTime time.Time) (string, error) {
 
-	claims := &claims.Claims{
+	userClaims := &claims.Claims{
 		Email: email,
+		Roles: roles,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 		},
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, userClaims)
 
 	tokenString, err := token.SignedString(s.jwtSecret)
 	if err != nil {

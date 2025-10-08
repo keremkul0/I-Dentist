@@ -3,6 +3,7 @@ package login
 import (
 	"context"
 	"dental-clinic-system/models/auth"
+	"dental-clinic-system/models/user"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -13,16 +14,21 @@ type LoginService interface {
 }
 
 type JwtService interface {
-	GenerateJWTToken(email string, time time.Time) (string, error)
+	GenerateJWTToken(email string, roles []*user.Role, time time.Time) (string, error)
+}
+
+type UserService interface {
+	GetUserByEmail(ctx context.Context, email string) (user.UserGetModel, error)
 }
 
 type LoginHandler struct {
 	loginService LoginService
 	jwtService   JwtService
+	userService  UserService
 }
 
-func NewLoginController(service LoginService, jwtService JwtService) *LoginHandler {
-	return &LoginHandler{loginService: service, jwtService: jwtService}
+func NewLoginController(service LoginService, jwtService JwtService, userService UserService) *LoginHandler {
+	return &LoginHandler{loginService: service, jwtService: jwtService, userService: userService}
 }
 
 func (h *LoginHandler) Login(c *fiber.Ctx) error {
@@ -33,15 +39,16 @@ func (h *LoginHandler) Login(c *fiber.Ctx) error {
 			"error": "Invalid request payload",
 		})
 	}
-	user, err := h.loginService.Login(ctx, creds.Email, creds.Password)
+	authUser, err := h.loginService.Login(ctx, creds.Email, creds.Password)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "Invalid email or password",
 		})
 	}
 
+	user, err := h.userService.GetUserByEmail(ctx, authUser.Email)
 	expirationTime := time.Now().Add(time.Hour * 24)
-	tokenString, err := h.jwtService.GenerateJWTToken(user.Email, expirationTime)
+	tokenString, err := h.jwtService.GenerateJWTToken(user.Email, user.Roles, expirationTime)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Could not create token",

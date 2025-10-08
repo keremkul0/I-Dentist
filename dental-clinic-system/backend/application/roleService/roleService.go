@@ -46,7 +46,7 @@ func (s *roleService) DeleteRole(ctx context.Context, id uint) error {
 
 func (s *roleService) UserHasRole(user user.UserGetModel, roleName string) bool {
 	for _, role := range user.Roles {
-		if strings.EqualFold(role.Name, roleName) {
+		if strings.EqualFold(string(role.Name), roleName) {
 			return true
 		}
 	}

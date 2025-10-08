@@ -122,7 +122,7 @@ func main() {
 	newProcedureHandler := procedure.NewProcedureController(newProcedureService, newUserService, newRoleService, newJwtService)
 	newRoleHandler := role.NewRoleController(newRoleService)
 	newUserHandler := user.NewUserController(newUserService, newRoleService, newJwtService)
-	newLoginHandler := login.NewLoginController(newLoginService, newJwtService)
+	newLoginHandler := login.NewLoginController(newLoginService, newJwtService, newUserService)
 	newSignUpClinicHandler := signUpClinic.NewSignUpClinicController(newSignUpClinicService)
 	newSignUpUserHandler := singUpUser.NewSignUpUserHandler(newSignUpUserService)
 	newLogoutHandler := logout.NewLogoutController(newTokenService)
