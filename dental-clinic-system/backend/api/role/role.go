@@ -3,9 +3,10 @@ package role
 import (
 	"context"
 	"dental-clinic-system/models/user"
+	"strconv"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
-	"strconv"
 )
 
 type RoleService interface {
