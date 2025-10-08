@@ -1,13 +1,14 @@
 package main
 
 import (
-	"context"
 	"dental-clinic-system/api/appointment"
 	"dental-clinic-system/api/clinic"
+	"dental-clinic-system/api/forgotPassword"
 	"dental-clinic-system/api/login"
 	"dental-clinic-system/api/logout"
 	"dental-clinic-system/api/patient"
 	"dental-clinic-system/api/procedure"
+	"dental-clinic-system/api/resetPassword"
 	"dental-clinic-system/api/role"
 	"dental-clinic-system/api/sendEmail"
 	"dental-clinic-system/api/signUpClinic"
@@ -19,6 +20,7 @@ import (
 	"dental-clinic-system/application/emailService"
 	"dental-clinic-system/application/jwtService"
 	"dental-clinic-system/application/loginService"
+	"dental-clinic-system/application/passwordResetService"
 	"dental-clinic-system/application/patientService"
 	"dental-clinic-system/application/procedureService"
 	"dental-clinic-system/application/roleService"
@@ -34,6 +36,7 @@ import (
 	"dental-clinic-system/infrastructure/repository/appointmentRepository"
 	"dental-clinic-system/infrastructure/repository/clinicRepository"
 	"dental-clinic-system/infrastructure/repository/loginRepository"
+	"dental-clinic-system/infrastructure/repository/passwordResetTokenRepository"
 	"dental-clinic-system/infrastructure/repository/patientRepository"
 	"dental-clinic-system/infrastructure/repository/procedureRepository"
 	"dental-clinic-system/infrastructure/repository/redisRepository"
@@ -43,16 +46,14 @@ import (
 	"dental-clinic-system/middleware/authMiddleware"
 	"dental-clinic-system/middleware/contextTimeoutMiddleware"
 	"dental-clinic-system/vault"
-	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 	"github.com/hashicorp/vault/api"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -63,23 +64,26 @@ func main() {
 
 	configModel := config2.SetConfig("resources")
 
-	zerolog.SetGlobalLevel(configModel.Log.Level)
+	// Initialize base logger with request ID support
+	logger.InitBaseLogger(configModel.Log)
 
+	// Get base logger for startup logs
+	baseLogger := logger.GetBaseLogger()
 	clientVault, err := vault.ConnectVault(configModel.Vault)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error connecting to vault")
+		baseLogger.Fatal().Err(err).Msg("Error connecting to vault")
 		panic("Error connecting to vault")
 	}
 
-	err = config2.ReadConfigFromVault(clientVault, configModel)
+	err = config2.ReadConfigFromVault(clientVault, configModel, baseLogger)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error reading config from vault")
+		baseLogger.Fatal().Err(err).Msg("Error reading config from vault")
 		panic("Error reading config from vault")
 	}
 
 	db := postgres.ConnectDatabase(configModel.Database)
 	Rdb := redis2.ConnectRedis(configModel.Redis)
-	mailDialer := mailDialer.SetupMailDialer(configModel.Email)
+	mailDialerInstance := mailDialer.SetupMailDialer(configModel.Email)
 
 	postgres.MigrateDatabase(db)
 
@@ -94,6 +98,7 @@ func main() {
 	newUserRepository := userRepository.NewRepository(db)
 	newLoginRepository := loginRepository.NewRepository(db)
 	newTokenRepository := tokenRepository.NewRepository(db)
+	newPasswordResetTokenRepository := passwordResetTokenRepository.NewRepository(db)
 
 	//Redis Repository
 	newRedisRepository := redisRepository.NewRepository(Rdb)
@@ -109,8 +114,9 @@ func main() {
 	newSignUpClinicService := signUpClinicService.NewSignUpClinicService(newClinicRepository, newUserRepository, newRedisRepository)
 	newTokenService := tokenService.NewTokenService(newTokenRepository)
 	newSignUpUserService := signUpUserService.NewSignUpUserService(newUserRepository, newRedisRepository, newUserService)
-	newEmailService := emailService.NewEmailService(newUserRepository, newTokenRepository, mailDialer)
+	newEmailService := emailService.NewEmailService(newUserRepository, newTokenRepository, mailDialerInstance)
 	newJwtService := jwtService.NewJwtService(configModel.JWT.SecretKey)
+	newPasswordResetService := passwordResetService.NewPasswordResetService(newEmailService, newPasswordResetTokenRepository, newUserRepository)
 
 	//Handlers
 	newClinicHandler := clinic.NewClinicHandlerController(newClinicService, newUserService, newRoleService, newJwtService)
@@ -125,57 +131,56 @@ func main() {
 	newLogoutHandler := logout.NewLogoutController(newTokenService)
 	newVerifyEmailHandler := verifyEmail.NewVerifyEmailController(newEmailService, newJwtService)
 	newSendEmailHandler := sendEmail.NewSendEmailController(newEmailService, newJwtService)
+	newForgotPasswordHandler := forgotPassword.NewForgotPasswordController(newPasswordResetService)
+	newResetPasswordHandler := resetPassword.NewResetPasswordController(newPasswordResetService)
 
-	//Create a new router
-	router := mux.NewRouter()
-
-	//Create subRouters
-	securedRouter := router.PathPrefix("/api").Subrouter()
+	//Create a new Fiber app
+	app := fiber.New(fiber.Config{
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	})
 
 	//Middlewares
 	newAuthMiddleware := authMiddleware.NewAuthMiddleware(newTokenService, newJwtService)
 
-	//Middleware injection
-	router.Use(contextTimeoutMiddleware.TimeoutMiddleware(5))
-	securedRouter.Use(newAuthMiddleware.Authenticate)
+	// Public routes (no authentication required)
+	login.RegisterAuthRoutes(app, newLoginHandler)
+	signUpClinic.RegisterSignupClinicRoutes(app, newSignUpClinicHandler)
+	singUpUser.RegisterSignupUserRoutes(app, newSignUpUserHandler)
+	verifyEmail.RegisterVerifyEmailRoutes(app, newVerifyEmailHandler)
+	forgotPassword.RegisterForgotPasswordRoutes(app, newForgotPasswordHandler)
+	resetPassword.RegisterResetPasswordRoutes(app, newResetPasswordHandler)
 
-	// Register Routes
-	login.RegisterAuthRoutes(router, newLoginHandler)
-	signUpClinic.RegisterSignupClinicRoutes(router, newSignUpClinicHandler)
-	singUpUser.RegisterSignupUserRoutes(router, newSignUpUserHandler)
-	verifyEmail.RegisterVerifyEmailRoutes(router, newVerifyEmailHandler)
+	// Create API group with authentication middleware
+	api := app.Group("/api", newAuthMiddleware.Authenticate())
 
 	// Register Secured Routes
-	clinic.RegisterClinicRoutes(securedRouter, newClinicHandler)
-	appointment.RegisterAppointmentRoutes(securedRouter, newAppointmentHandler)
-	patient.RegisterPatientsRoutes(securedRouter, newPatientHandler)
-	procedure.RegisterProcedureRoutes(securedRouter, newProcedureHandler)
-	role.RegisterRoleRoutes(securedRouter, newRoleHandler)
-	user.RegisterUserRoutes(securedRouter, newUserHandler)
-	logout.RegisterLogoutRoutes(securedRouter, newLogoutHandler)
-	sendEmail.RegisterSendEmailRoutes(securedRouter, newSendEmailHandler)
+	clinic.RegisterClinicRoutes(api, newClinicHandler)
+	appointment.RegisterAppointmentRoutes(api, newAppointmentHandler)
+	patient.RegisterPatientsRoutes(api, newPatientHandler)
+	procedure.RegisterProcedureRoutes(api, newProcedureHandler)
+	role.RegisterRoleRoutes(api, newRoleHandler)
+	user.RegisterUserRoutes(api, newUserHandler)
+	logout.RegisterLogoutRoutes(api, newLogoutHandler)
+	sendEmail.RegisterSendEmailRoutes(api, newSendEmailHandler)
 
 	//background services
 	background_jobs.StartCleanExpiredJwtTokens(newTokenService)
-
-	// HTTP Server
-	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", configModel.Server.Port),
-		Handler: router,
-	}
+	background_jobs.StartCleanExpiredPasswordResetTokens(newPasswordResetTokenRepository)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		log.Info().Msg(fmt.Sprintf("Server started on port %d", configModel.Server.Port))
-		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatal().Err(err).Msg("Server failed to start")
+		baseLogger.Info().Msgf("Server started on port %d", configModel.Server.Port)
+		if err := app.Listen(fmt.Sprintf(":%d", configModel.Server.Port)); err != nil {
+			baseLogger.Fatal().Err(err).Msg("Server failed to start")
 		}
 	}()
 
 	<-quit
-	log.Info().Msg("Closing signal received...")
+	baseLogger.Info().Msg("Closing signal received...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -184,51 +189,51 @@ func main() {
 		log.Info().Msgf("The server could not be shut down: %v", err)
 	}
 	gracefulShutdown(ctx, server, db, Rdb, clientVault)
-	log.Info().Msg("Successful shutdown of the server.")
-
+	baseLogger.Info().Msg("Successful shutdown of the server.")
 }
 
-func gracefulShutdown(ctx context.Context, server *http.Server, db *gorm.DB, redis *redis.Client, vaultClient *api.Client) {
+func gracefulShutdown(app *fiber.App, db *gorm.DB, redis *redis.Client, vaultClient *api.Client) {
+	baseLogger := logger.GetBaseLogger()
 
-	log.Info().Msg("Shutting down server...")
+	baseLogger.Info().Msg("Shutting down server...")
 
-	if err := server.Shutdown(ctx); err != nil {
-		log.Error().Err(err).Msg("Failed to gracefully shutdown server")
+	if err := app.Shutdown(); err != nil {
+		baseLogger.Error().Err(err).Msg("Failed to gracefully shutdown server")
 	} else {
-		log.Info().Msg("Server stopped gracefully.")
+		baseLogger.Info().Msg("Server stopped gracefully.")
 	}
 
 	// Close database connection
 	if db != nil {
-		log.Info().Msg("Closing database connection...")
+		baseLogger.Info().Msg("Closing database connection...")
 		sqlDB, err := db.DB()
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to get sql.DB from gorm.DB")
+			baseLogger.Error().Err(err).Msg("Failed to get sql.DB from gorm.DB")
 		} else {
 			if err := sqlDB.Close(); err != nil {
-				log.Error().Err(err).Msg("Failed to close database connection")
+				baseLogger.Error().Err(err).Msg("Failed to close database connection")
 			} else {
-				log.Info().Msg("Database connection closed.")
+				baseLogger.Info().Msg("Database connection closed.")
 			}
 		}
 	}
 
 	// Close Redis connection
 	if redis != nil {
-		log.Info().Msg("Closing Redis connection...")
+		baseLogger.Info().Msg("Closing Redis connection...")
 		if err := redis.Close(); err != nil {
-			log.Error().Err(err).Msg("Failed to close Redis connection")
+			baseLogger.Error().Err(err).Msg("Failed to close Redis connection")
 		} else {
-			log.Info().Msg("Redis connection closed.")
+			baseLogger.Info().Msg("Redis connection closed.")
 		}
 	}
 
 	// Clear Vault client token
 	if vaultClient != nil {
-		log.Info().Msg("Clearing Vault client token...")
+		baseLogger.Info().Msg("Clearing Vault client token...")
 		vaultClient.ClearToken()
-		log.Info().Msg("Vault client token cleared.")
+		baseLogger.Info().Msg("Vault client token cleared.")
 	}
 
-	log.Info().Msg("Server shutdown complete.")
+	baseLogger.Info().Msg("Server shutdown complete.")
 }
