@@ -4,8 +4,8 @@ import (
 	"context"
 	"dental-clinic-system/models/claims"
 	"errors"
-	"net/http"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -26,43 +26,48 @@ func NewAuthMiddleware(tokenService TokenService, jwtService JwtService) *AuthMi
 	return &AuthMiddleware{TokenService: tokenService, jwtService: jwtService}
 }
 
-func (auth *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		cookie, err := r.Cookie("token")
-		if err != nil {
-			if errors.Is(http.ErrNoCookie, err) {
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-			w.WriteHeader(http.StatusBadRequest)
-			return
+func (auth *AuthMiddleware) Authenticate() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		ctx := context.Background()
+
+		// Cookie'den token al
+		token := c.Cookies("token")
+		if token == "" {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "No token provided",
+			})
 		}
 
-		if auth.TokenService.IsTokenBlacklisted(ctx, cookie.Value) {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
+		// Token blacklist kontrolü
+		if auth.TokenService.IsTokenBlacklisted(ctx, token) {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "Token is blacklisted",
+			})
 		}
 
+		// JWT token doğrulama
 		claims := &claims.Claims{}
-		token, err := jwt.ParseWithClaims(cookie.Value, claims, func(token *jwt.Token) (interface{}, error) {
+		jwtToken, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 			return auth.jwtService.GetJwtKey(), nil
 		})
 
 		if err != nil {
 			if errors.Is(jwt.ErrSignatureInvalid, err) {
-				w.WriteHeader(http.StatusUnauthorized)
-				return
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+					"error": "Invalid token signature",
+				})
 			}
-			w.WriteHeader(http.StatusBadRequest)
-			return
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid token",
+			})
 		}
 
-		if !token.Valid {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
+		if !jwtToken.Valid {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "Invalid token",
+			})
 		}
 
-		next.ServeHTTP(w, r)
-	})
+		return c.Next()
+	}
 }
