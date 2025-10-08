@@ -115,7 +115,7 @@ func main() {
 	newSignUpClinicService := signUpClinicService.NewSignUpClinicService(newClinicRepository, newUserRepository, newRedisRepository)
 	newTokenService := tokenService.NewTokenService(newTokenRepository)
 	newSignUpUserService := signUpUserService.NewSignUpUserService(newUserRepository, newRedisRepository, newUserService)
-	newEmailService := emailService.NewEmailService(newUserRepository, newTokenRepository, mailDialer)
+	newEmailService := emailService.NewEmailService(newUserRepository, newTokenRepository, mailDialerInstance)
 	newJwtService := jwtService.NewJwtService(configModel.JWT.SecretKey)
 	newPasswordResetService := passwordResetService.NewPasswordResetService(newEmailService, newPasswordResetTokenRepository, newUserRepository)
 
@@ -144,6 +144,9 @@ func main() {
 
 	//Middlewares
 	newAuthMiddleware := authMiddleware.NewAuthMiddleware(newTokenService, newJwtService)
+
+	//Global middlewares
+	app.Use(contextTimeoutMiddleware.TimeoutMiddleware(5))
 
 	// Public routes (no authentication required)
 	login.RegisterAuthRoutes(app, newLoginHandler)
@@ -174,27 +177,20 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		baseLogger.Info().Msgf("Server started on port %d", configModel.Server.Port)
+		log.Info().Msg(fmt.Sprintf("Server started on port %d", configModel.Server.Port))
 		if err := app.Listen(fmt.Sprintf(":%d", configModel.Server.Port)); err != nil {
-			baseLogger.Fatal().Err(err).Msg("Server failed to start")
+			log.Fatal().Err(err).Msg("Server failed to start")
 		}
 	}()
 
 	<-quit
-	baseLogger.Info().Msg("Closing signal received...")
+	log.Info().Msg("Closing signal received...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-
-	if err := server.Shutdown(ctx); err != nil {
-		log.Info().Msgf("The server could not be shut down: %v", err)
-	}
-	gracefulShutdown(ctx, server, db, Rdb, clientVault)
+	gracefulShutdown(app, db, Rdb, clientVault)
 	baseLogger.Info().Msg("Successful shutdown of the server.")
 }
 
-func gracefulShutdown(app *fiber.App, db *gorm.DB, redis *redis.Client, vaultClient *api.Client) {
-	baseLogger := logger.GetBaseLogger()
+func gracefulShutdown(app *fiber.App, db *gorm.DB, redis *redis.Client, vaultClient *api.Client) {baseLogger := logger.GetBaseLogger()
 
 	baseLogger.Info().Msg("Shutting down server...")
 
