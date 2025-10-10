@@ -47,6 +47,12 @@ func (h *LoginHandler) Login(c *fiber.Ctx) error {
 	}
 
 	user, err := h.userService.GetUserByEmail(ctx, authUser.Email)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to retrieve user information",
+		})
+	}
+
 	expirationTime := time.Now().Add(time.Hour * 24)
 	tokenString, err := h.jwtService.GenerateJWTToken(user.Email, user.Roles, expirationTime)
 	if err != nil {
