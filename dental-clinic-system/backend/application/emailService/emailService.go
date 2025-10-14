@@ -26,9 +26,6 @@ type Mailer interface {
 	SendMail(massage gomail.Message) error
 }
 
-type PasswordResetRepository interface {
-}
-
 type emailService struct {
 	userRepository  UserRepository
 	tokenRepository TokenRepository
