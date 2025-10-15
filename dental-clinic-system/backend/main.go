@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"dental-clinic-system/api/appointment"
 	"dental-clinic-system/api/clinic"
 	"dental-clinic-system/api/forgotPassword"
@@ -65,20 +64,17 @@ func main() {
 
 	configModel := config2.SetConfig("resources")
 
-	// Initialize base logger with request ID support
-	logger.InitBaseLogger(configModel.Log)
+	zerolog.SetGlobalLevel(configModel.Log.Level)
 
-	// Get base logger for startup logs
-	baseLogger := logger.GetBaseLogger()
 	clientVault, err := vault.ConnectVault(configModel.Vault)
 	if err != nil {
-		baseLogger.Fatal().Err(err).Msg("Error connecting to vault")
+		log.Fatal().Err(err).Msg("Error connecting to vault")
 		panic("Error connecting to vault")
 	}
 
-	err = config2.ReadConfigFromVault(clientVault, configModel, baseLogger)
+	err = config2.ReadConfigFromVault(clientVault, configModel)
 	if err != nil {
-		baseLogger.Fatal().Err(err).Msg("Error reading config from vault")
+		log.Fatal().Err(err).Msg("Error reading config from vault")
 		panic("Error reading config from vault")
 	}
 
@@ -126,7 +122,7 @@ func main() {
 	newProcedureHandler := procedure.NewProcedureController(newProcedureService, newUserService, newRoleService, newJwtService)
 	newRoleHandler := role.NewRoleController(newRoleService)
 	newUserHandler := user.NewUserController(newUserService, newRoleService, newJwtService)
-	newLoginHandler := login.NewLoginController(newLoginService, newJwtService)
+	newLoginHandler := login.NewLoginController(newLoginService, newJwtService, newUserService)
 	newSignUpClinicHandler := signUpClinic.NewSignUpClinicController(newSignUpClinicService)
 	newSignUpUserHandler := singUpUser.NewSignUpUserHandler(newSignUpUserService)
 	newLogoutHandler := logout.NewLogoutController(newTokenService)
@@ -187,50 +183,49 @@ func main() {
 	log.Info().Msg("Closing signal received...")
 
 	gracefulShutdown(app, db, Rdb, clientVault)
-	baseLogger.Info().Msg("Successful shutdown of the server.")
+	log.Info().Msg("Successful shutdown of the server.")
 }
 
-func gracefulShutdown(app *fiber.App, db *gorm.DB, redis *redis.Client, vaultClient *api.Client) {baseLogger := logger.GetBaseLogger()
-
-	baseLogger.Info().Msg("Shutting down server...")
+func gracefulShutdown(app *fiber.App, db *gorm.DB, redis *redis.Client, vaultClient *api.Client) {
+	log.Info().Msg("Shutting down server...")
 
 	if err := app.Shutdown(); err != nil {
-		baseLogger.Error().Err(err).Msg("Failed to gracefully shutdown server")
+		log.Error().Err(err).Msg("Failed to gracefully shutdown server")
 	} else {
-		baseLogger.Info().Msg("Server stopped gracefully.")
+		log.Info().Msg("Server stopped gracefully.")
 	}
 
 	// Close database connection
 	if db != nil {
-		baseLogger.Info().Msg("Closing database connection...")
+		log.Info().Msg("Closing database connection...")
 		sqlDB, err := db.DB()
 		if err != nil {
-			baseLogger.Error().Err(err).Msg("Failed to get sql.DB from gorm.DB")
+			log.Error().Err(err).Msg("Failed to get sql.DB from gorm.DB")
 		} else {
 			if err := sqlDB.Close(); err != nil {
-				baseLogger.Error().Err(err).Msg("Failed to close database connection")
+				log.Error().Err(err).Msg("Failed to close database connection")
 			} else {
-				baseLogger.Info().Msg("Database connection closed.")
+				log.Info().Msg("Database connection closed.")
 			}
 		}
 	}
 
 	// Close Redis connection
 	if redis != nil {
-		baseLogger.Info().Msg("Closing Redis connection...")
+		log.Info().Msg("Closing Redis connection...")
 		if err := redis.Close(); err != nil {
-			baseLogger.Error().Err(err).Msg("Failed to close Redis connection")
+			log.Error().Err(err).Msg("Failed to close Redis connection")
 		} else {
-			baseLogger.Info().Msg("Redis connection closed.")
+			log.Info().Msg("Redis connection closed.")
 		}
 	}
 
 	// Clear Vault client token
 	if vaultClient != nil {
-		baseLogger.Info().Msg("Clearing Vault client token...")
+		log.Info().Msg("Clearing Vault client token...")
 		vaultClient.ClearToken()
-		baseLogger.Info().Msg("Vault client token cleared.")
+		log.Info().Msg("Vault client token cleared.")
 	}
 
-	baseLogger.Info().Msg("Server shutdown complete.")
+	log.Info().Msg("Server shutdown complete.")
 }

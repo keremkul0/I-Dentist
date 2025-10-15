@@ -339,9 +339,10 @@ func (h *ClinicHandler) DeleteClinic(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// CheckClinicExist CheckClinicExistHandler checks if a clinic exists based on provided criteria
+// CheckClinicExistHandler checks if a clinic exists based on provided criteria
 func (h *ClinicHandler) CheckClinicExist(c *fiber.Ctx) error {
 	ctx := c.Context()
+
 	var cln clinic.Clinic
 	if err := c.BodyParser(&cln); err != nil {
 		log.Warn().

@@ -68,6 +68,9 @@ func (auth *AuthMiddleware) Authenticate() fiber.Handler {
 			})
 		}
 
+		// Claims'i context'e ekle - RBAC middleware için gerekli
+		c.Locals("user", claims)
+
 		return c.Next()
 	}
 }

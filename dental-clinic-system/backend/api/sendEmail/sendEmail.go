@@ -2,6 +2,7 @@ package sendEmail
 
 import (
 	"dental-clinic-system/models/claims"
+	"dental-clinic-system/models/user"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -12,7 +13,7 @@ type EmailService interface {
 }
 
 type JwtService interface {
-	GenerateJWTToken(email string, time time.Time) (string, error)
+	GenerateJWTToken(email string, roles []*user.Role, time time.Time) (string, error)
 	ParseTokenFromCookie(c *fiber.Ctx) (*claims.Claims, error)
 }
 
@@ -33,7 +34,7 @@ func (h *SendEmailHandler) SendVerificationEmail(c *fiber.Ctx) error {
 		})
 	}
 
-	token, err := h.jwtService.GenerateJWTToken(claims.Email, time.Now().Add(time.Minute*5))
+	token, err := h.jwtService.GenerateJWTToken(claims.Email, claims.Roles, time.Now().Add(time.Minute*5))
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": err.Error(),

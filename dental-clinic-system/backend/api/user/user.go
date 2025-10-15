@@ -146,7 +146,6 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 		default:
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 		}
-		return
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(createdUser)

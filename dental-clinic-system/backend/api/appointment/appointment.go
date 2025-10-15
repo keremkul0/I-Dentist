@@ -6,8 +6,6 @@ import (
 	"dental-clinic-system/models/claims"
 	"dental-clinic-system/models/patient"
 	"dental-clinic-system/models/user"
-	"encoding/json"
-	"net/http"
 	"strconv"
 	"sync"
 
@@ -103,7 +101,6 @@ func (h *AppointmentHandler) GetAppointment(c *fiber.Ctx) error {
 	}
 
 	claims, err := h.jwtService.ParseTokenFromCookie(c)
-	parsedToken, err := h.jwtService.ParseTokenFromCookie(r)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -149,7 +146,7 @@ func (h *AppointmentHandler) CreateAppointment(c *fiber.Ctx) error {
 		})
 	}
 
-	parsedToken, err := h.jwtService.ParseTokenFromCookie(c)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -157,7 +154,7 @@ func (h *AppointmentHandler) CreateAppointment(c *fiber.Ctx) error {
 		})
 	}
 
-	authenticatedUser, err := h.userService.GetUserByEmail(ctx, parsedToken.Email)
+	authenticatedUser, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		log.Error().Err(err).Msg("User not found")
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -190,7 +187,7 @@ func (h *AppointmentHandler) UpdateAppointment(c *fiber.Ctx) error {
 		})
 	}
 
-	parsedToken, err := h.jwtService.ParseTokenFromCookie(c)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -207,7 +204,7 @@ func (h *AppointmentHandler) UpdateAppointment(c *fiber.Ctx) error {
 
 	go func() {
 		defer wg.Done()
-		authenticatedUser, userErr = h.userService.GetUserByEmail(ctx, parsedToken.Email)
+		authenticatedUser, userErr = h.userService.GetUserByEmail(ctx, claims.Email)
 	}()
 
 	go func() {
@@ -264,7 +261,7 @@ func (h *AppointmentHandler) DeleteAppointment(c *fiber.Ctx) error {
 		})
 	}
 
-	parsedToken, err := h.jwtService.ParseTokenFromCookie(c)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -281,7 +278,7 @@ func (h *AppointmentHandler) DeleteAppointment(c *fiber.Ctx) error {
 
 	go func() {
 		defer wg.Done()
-		authenticatedUser, userErr = h.userService.GetUserByEmail(ctx, parsedToken.Email)
+		authenticatedUser, userErr = h.userService.GetUserByEmail(ctx, claims.Email)
 	}()
 
 	go func() {
@@ -336,7 +333,7 @@ func (h *AppointmentHandler) GetDoctorAppointments(c *fiber.Ctx) error {
 		})
 	}
 
-	parsedToken, err := h.jwtService.ParseTokenFromCookie(c)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -353,7 +350,7 @@ func (h *AppointmentHandler) GetDoctorAppointments(c *fiber.Ctx) error {
 
 	go func() {
 		defer wg.Done()
-		authenticatedUser, userErr = h.userService.GetUserByEmail(ctx, parsedToken.Email)
+		authenticatedUser, userErr = h.userService.GetUserByEmail(ctx, claims.Email)
 	}()
 
 	go func() {
@@ -408,7 +405,7 @@ func (h *AppointmentHandler) GetPatientAppointments(c *fiber.Ctx) error {
 		})
 	}
 
-	parsedToken, err := h.jwtService.ParseTokenFromCookie(c)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -425,7 +422,7 @@ func (h *AppointmentHandler) GetPatientAppointments(c *fiber.Ctx) error {
 
 	go func() {
 		defer wg.Done()
-		authenticatedUser, userErr = h.userService.GetUserByEmail(ctx, parsedToken.Email)
+		authenticatedUser, userErr = h.userService.GetUserByEmail(ctx, claims.Email)
 	}()
 
 	go func() {
