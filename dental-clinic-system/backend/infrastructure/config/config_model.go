@@ -16,6 +16,7 @@ type ConfigModel struct {
 	Redis    RedisConfig    `yaml:"redis" validate:"required"`
 	Log      LogConfig      `yaml:"log" validate:"required"`
 	JWT      JWTConfig      `validate:"required"`
+	Tracing  TracingConfig  `yaml:"tracing" validate:"required"`
 }
 
 type ServerConfig struct {
@@ -53,6 +54,14 @@ type RedisConfig struct {
 
 type JWTConfig struct {
 	SecretKey string `validate:"required"`
+}
+
+type TracingConfig struct {
+	Enabled        bool   `yaml:"enabled"`
+	ServiceName    string `yaml:"serviceName" validate:"required_if=Enabled true"`
+	ServiceVersion string `yaml:"serviceVersion"`
+	Environment    string `yaml:"environment"`
+	OTLPEndpoint   string `yaml:"otlpEndpoint"`
 }
 
 // ValidateConfig validates the configuration using the validator

@@ -31,6 +31,7 @@ import (
 	"dental-clinic-system/background-jobs"
 	config2 "dental-clinic-system/infrastructure/config"
 	"dental-clinic-system/infrastructure/mailDialer"
+	"dental-clinic-system/infrastructure/observability"
 	"dental-clinic-system/infrastructure/postgres"
 	redis2 "dental-clinic-system/infrastructure/redis"
 	"dental-clinic-system/infrastructure/repository/appointmentRepository"
@@ -45,12 +46,15 @@ import (
 	"dental-clinic-system/infrastructure/repository/userRepository"
 	"dental-clinic-system/middleware/authMiddleware"
 	"dental-clinic-system/middleware/contextTimeoutMiddleware"
+	"dental-clinic-system/middleware/tracingMiddleware"
 	"dental-clinic-system/vault"
 	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"context"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gofiber/fiber/v2"
@@ -76,6 +80,20 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error reading config from vault")
 		panic("Error reading config from vault")
+	}
+
+	// Initialize OpenTelemetry Tracing
+	ctx := context.Background()
+	shutdownTracer, err := observability.InitTracer(ctx, observability.TracingConfig{
+		ServiceName:    configModel.Tracing.ServiceName,
+		ServiceVersion: configModel.Tracing.ServiceVersion,
+		Environment:    configModel.Tracing.Environment,
+		Enabled:        configModel.Tracing.Enabled,
+		OTLPEndpoint:   configModel.Tracing.OTLPEndpoint,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize tracer")
+		panic("Failed to initialize tracer")
 	}
 
 	db := postgres.ConnectDatabase(configModel.Database)
@@ -138,6 +156,11 @@ func main() {
 		IdleTimeout:  120 * time.Second,
 	})
 
+	// OpenTelemetry tracing middleware
+	if configModel.Tracing.Enabled {
+		app.Use(tracingMiddleware.Middleware(configModel.Tracing.ServiceName))
+	}
+
 	//Middlewares
 	newAuthMiddleware := authMiddleware.NewAuthMiddleware(newTokenService, newJwtService)
 
@@ -182,11 +205,11 @@ func main() {
 	<-quit
 	log.Info().Msg("Closing signal received...")
 
-	gracefulShutdown(app, db, Rdb, clientVault)
+	gracefulShutdown(app, db, Rdb, clientVault, shutdownTracer, ctx)
 	log.Info().Msg("Successful shutdown of the server.")
 }
 
-func gracefulShutdown(app *fiber.App, db *gorm.DB, redis *redis.Client, vaultClient *api.Client) {
+func gracefulShutdown(app *fiber.App, db *gorm.DB, redis *redis.Client, vaultClient *api.Client, tracerShutdown observability.TracerShutdown, ctx context.Context) {
 	log.Info().Msg("Shutting down server...")
 
 	if err := app.Shutdown(); err != nil {
@@ -225,6 +248,16 @@ func gracefulShutdown(app *fiber.App, db *gorm.DB, redis *redis.Client, vaultCli
 		log.Info().Msg("Clearing Vault client token...")
 		vaultClient.ClearToken()
 		log.Info().Msg("Vault client token cleared.")
+	}
+
+	// Shutdown OpenTelemetry tracer
+	if tracerShutdown != nil {
+		log.Info().Msg("Shutting down tracer...")
+		if err := tracerShutdown(ctx); err != nil {
+			log.Error().Err(err).Msg("Failed to shutdown tracer")
+		} else {
+			log.Info().Msg("Tracer shutdown complete.")
+		}
 	}
 
 	log.Info().Msg("Server shutdown complete.")
