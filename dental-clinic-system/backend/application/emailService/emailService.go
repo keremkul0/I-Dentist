@@ -42,7 +42,7 @@ func NewEmailService(userRepository UserRepository, tokenRepository TokenReposit
 
 func (s *emailService) SendVerificationEmail(email, token string) error {
 	return s.sendTemplateEmail(email, "E-posta Doğrulama",
-		"../Email_HTMLs/verification_email_html.html", map[string]string{
+		"../templates/verification_email.html", map[string]string{
 			"VERIFY_LINK": "http://localhost:8080/verify-email?token=" + token,
 		},
 	)
@@ -52,7 +52,7 @@ func (s *emailService) SendPasswordResetEmail(email, token string) error {
 	return s.sendTemplateEmail(
 		email,
 		"Şifre Sıfırlama",
-		"../Email_HTMLs/password_reset_email.html",
+		"../templates/password_reset_email.html",
 		map[string]string{
 			"RESET_LINK": "http://localhost:8080/reset-password?token=" + token,
 		},
