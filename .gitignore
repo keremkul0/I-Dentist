@@ -20,7 +20,12 @@
 # Go workspace file
 go.work
 
-# Environment file
+# Environment files
+.env
+.env.*
+*.env
+
+
 qodana.yaml
 dental-clinic-system/vault-config/
 dental-clinic-system/vault-data/
