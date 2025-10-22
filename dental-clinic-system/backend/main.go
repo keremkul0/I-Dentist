@@ -30,7 +30,7 @@ import (
 	"dental-clinic-system/application/userService"
 	"dental-clinic-system/background-jobs"
 	config2 "dental-clinic-system/infrastructure/config"
-	"dental-clinic-system/infrastructure/mailDialer"
+	"dental-clinic-system/infrastructure/kafka"
 	"dental-clinic-system/infrastructure/postgres"
 	redis2 "dental-clinic-system/infrastructure/redis"
 	"dental-clinic-system/infrastructure/repository/appointmentRepository"
@@ -80,7 +80,9 @@ func main() {
 
 	db := postgres.ConnectDatabase(configModel.Database)
 	Rdb := redis2.ConnectRedis(configModel.Redis)
-	mailDialerInstance := mailDialer.SetupMailDialer(configModel.Email)
+
+	// Initialize Kafka Producer
+	kafkaProducer := kafka.NewEmailProducer(&configModel.Kafka)
 
 	postgres.MigrateDatabase(db)
 
@@ -111,7 +113,7 @@ func main() {
 	newSignUpClinicService := signUpClinicService.NewSignUpClinicService(newClinicRepository, newUserRepository, newRedisRepository)
 	newTokenService := tokenService.NewTokenService(newTokenRepository)
 	newSignUpUserService := signUpUserService.NewSignUpUserService(newUserRepository, newRedisRepository, newUserService)
-	newEmailService := emailService.NewEmailService(newUserRepository, newTokenRepository, mailDialerInstance)
+	newEmailService := emailService.NewEmailService(newUserRepository, newTokenRepository, kafkaProducer)
 	newJwtService := jwtService.NewJwtService(configModel.JWT.SecretKey)
 	newPasswordResetService := passwordResetService.NewPasswordResetService(newEmailService, newPasswordResetTokenRepository, newUserRepository)
 
@@ -182,12 +184,19 @@ func main() {
 	<-quit
 	log.Info().Msg("Closing signal received...")
 
-	gracefulShutdown(app, db, Rdb, clientVault)
+	gracefulShutdown(app, db, Rdb, clientVault, kafkaProducer)
 	log.Info().Msg("Successful shutdown of the server.")
 }
 
-func gracefulShutdown(app *fiber.App, db *gorm.DB, redis *redis.Client, vaultClient *api.Client) {
+func gracefulShutdown(app *fiber.App, db *gorm.DB, redis *redis.Client, vaultClient *api.Client, kafkaProducer kafka.EmailProducer) {
 	log.Info().Msg("Shutting down server...")
+
+	// Close Kafka producer first
+	if err := kafkaProducer.Close(); err != nil {
+		log.Error().Err(err).Msg("Failed to close Kafka producer")
+	} else {
+		log.Info().Msg("Kafka producer closed successfully.")
+	}
 
 	if err := app.Shutdown(); err != nil {
 		log.Error().Err(err).Msg("Failed to gracefully shutdown server")
