@@ -1,16 +1,17 @@
 package emailService
 
 import (
-	"bytes"
 	"context"
 	"dental-clinic-system/models/user"
-	"html/template"
 	"time"
 
 	"github.com/rs/zerolog/log"
-
-	"gopkg.in/gomail.v2"
 )
+
+type EmailProducer interface {
+	SendVerificationEmail(email string, token string) error
+	SendPasswordResetEmail(email string, token string) error
+}
 
 type UserRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (user.User, error)
@@ -22,41 +23,28 @@ type TokenRepository interface {
 	AddTokenToBlacklist(ctx context.Context, token string, expireTime time.Time) error
 }
 
-type Mailer interface {
-	SendMail(massage gomail.Message) error
-}
-
 type emailService struct {
 	userRepository  UserRepository
 	tokenRepository TokenRepository
-	mailer          Mailer
+	emailProducer   EmailProducer
 }
 
-func NewEmailService(userRepository UserRepository, tokenRepository TokenRepository, mailer Mailer) *emailService {
+func NewEmailService(userRepository UserRepository, tokenRepository TokenRepository, emailProducer EmailProducer) *emailService {
 	return &emailService{
 		userRepository:  userRepository,
 		tokenRepository: tokenRepository,
-		mailer:          mailer,
+		emailProducer:   emailProducer,
 	}
 }
 
 func (s *emailService) SendVerificationEmail(email, token string) error {
-	return s.sendTemplateEmail(email, "E-posta Doğrulama",
-		"../templates/verification_email.html", map[string]string{
-			"VERIFY_LINK": "http://localhost:8080/verify-email?token=" + token,
-		},
-	)
+	log.Info().Str("email", email).Msg("Sending verification email to Kafka")
+	return s.emailProducer.SendVerificationEmail(email, token)
 }
 
 func (s *emailService) SendPasswordResetEmail(email, token string) error {
-	return s.sendTemplateEmail(
-		email,
-		"Şifre Sıfırlama",
-		"../templates/password_reset_email.html",
-		map[string]string{
-			"RESET_LINK": "http://localhost:8080/reset-password?token=" + token,
-		},
-	)
+	log.Info().Str("email", email).Msg("Sending password reset email to Kafka")
+	return s.emailProducer.SendPasswordResetEmail(email, token)
 }
 
 func (s *emailService) VerifyUserEmail(ctx context.Context, token string, email string) bool {
@@ -80,29 +68,4 @@ func (s *emailService) VerifyUserEmail(ctx context.Context, token string, email 
 		return false
 	}
 	return true
-}
-
-func (s *emailService) sendTemplateEmail(to, subject, templateFile string, data map[string]string) error {
-	tmpl, err := template.ParseFiles(templateFile)
-	if err != nil {
-		log.Error().Str("operation", "SendTemplateEmail").
-			Err(err).
-			Msg("Template file processing error")
-		return err
-	}
-
-	var body bytes.Buffer
-	err = tmpl.Execute(&body, data)
-	if err != nil {
-		log.Error().Str("operation", "SendTemplateEmail").Err(err).Msg("Template proccessing error")
-		return err
-	}
-
-	m := gomail.NewMessage()
-	m.SetHeader("From", "noreply@i-dentist.com")
-	m.SetHeader("To", to)
-	m.SetHeader("Subject", subject)
-	m.SetBody("text/html", body.String())
-
-	return s.mailer.SendMail(*m)
 }
