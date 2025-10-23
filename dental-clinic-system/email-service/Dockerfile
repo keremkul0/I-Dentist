@@ -1,6 +1,7 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
+# Set working directory
 WORKDIR /app
 
 # Copy go mod files
@@ -13,7 +14,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main cmd/server/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/server
 
 # Final stage
 FROM alpine:latest
@@ -21,13 +22,17 @@ FROM alpine:latest
 # Install ca-certificates for HTTPS requests
 RUN apk --no-cache add ca-certificates
 
+# Set working directory
 WORKDIR /root/
 
 # Copy the binary from builder stage
 COPY --from=builder /app/main .
 
-# Expose port
-EXPOSE 8080
+# Copy templates directory
+COPY --from=builder /app/templates ./templates
 
-# Run the binary
+# Expose port (not needed for this service but good practice)
+# EXPOSE 8080
+
+# Command to run
 CMD ["./main"]
