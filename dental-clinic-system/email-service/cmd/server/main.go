@@ -28,14 +28,16 @@ func main() {
 
 	// Kafka consumer oluştur
 	brokers := strings.Split(os.Getenv("KAFKA_BROKERS"), ",")
-	topic := os.Getenv("KAFKA_TOPIC")
+	topicsStr := os.Getenv("KAFKA_TOPICS")  // KAFKA_TOPIC yerine KAFKA_TOPICS
+	topics := strings.Split(topicsStr, ",") // String'i slice'a çevir
 	groupID := os.Getenv("KAFKA_GROUP_ID")
 
-	if len(brokers) == 0 || topic == "" || groupID == "" {
-		log.Fatal("Kafka configuration missing. Please set KAFKA_BROKERS, KAFKA_TOPIC, and KAFKA_GROUP_ID")
+	if len(brokers) == 0 || len(topics) == 0 || topics[0] == "" || groupID == "" {
+		log.Fatal("Kafka configuration missing. Please set KAFKA_BROKERS, KAFKA_TOPICS, and KAFKA_GROUP_ID")
 	}
 
-	kafkaConsumer := consumer.NewKafkaConsumer(brokers, topic, groupID, emailService)
+	// Artık topics slice olarak geçiliyor
+	kafkaConsumer := consumer.NewKafkaConsumer(brokers, topics, groupID, emailService)
 
 	// Context oluştur
 	ctx, cancel := context.WithCancel(context.Background())
@@ -49,7 +51,7 @@ func main() {
 	go kafkaConsumer.Start(ctx)
 
 	log.Println("Email service started successfully")
-	log.Printf("Listening to Kafka topic: %s", topic)
+	log.Printf("Listening to Kafka topics: %v", topics)
 	log.Printf("Kafka brokers: %v", brokers)
 
 	// Shutdown signal'ını bekle
