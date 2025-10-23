@@ -21,17 +21,30 @@ func TimeoutMiddleware(timeoutValue int) fiber.Handler {
 
 		// Channel to handle when the handler completes
 		done := make(chan error, 1)
+		var handlerErr error
 
 		// Run the handler in a goroutine
 		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					// Handle panic in goroutine
+					done <- fiber.NewError(fiber.StatusInternalServerError, "Internal server error")
+				}
+			}()
 			done <- c.Next()
 		}()
 
 		// Wait for handler to complete or timeout
 		select {
-		case err := <-done:
+		case handlerErr = <-done:
 			// Handler completed
-			return err
+			if ctx.Err() != nil {
+				// Context was cancelled, return timeout
+				return c.Status(fiber.StatusGatewayTimeout).JSON(fiber.Map{
+					"error": "Request timed out",
+				})
+			}
+			return handlerErr
 		case <-ctx.Done():
 			// Context timeout triggered
 			return c.Status(fiber.StatusGatewayTimeout).JSON(fiber.Map{
