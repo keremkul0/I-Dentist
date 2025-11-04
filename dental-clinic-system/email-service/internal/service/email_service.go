@@ -20,6 +20,11 @@ type Mailer interface {
 	SendMail(message gomail.Message) error
 }
 
+// EmailServiceInterface defines the contract for email service
+type EmailServiceInterface interface {
+	SendEmail(msg EmailMessage) error
+}
+
 type EmailService struct {
 	mailer Mailer
 }

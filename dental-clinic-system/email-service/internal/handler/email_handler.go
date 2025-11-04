@@ -7,10 +7,10 @@ import (
 )
 
 type EmailHandler struct {
-	emailService *service.EmailService
+	emailService service.EmailServiceInterface
 }
 
-func NewEmailHandler(emailService *service.EmailService) *EmailHandler {
+func NewEmailHandler(emailService service.EmailServiceInterface) *EmailHandler {
 	return &EmailHandler{emailService: emailService}
 }
 
