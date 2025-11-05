@@ -1,13 +1,14 @@
 package main
 
 import (
-	"context"
 	"dental-clinic-system/api/appointment"
 	"dental-clinic-system/api/clinic"
+	"dental-clinic-system/api/forgotPassword"
 	"dental-clinic-system/api/login"
 	"dental-clinic-system/api/logout"
 	"dental-clinic-system/api/patient"
 	"dental-clinic-system/api/procedure"
+	"dental-clinic-system/api/resetPassword"
 	"dental-clinic-system/api/role"
 	"dental-clinic-system/api/sendEmail"
 	"dental-clinic-system/api/signUpClinic"
@@ -19,6 +20,7 @@ import (
 	"dental-clinic-system/application/emailService"
 	"dental-clinic-system/application/jwtService"
 	"dental-clinic-system/application/loginService"
+	"dental-clinic-system/application/passwordResetService"
 	"dental-clinic-system/application/patientService"
 	"dental-clinic-system/application/procedureService"
 	"dental-clinic-system/application/roleService"
@@ -28,12 +30,13 @@ import (
 	"dental-clinic-system/application/userService"
 	"dental-clinic-system/background-jobs"
 	config2 "dental-clinic-system/infrastructure/config"
-	"dental-clinic-system/infrastructure/mailDialer"
+	"dental-clinic-system/infrastructure/kafka"
 	"dental-clinic-system/infrastructure/postgres"
 	redis2 "dental-clinic-system/infrastructure/redis"
 	"dental-clinic-system/infrastructure/repository/appointmentRepository"
 	"dental-clinic-system/infrastructure/repository/clinicRepository"
 	"dental-clinic-system/infrastructure/repository/loginRepository"
+	"dental-clinic-system/infrastructure/repository/passwordResetTokenRepository"
 	"dental-clinic-system/infrastructure/repository/patientRepository"
 	"dental-clinic-system/infrastructure/repository/procedureRepository"
 	"dental-clinic-system/infrastructure/repository/redisRepository"
@@ -43,16 +46,14 @@ import (
 	"dental-clinic-system/middleware/authMiddleware"
 	"dental-clinic-system/middleware/contextTimeoutMiddleware"
 	"dental-clinic-system/vault"
-	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 	"github.com/hashicorp/vault/api"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -79,7 +80,9 @@ func main() {
 
 	db := postgres.ConnectDatabase(configModel.Database)
 	Rdb := redis2.ConnectRedis(configModel.Redis)
-	mailDialer := mailDialer.SetupMailDialer(configModel.Email)
+
+	// Initialize Kafka Producer
+	kafkaProducer := kafka.NewEmailProducer(&configModel.Kafka)
 
 	postgres.MigrateDatabase(db)
 
@@ -94,6 +97,7 @@ func main() {
 	newUserRepository := userRepository.NewRepository(db)
 	newLoginRepository := loginRepository.NewRepository(db)
 	newTokenRepository := tokenRepository.NewRepository(db)
+	newPasswordResetTokenRepository := passwordResetTokenRepository.NewRepository(db)
 
 	//Redis Repository
 	newRedisRepository := redisRepository.NewRepository(Rdb)
@@ -109,8 +113,9 @@ func main() {
 	newSignUpClinicService := signUpClinicService.NewSignUpClinicService(newClinicRepository, newUserRepository, newRedisRepository)
 	newTokenService := tokenService.NewTokenService(newTokenRepository)
 	newSignUpUserService := signUpUserService.NewSignUpUserService(newUserRepository, newRedisRepository, newUserService)
-	newEmailService := emailService.NewEmailService(newUserRepository, newTokenRepository, mailDialer)
+	newEmailService := emailService.NewEmailService(newUserRepository, newTokenRepository, kafkaProducer)
 	newJwtService := jwtService.NewJwtService(configModel.JWT.SecretKey)
+	newPasswordResetService := passwordResetService.NewPasswordResetService(newEmailService, newPasswordResetTokenRepository, newUserRepository)
 
 	//Handlers
 	newClinicHandler := clinic.NewClinicHandlerController(newClinicService, newUserService, newRoleService, newJwtService)
@@ -119,57 +124,59 @@ func main() {
 	newProcedureHandler := procedure.NewProcedureController(newProcedureService, newUserService, newRoleService, newJwtService)
 	newRoleHandler := role.NewRoleController(newRoleService)
 	newUserHandler := user.NewUserController(newUserService, newRoleService, newJwtService)
-	newLoginHandler := login.NewLoginController(newLoginService, newJwtService)
+	newLoginHandler := login.NewLoginController(newLoginService, newJwtService, newUserService)
 	newSignUpClinicHandler := signUpClinic.NewSignUpClinicController(newSignUpClinicService)
 	newSignUpUserHandler := singUpUser.NewSignUpUserHandler(newSignUpUserService)
 	newLogoutHandler := logout.NewLogoutController(newTokenService)
 	newVerifyEmailHandler := verifyEmail.NewVerifyEmailController(newEmailService, newJwtService)
 	newSendEmailHandler := sendEmail.NewSendEmailController(newEmailService, newJwtService)
+	newForgotPasswordHandler := forgotPassword.NewForgotPasswordController(newPasswordResetService)
+	newResetPasswordHandler := resetPassword.NewResetPasswordController(newPasswordResetService)
 
-	//Create a new router
-	router := mux.NewRouter()
-
-	//Create subRouters
-	securedRouter := router.PathPrefix("/api").Subrouter()
+	//Create a new Fiber app
+	app := fiber.New(fiber.Config{
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	})
 
 	//Middlewares
 	newAuthMiddleware := authMiddleware.NewAuthMiddleware(newTokenService, newJwtService)
 
-	//Middleware injection
-	router.Use(contextTimeoutMiddleware.TimeoutMiddleware(5))
-	securedRouter.Use(newAuthMiddleware.Authenticate)
+	//Global middlewares
+	app.Use(contextTimeoutMiddleware.TimeoutMiddleware(5))
 
-	// Register Routes
-	login.RegisterAuthRoutes(router, newLoginHandler)
-	signUpClinic.RegisterSignupClinicRoutes(router, newSignUpClinicHandler)
-	singUpUser.RegisterSignupUserRoutes(router, newSignUpUserHandler)
-	verifyEmail.RegisterVerifyEmailRoutes(router, newVerifyEmailHandler)
+	// Public routes (no authentication required)
+	login.RegisterAuthRoutes(app, newLoginHandler)
+	signUpClinic.RegisterSignupClinicRoutes(app, newSignUpClinicHandler)
+	singUpUser.RegisterSignupUserRoutes(app, newSignUpUserHandler)
+	verifyEmail.RegisterVerifyEmailRoutes(app, newVerifyEmailHandler)
+	forgotPassword.RegisterForgotPasswordRoutes(app, newForgotPasswordHandler)
+	resetPassword.RegisterResetPasswordRoutes(app, newResetPasswordHandler)
+
+	// Create API group with authentication middleware
+	api := app.Group("/api", newAuthMiddleware.Authenticate())
 
 	// Register Secured Routes
-	clinic.RegisterClinicRoutes(securedRouter, newClinicHandler)
-	appointment.RegisterAppointmentRoutes(securedRouter, newAppointmentHandler)
-	patient.RegisterPatientsRoutes(securedRouter, newPatientHandler)
-	procedure.RegisterProcedureRoutes(securedRouter, newProcedureHandler)
-	role.RegisterRoleRoutes(securedRouter, newRoleHandler)
-	user.RegisterUserRoutes(securedRouter, newUserHandler)
-	logout.RegisterLogoutRoutes(securedRouter, newLogoutHandler)
-	sendEmail.RegisterSendEmailRoutes(securedRouter, newSendEmailHandler)
+	clinic.RegisterClinicRoutes(api, newClinicHandler)
+	appointment.RegisterAppointmentRoutes(api, newAppointmentHandler)
+	patient.RegisterPatientsRoutes(api, newPatientHandler)
+	procedure.RegisterProcedureRoutes(api, newProcedureHandler)
+	role.RegisterRoleRoutes(api, newRoleHandler)
+	user.RegisterUserRoutes(api, newUserHandler)
+	logout.RegisterLogoutRoutes(api, newLogoutHandler)
+	sendEmail.RegisterSendEmailRoutes(api, newSendEmailHandler)
 
 	//background services
 	background_jobs.StartCleanExpiredJwtTokens(newTokenService)
-
-	// HTTP Server
-	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", configModel.Server.Port),
-		Handler: router,
-	}
+	background_jobs.StartCleanExpiredPasswordResetTokens(newPasswordResetTokenRepository)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
 		log.Info().Msg(fmt.Sprintf("Server started on port %d", configModel.Server.Port))
-		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		if err := app.Listen(fmt.Sprintf(":%d", configModel.Server.Port)); err != nil {
 			log.Fatal().Err(err).Msg("Server failed to start")
 		}
 	}()
@@ -177,22 +184,21 @@ func main() {
 	<-quit
 	log.Info().Msg("Closing signal received...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-
-	if err := server.Shutdown(ctx); err != nil {
-		log.Info().Msgf("The server could not be shut down: %v", err)
-	}
-	gracefulShutdown(ctx, server, db, Rdb, clientVault)
+	gracefulShutdown(app, db, Rdb, clientVault, kafkaProducer)
 	log.Info().Msg("Successful shutdown of the server.")
-
 }
 
-func gracefulShutdown(ctx context.Context, server *http.Server, db *gorm.DB, redis *redis.Client, vaultClient *api.Client) {
-
+func gracefulShutdown(app *fiber.App, db *gorm.DB, redis *redis.Client, vaultClient *api.Client, kafkaProducer kafka.EmailProducer) {
 	log.Info().Msg("Shutting down server...")
 
-	if err := server.Shutdown(ctx); err != nil {
+	// Close Kafka producer first
+	if err := kafkaProducer.Close(); err != nil {
+		log.Error().Err(err).Msg("Failed to close Kafka producer")
+	} else {
+		log.Info().Msg("Kafka producer closed successfully.")
+	}
+
+	if err := app.Shutdown(); err != nil {
 		log.Error().Err(err).Msg("Failed to gracefully shutdown server")
 	} else {
 		log.Info().Msg("Server stopped gracefully.")

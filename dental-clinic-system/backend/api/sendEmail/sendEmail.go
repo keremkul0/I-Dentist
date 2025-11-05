@@ -1,19 +1,20 @@
 package sendEmail
 
 import (
-	"context"
 	"dental-clinic-system/models/claims"
-	"net/http"
+	"dental-clinic-system/models/user"
 	"time"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type EmailService interface {
-	SendVerificationEmail(ctx context.Context, email string, token string) error
+	SendVerificationEmail(email string, token string) error
 }
 
 type JwtService interface {
-	GenerateJWTToken(email string, time time.Time) (string, error)
-	ParseTokenFromCookie(r *http.Request) (*claims.Claims, error)
+	GenerateJWTToken(email string, roles []*user.Role, time time.Time) (string, error)
+	ParseTokenFromCookie(c *fiber.Ctx) (*claims.Claims, error)
 }
 
 type SendEmailHandler struct {
@@ -25,25 +26,29 @@ func NewSendEmailController(service EmailService, jwtService JwtService) *SendEm
 	return &SendEmailHandler{EmailService: service, jwtService: jwtService}
 }
 
-func (h *SendEmailHandler) SendVerificationEmail(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+func (h *SendEmailHandler) SendVerificationEmail(c *fiber.Ctx) error {
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
-	token, err := h.jwtService.GenerateJWTToken(claims.Email, time.Now().Add(time.Minute*5))
+	token, err := h.jwtService.GenerateJWTToken(claims.Email, claims.Roles, time.Now().Add(time.Minute*5))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
-	err = h.EmailService.SendVerificationEmail(ctx, claims.Email, token)
+	err = h.EmailService.SendVerificationEmail(claims.Email, token)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
-	w.WriteHeader(http.StatusOK)
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Verification email sent successfully",
+	})
 }

@@ -1,10 +1,9 @@
 package signUpClinic
 
 import (
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 )
 
-func RegisterSignupClinicRoutes(router *mux.Router, handler *SignUpClinicController) {
-
-	router.HandleFunc("/singup-clinic", handler.SignUpClinic).Methods("Post")
+func RegisterSignupClinicRoutes(router fiber.Router, handler *SignUpClinicController) {
+	router.Post("/singup-clinic", handler.SignUpClinic)
 }

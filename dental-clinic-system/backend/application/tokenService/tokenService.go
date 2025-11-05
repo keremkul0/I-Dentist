@@ -28,12 +28,6 @@ func (s *tokenService) DeleteExpiredTokens(ctx context.Context) {
 func (s *tokenService) AddTokenToBlacklist(ctx context.Context, token string, expireTime time.Time) error {
 	return s.tokenRepository.AddTokenToBlacklist(ctx, token, expireTime)
 }
-
 func (s *tokenService) IsTokenBlacklisted(ctx context.Context, token string) bool {
 	return s.tokenRepository.IsTokenBlacklisted(ctx, token)
 }
-
-/*func (s *tokenService) GetJwtKey() []byte {
-	return s.jwtSecret
-}
-*/

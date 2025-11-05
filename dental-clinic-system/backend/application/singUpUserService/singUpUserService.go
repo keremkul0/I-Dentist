@@ -37,7 +37,7 @@ func NewSignUpUserService(userRepository UserRepository, redisRepository RedisRe
 func (s *signUpUserService) SignUpUser(ctx context.Context, user user.User) (string, error) {
 	err := validations.UserValidation(&user)
 	if err != nil {
-		return "", errors.New("User validation errors")
+		return "", errors.New("user validation errors")
 	}
 
 	user.Password = s.userService.HashPassword(user.Password)
@@ -45,15 +45,15 @@ func (s *signUpUserService) SignUpUser(ctx context.Context, user user.User) (str
 
 	exists, err := s.userRepository.CheckUserExist(ctx, userGetModel)
 	if err != nil {
-		return "", errors.New("Error checking user existence")
+		return "", errors.New("error checking user existence")
 	}
 	if exists {
-		return "", errors.New("User already exist")
+		return "", errors.New("user already exist")
 	}
 
 	userID, err := s.redisRepository.SetData(ctx, user)
 	if err != nil {
-		return "", errors.New("Cache user service errors")
+		return "", errors.New("cache user service errors")
 	}
 
 	return userID, nil

@@ -5,12 +5,11 @@ import (
 	"dental-clinic-system/models/claims"
 	"dental-clinic-system/models/patient"
 	"dental-clinic-system/models/user"
-	"encoding/json"
-	"net/http"
+
 	"strconv"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 )
 
 type UserService interface {
@@ -26,7 +25,7 @@ type PatientService interface {
 }
 
 type JwtService interface {
-	ParseTokenFromCookie(r *http.Request) (*claims.Claims, error)
+	ParseTokenFromCookie(c *fiber.Ctx) (*claims.Claims, error)
 }
 
 type PatientHandler struct {
@@ -39,184 +38,199 @@ func NewPatientController(patientService PatientService, userService UserService
 	return &PatientHandler{patientService: patientService, userService: userService, jwtService: jwtService}
 }
 
-func (h *PatientHandler) GetPatients(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+func (h *PatientHandler) GetPatients(c *fiber.Ctx) error {
+	ctx := c.Context()
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
 	patients, err := h.patientService.GetPatients(ctx, user.ClinicID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
-	err = json.NewEncoder(w).Encode(patients)
-	if err != nil {
-		return
-	}
+	return c.Status(fiber.StatusOK).JSON(patients)
 }
 
-func (h *PatientHandler) GetPatient(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+func (h *PatientHandler) GetPatient(c *fiber.Ctx) error {
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancelFunc()
-	params := mux.Vars(r)
-	idStr := params["id"]
+
+	idStr := c.Params("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid patient ID", http.StatusBadRequest)
-		return
-	}
-	patient, err := h.patientService.GetPatient(ctx, uint(id))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Invalid patient ID",
+		})
 	}
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	patient, err := h.patientService.GetPatient(ctx, uint(id))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
 	if patient.ClinicID != user.ClinicID {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized",
+		})
 	}
 
-	err = json.NewEncoder(w).Encode(patient)
-	if err != nil {
-		return
-	}
+	return c.Status(fiber.StatusOK).JSON(patient)
 }
 
-func (h *PatientHandler) CreatePatient(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+func (h *PatientHandler) CreatePatient(c *fiber.Ctx) error {
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancelFunc()
 	var patient patient.Patient
-	err := json.NewDecoder(r.Body).Decode(&patient)
+	err := c.BodyParser(&patient)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
-		http.Error(w, "User not found", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User not found",
+		})
 	}
 
 	patient.ClinicID = user.ClinicID
 	patient, err = h.patientService.CreatePatient(ctx, patient)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
-	err = json.NewEncoder(w).Encode(patient)
-	if err != nil {
-		return
-	}
+
+	return c.Status(fiber.StatusOK).JSON(patient)
 }
 
-func (h *PatientHandler) UpdatePatient(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+func (h *PatientHandler) UpdatePatient(c *fiber.Ctx) error {
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancelFunc()
 	var patient patient.Patient
-	err := json.NewDecoder(r.Body).Decode(&patient)
+	err := c.BodyParser(&patient)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
-		http.Error(w, "User not found", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User not found",
+		})
 	}
 
 	GetPatient, err := h.patientService.GetPatient(ctx, patient.ID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
 	if user.ClinicID != GetPatient.ClinicID {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized",
+		})
 	}
 
 	patient, err = h.patientService.UpdatePatient(ctx, patient)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
-	err = json.NewEncoder(w).Encode(patient)
-	if err != nil {
-		return
-	}
+
+	return c.Status(fiber.StatusOK).JSON(patient)
 }
 
-func (h *PatientHandler) DeletePatient(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+func (h *PatientHandler) DeletePatient(c *fiber.Ctx) error {
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancelFunc()
-	params := mux.Vars(r)
-	idStr := params["id"]
+	idStr := c.Params("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid patient ID", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid patient ID",
+		})
 	}
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
-		http.Error(w, "User not found", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User not found",
+		})
 	}
 
 	GetPatient, err := h.patientService.GetPatient(ctx, uint(id))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
 	if user.ClinicID != GetPatient.ClinicID {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized",
+		})
 	}
 
 	err = h.patientService.DeletePatient(ctx, uint(id))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Patient deleted successfully",
+	})
 }

@@ -16,6 +16,7 @@ type ConfigModel struct {
 	Redis    RedisConfig    `yaml:"redis" validate:"required"`
 	Log      LogConfig      `yaml:"log" validate:"required"`
 	JWT      JWTConfig      `validate:"required"`
+	Kafka    KafkaConfig    `yaml:"kafka" validate:"required"`
 }
 
 type ServerConfig struct {
@@ -53,6 +54,14 @@ type RedisConfig struct {
 
 type JWTConfig struct {
 	SecretKey string `validate:"required"`
+}
+
+type KafkaConfig struct {
+	Brokers            []string `yaml:"brokers" validate:"required,min=1,dive,required"`
+	VerificationTopic  string   `yaml:"verificationTopic" validate:"required"`
+	PasswordResetTopic string   `yaml:"passwordResetTopic" validate:"required"`
+	GeneralTopic       string   `yaml:"generalTopic" validate:"required"`
+	DeadLetterTopic    string   `yaml:"deadLetterTopic" validate:"required"`
 }
 
 // ValidateConfig validates the configuration using the validator

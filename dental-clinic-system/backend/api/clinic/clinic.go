@@ -5,13 +5,10 @@ import (
 	"dental-clinic-system/models/claims"
 	"dental-clinic-system/models/clinic"
 	"dental-clinic-system/models/user"
-	"encoding/json"
 	"errors"
-	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
-
+	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )
 
@@ -21,7 +18,7 @@ type UserService interface {
 }
 
 type JwtService interface {
-	ParseTokenFromCookie(r *http.Request) (*claims.Claims, error)
+	ParseTokenFromCookie(c *fiber.Ctx) (*claims.Claims, error)
 }
 
 // ClinicService interface
@@ -52,62 +49,57 @@ func NewClinicHandlerController(clinicService ClinicService, userService UserSer
 }
 
 // GetClinics retrieves all clinics
-func (h *ClinicHandler) GetClinics(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (h *ClinicHandler) GetClinics(c *fiber.Ctx) error {
+	ctx := c.Context()
 	clinics, err := h.clinicService.GetClinics(ctx)
 	if err != nil {
 		log.Error().
 			Str("operation", "GetClinics").
 			Err(err).
 			Msg("Failed to retrieve clinics")
-		http.Error(w, "Failed to retrieve clinics", http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to retrieve clinics",
+		})
 	}
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(clinics)
-	if err != nil {
-		log.Error().
-			Str("operation", "GetClinics").
-			Err(err).
-			Msg("Failed to encode clinics to JSON")
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
+
+	return c.Status(fiber.StatusOK).JSON(clinics)
 }
 
 // GetClinic retrieves a single clinic by its ID
-func (h *ClinicHandler) GetClinic(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	params := mux.Vars(r)
-	idStr := params["id"]
+func (h *ClinicHandler) GetClinic(c *fiber.Ctx) error {
+	ctx := c.Context()
+
+	idStr := c.Params("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		log.Warn().
 			Str("operation", "GetClinic").
 			Str("clinic_id", idStr).
 			Msg("Invalid clinic ID")
-		http.Error(w, "Invalid clinic ID", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid clinic ID",
+		})
 	}
 
 	// Extract authenticatedUser from cookie
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
 		log.Warn().
 			Str("operation", "GetClinic").
-			Err(err).
-			Msg("Unauthorized access - invalid token")
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+			Msg("Unauthorized access - claims not found")
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized",
+		})
 	}
 	authenticatedUser, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		log.Warn().
 			Str("operation", "GetClinic").
 			Err(err).
-			Msg("Unauthorized access - authenticatedUser not found")
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+			Msg("Unauthorized access - user not found")
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized",
+		})
 	}
 
 	if authenticatedUser.ClinicID != uint(id) && !h.roleService.UserHasRole(authenticatedUser, "Superadmin") {
@@ -116,8 +108,9 @@ func (h *ClinicHandler) GetClinic(w http.ResponseWriter, r *http.Request) {
 			Uint("user_clinic_id", authenticatedUser.ClinicID).
 			Uint("requested_clinic_id", uint(id)).
 			Msg("User is not authorized to access this clinic")
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "Forbidden",
+		})
 	}
 
 	cln, err := h.clinicService.GetClinic(ctx, uint(id))
@@ -127,115 +120,106 @@ func (h *ClinicHandler) GetClinic(w http.ResponseWriter, r *http.Request) {
 				Str("operation", "GetClinic").
 				Uint("clinic_id", uint(id)).
 				Msg("Clinic not found")
-			http.Error(w, "Clinic not found", http.StatusNotFound)
-			return
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": "Clinic not found",
+			})
 		}
 		log.Error().
 			Str("operation", "GetClinic").
 			Err(err).
 			Uint("clinic_id", uint(id)).
 			Msg("Failed to retrieve clinic")
-		http.Error(w, "Failed to retrieve clinic", http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to retrieve clinic",
+		})
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(cln)
-	if err != nil {
-		log.Error().
-			Str("operation", "GetClinic").
-			Err(err).
-			Msg("Failed to encode clinic to JSON")
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
+	return c.Status(fiber.StatusOK).JSON(cln)
 }
 
 // CreateClinic creates a new clinic after validation and existence check
-func (h *ClinicHandler) CreateClinic(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (h *ClinicHandler) CreateClinic(c *fiber.Ctx) error {
+	ctx := c.Context()
+
 	var cln clinic.Clinic
-	err := json.NewDecoder(r.Body).Decode(&cln)
-	if err != nil {
+	if err := c.BodyParser(&cln); err != nil {
 		log.Warn().
 			Str("operation", "CreateClinic").
 			Err(err).
 			Msg("Invalid request body")
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
 	}
 
-	cln, err = h.clinicService.CreateClinic(ctx, cln)
+	createdClinic, err := h.clinicService.CreateClinic(ctx, cln)
 	if err != nil {
 		if errors.Is(err, clinic.ErrClinicAlreadyExists) {
 			log.Warn().
 				Str("operation", "CreateClinic").
 				Str("clinic_email", cln.Email).
 				Msg("Clinic already exists")
-			http.Error(w, "Clinic already exists", http.StatusConflict)
-			return
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+				"error": "Clinic already exists",
+			})
 		}
 		if errors.Is(err, clinic.ErrClinicValidation) {
 			log.Warn().
 				Str("operation", "CreateClinic").
 				Err(err).
 				Msg("Clinic validation failed")
-			http.Error(w, "Clinic validation failed", http.StatusBadRequest)
-			return
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Clinic validation failed",
+			})
 		}
 		log.Error().
 			Str("operation", "CreateClinic").
 			Err(err).
 			Msg("Failed to create clinic")
-		http.Error(w, "Failed to create clinic", http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to create clinic",
+		})
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	err = json.NewEncoder(w).Encode(cln)
-	if err != nil {
-		log.Error().
-			Str("operation", "CreateClinic").
-			Err(err).
-			Msg("Failed to encode clinic to JSON")
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
+	return c.Status(fiber.StatusCreated).JSON(createdClinic)
 }
 
 // UpdateClinic updates an existing clinic after validation and existence check
-func (h *ClinicHandler) UpdateClinic(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (h *ClinicHandler) UpdateClinic(c *fiber.Ctx) error {
+	ctx := c.Context()
+
 	var cln clinic.Clinic
-	err := json.NewDecoder(r.Body).Decode(&cln)
-	if err != nil {
+	if err := c.BodyParser(&cln); err != nil {
 		log.Warn().
 			Str("operation", "UpdateClinic").
 			Err(err).
 			Msg("Invalid request body")
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
 	}
 
 	// Extract authenticatedUser from cookie
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
 		log.Warn().
 			Str("operation", "UpdateClinic").
 			Err(err).
 			Msg("Unauthorized access - invalid token")
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized",
+		})
 	}
 	authenticatedUser, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		log.Warn().
 			Str("operation", "UpdateClinic").
 			Err(err).
-			Msg("Unauthorized access - authenticatedUser not found")
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+			Msg("Unauthorized access - user not found")
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized",
+		})
 	}
 
 	if cln.ID != authenticatedUser.ClinicID && !h.roleService.UserHasRole(authenticatedUser, "Superadmin") {
@@ -244,81 +228,80 @@ func (h *ClinicHandler) UpdateClinic(w http.ResponseWriter, r *http.Request) {
 			Uint("user_clinic_id", authenticatedUser.ClinicID).
 			Uint("clinic_id", cln.ID).
 			Msg("User is not authorized to update this clinic")
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "Forbidden",
+		})
 	}
 
-	cln, err = h.clinicService.UpdateClinic(ctx, cln)
+	updatedClinic, err := h.clinicService.UpdateClinic(ctx, cln)
 	if err != nil {
 		if errors.Is(err, clinic.ErrClinicNotFound) {
 			log.Warn().
 				Str("operation", "UpdateClinic").
 				Uint("clinic_id", cln.ID).
 				Msg("Clinic not found")
-			http.Error(w, "Clinic not found", http.StatusNotFound)
-			return
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": "Clinic not found",
+			})
 		}
 		if errors.Is(err, clinic.ErrClinicValidation) {
 			log.Warn().
 				Str("operation", "UpdateClinic").
 				Err(err).
 				Msg("Clinic validation failed")
-			http.Error(w, "Clinic validation failed", http.StatusBadRequest)
-			return
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Clinic validation failed",
+			})
 		}
 		log.Error().
 			Str("operation", "UpdateClinic").
 			Err(err).
 			Msg("Failed to update clinic")
-		http.Error(w, "Failed to update clinic", http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to update clinic",
+		})
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(cln)
-	if err != nil {
-		log.Error().
-			Str("operation", "UpdateClinic").
-			Err(err).
-			Msg("Failed to encode clinic to JSON")
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
+	return c.Status(fiber.StatusOK).JSON(updatedClinic)
 }
 
 // DeleteClinic deletes a clinic by its ID after existence check
-func (h *ClinicHandler) DeleteClinic(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	params := mux.Vars(r)
-	idStr := params["id"]
+func (h *ClinicHandler) DeleteClinic(c *fiber.Ctx) error {
+	ctx := c.Context()
+
+	idStr := c.Params("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		log.Warn().
 			Str("operation", "DeleteClinic").
 			Str("clinic_id", idStr).
 			Msg("Invalid clinic ID")
-		http.Error(w, "Invalid clinic ID", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid clinic ID",
+		})
 	}
 
 	// Extract authenticatedUser from cookie to authorize delete operation
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
 		log.Warn().
 			Str("operation", "DeleteClinic").
 			Err(err).
 			Msg("Unauthorized access - invalid token")
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized",
+		})
 	}
 	authenticatedUser, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		log.Warn().
 			Str("operation", "DeleteClinic").
 			Err(err).
-			Msg("Unauthorized access - authenticatedUser not found")
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+			Msg("Unauthorized access - user not found")
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized",
+		})
 	}
 
 	if authenticatedUser.ClinicID != uint(id) && !h.roleService.UserHasRole(authenticatedUser, "Superadmin") {
@@ -327,8 +310,9 @@ func (h *ClinicHandler) DeleteClinic(w http.ResponseWriter, r *http.Request) {
 			Uint("user_clinic_id", authenticatedUser.ClinicID).
 			Uint("clinic_id", uint(id)).
 			Msg("User is not authorized to delete this clinic")
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "Forbidden",
+		})
 	}
 
 	err = h.clinicService.DeleteClinic(ctx, uint(id))
@@ -338,53 +322,59 @@ func (h *ClinicHandler) DeleteClinic(w http.ResponseWriter, r *http.Request) {
 				Str("operation", "DeleteClinic").
 				Uint("clinic_id", uint(id)).
 				Msg("Clinic not found")
-			http.Error(w, "Clinic not found", http.StatusNotFound)
-			return
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": "Clinic not found",
+			})
 		}
 		log.Error().
 			Str("operation", "DeleteClinic").
 			Err(err).
 			Uint("clinic_id", uint(id)).
 			Msg("Failed to delete clinic")
-		http.Error(w, "Failed to delete clinic", http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to delete clinic",
+		})
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
 // CheckClinicExistHandler checks if a clinic exists based on provided criteria
-func (h *ClinicHandler) CheckClinicExist(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (h *ClinicHandler) CheckClinicExist(c *fiber.Ctx) error {
+	ctx := c.Context()
+
 	var cln clinic.Clinic
-	err := json.NewDecoder(r.Body).Decode(&cln)
-	if err != nil {
+	if err := c.BodyParser(&cln); err != nil {
 		log.Warn().
 			Str("operation", "CheckClinicExist").
 			Err(err).
 			Msg("Invalid request body")
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
 	}
 
 	// Extract authenticatedUser from cookie
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
 		log.Warn().
 			Str("operation", "CheckClinicExist").
 			Err(err).
 			Msg("Unauthorized access - invalid token")
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized",
+		})
 	}
 	authenticatedUser, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		log.Warn().
 			Str("operation", "CheckClinicExist").
 			Err(err).
-			Msg("Unauthorized access - authenticatedUser not found")
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+			Msg("Unauthorized access - user not found")
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized",
+		})
 	}
 
 	if cln.ID != authenticatedUser.ClinicID && !h.roleService.UserHasRole(authenticatedUser, "Superadmin") {
@@ -393,8 +383,9 @@ func (h *ClinicHandler) CheckClinicExist(w http.ResponseWriter, r *http.Request)
 			Uint("user_clinic_id", authenticatedUser.ClinicID).
 			Uint("clinic_id", cln.ID).
 			Msg("User is not authorized to check this clinic")
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "Forbidden",
+		})
 	}
 
 	exists, err := h.clinicService.CheckClinicExist(ctx, cln)
@@ -403,19 +394,11 @@ func (h *ClinicHandler) CheckClinicExist(w http.ResponseWriter, r *http.Request)
 			Str("operation", "CheckClinicExist").
 			Err(err).
 			Msg("Failed to check clinic existence")
-		http.Error(w, "Failed to check clinic existence", http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to check clinic existence",
+		})
 	}
 
 	response := map[string]bool{"exists": exists}
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(response)
-	if err != nil {
-		log.Error().
-			Str("operation", "CheckClinicExist").
-			Err(err).
-			Msg("Failed to encode response to JSON")
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
+	return c.Status(fiber.StatusOK).JSON(response)
 }

@@ -5,12 +5,10 @@ import (
 	"dental-clinic-system/models/claims"
 	"dental-clinic-system/models/procedure"
 	"dental-clinic-system/models/user"
-	"encoding/json"
-	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 )
 
 type ProcedureService interface {
@@ -30,7 +28,7 @@ type RoleService interface {
 }
 
 type JwtService interface {
-	ParseTokenFromCookie(r *http.Request) (*claims.Claims, error)
+	ParseTokenFromCookie(c *fiber.Ctx) (*claims.Claims, error)
 }
 
 func NewProcedureController(procedureService ProcedureService, userService UserService, roleService RoleService, jwtService JwtService) *ProcedureHandler {
@@ -49,186 +47,195 @@ type ProcedureHandler struct {
 	jwtService       JwtService
 }
 
-func (h *ProcedureHandler) GetProcedures(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+func (h *ProcedureHandler) GetProcedures(c *fiber.Ctx) error {
+	ctx := c.Context()
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
-		http.Error(w, "User not found", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User not found",
+		})
 	}
 
 	procedures, err := h.procedureService.GetProcedures(ctx, user.ClinicID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
-	err = json.NewEncoder(w).Encode(procedures)
-	if err != nil {
-		return
-	}
+	return c.Status(fiber.StatusOK).JSON(procedures)
 }
 
-func (h *ProcedureHandler) GetProcedure(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+func (h *ProcedureHandler) GetProcedure(c *fiber.Ctx) error {
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancelFunc()
-	params := mux.Vars(r)
-	idStr := params["id"]
+	idStr := c.Params("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid procedure ID", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid procedure ID",
+		})
 	}
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
-		http.Error(w, "User not found", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User not found",
+		})
 	}
 
 	procedure, err := h.procedureService.GetProcedure(ctx, uint(id))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
 	if procedure.ClinicID != user.ClinicID {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized",
+		})
 	}
 
-	err = json.NewEncoder(w).Encode(procedure)
-	if err != nil {
-		return
-	}
+	return c.Status(fiber.StatusOK).JSON(procedure)
 }
 
-func (h *ProcedureHandler) CreateProcedure(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+func (h *ProcedureHandler) CreateProcedure(c *fiber.Ctx) error {
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancelFunc()
 	var procedure procedure.Procedure
-	err := json.NewDecoder(r.Body).Decode(&procedure)
+	err := c.BodyParser(&procedure)
 	if err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request payload",
+		})
 	}
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
-		http.Error(w, "User not found", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User not found",
+		})
 	}
 
 	procedure.ClinicID = user.ClinicID
 	procedure, err = h.procedureService.CreateProcedure(ctx, procedure)
 	if err != nil {
-		http.Error(w, "Failed to create procedure", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Failed to create procedure",
+		})
 	}
-	err = json.NewEncoder(w).Encode(procedure)
-	if err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
+	return c.Status(fiber.StatusOK).JSON(procedure)
 }
 
-func (h *ProcedureHandler) UpdateProcedure(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+func (h *ProcedureHandler) UpdateProcedure(c *fiber.Ctx) error {
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancelFunc()
 	var procedure procedure.Procedure
-	err := json.NewDecoder(r.Body).Decode(&procedure)
+	err := c.BodyParser(&procedure)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
-		http.Error(w, "User not found", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User not found",
+		})
 	}
 
 	if !(h.roleService.UserHasRole(user, "Clinic Admin") || h.roleService.UserHasRole(user, "Superadmin")) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized",
+		})
 	}
 
 	procedure.ClinicID = user.ClinicID
 	procedure, err = h.procedureService.UpdateProcedure(ctx, procedure)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
-	err = json.NewEncoder(w).Encode(procedure)
-	if err != nil {
-		return
-	}
+	return c.Status(fiber.StatusOK).JSON(procedure)
 }
 
-func (h *ProcedureHandler) DeleteProcedure(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
+func (h *ProcedureHandler) DeleteProcedure(c *fiber.Ctx) error {
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancelFunc()
-	params := mux.Vars(r)
-	idStr := params["id"]
+	idStr := c.Params("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid procedure ID", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid procedure ID",
+		})
 	}
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 	user, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
-		http.Error(w, "User not found", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User not found",
+		})
 	}
 
 	if !(h.roleService.UserHasRole(user, "Clinic Admin") || h.roleService.UserHasRole(user, "Superadmin")) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized",
+		})
 	}
 
 	procedure, err := h.procedureService.GetProcedure(ctx, uint(id))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
 	if procedure.ClinicID != user.ClinicID {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized",
+		})
 	}
 
 	err = h.procedureService.DeleteProcedure(ctx, uint(id))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Procedure deleted successfully",
+	})
 }

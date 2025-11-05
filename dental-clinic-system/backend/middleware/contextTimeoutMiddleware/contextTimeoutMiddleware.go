@@ -2,42 +2,54 @@ package contextTimeoutMiddleware
 
 import (
 	"context"
-	"net/http"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 )
 
-func TimeoutMiddleware(timeoutValue int) mux.MiddlewareFunc {
+func TimeoutMiddleware(timeoutValue int) fiber.Handler {
 	// Convert timeout to a duration
 	timeout := time.Duration(timeoutValue) * time.Second
 
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Create a context with a timeout
-			ctx, cancel := context.WithTimeout(r.Context(), timeout)
-			defer cancel()
+	return func(c *fiber.Ctx) error {
+		// Create a context with a timeout
+		ctx, cancel := context.WithTimeout(c.Context(), timeout)
+		defer cancel()
 
-			// Replace the request context with the new timeout context
-			r = r.WithContext(ctx)
+		// Set the new context to the Fiber context
+		c.SetUserContext(ctx)
 
-			// Channel to handle when the handler completes
-			done := make(chan struct{})
+		// Channel to handle when the handler completes
+		done := make(chan error, 1)
+		var handlerErr error
 
-			// Run the handler in a goroutine
-			go func() {
-				next.ServeHTTP(w, r)
-				close(done)
+		// Run the handler in a goroutine
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					// Handle panic in goroutine
+					done <- fiber.NewError(fiber.StatusInternalServerError, "Internal server error")
+				}
 			}()
+			done <- c.Next()
+		}()
 
-			// Wait for handler to complete or timeout
-			select {
-			case <-done:
-				// Handler completed successfully
-			case <-ctx.Done():
-				// Context timeout triggered
-				http.Error(w, "Request timed out", http.StatusGatewayTimeout)
+		// Wait for handler to complete or timeout
+		select {
+		case handlerErr = <-done:
+			// Handler completed
+			if ctx.Err() != nil {
+				// Context was cancelled, return timeout
+				return c.Status(fiber.StatusGatewayTimeout).JSON(fiber.Map{
+					"error": "Request timed out",
+				})
 			}
-		})
+			return handlerErr
+		case <-ctx.Done():
+			// Context timeout triggered
+			return c.Status(fiber.StatusGatewayTimeout).JSON(fiber.Map{
+				"error": "Request timed out",
+			})
+		}
 	}
 }

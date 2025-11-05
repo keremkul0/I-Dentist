@@ -2,17 +2,14 @@ package appointment
 
 import (
 	"context"
-	"dental-clinic-system/helpers"
 	"dental-clinic-system/models/appointment"
 	"dental-clinic-system/models/claims"
 	"dental-clinic-system/models/patient"
 	"dental-clinic-system/models/user"
-	"encoding/json"
-	"net/http"
 	"strconv"
 	"sync"
 
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )
 
@@ -34,7 +31,7 @@ type AppointmentService interface {
 }
 
 type JwtService interface {
-	ParseTokenFromCookie(r *http.Request) (*claims.Claims, error)
+	ParseTokenFromCookie(c *fiber.Ctx) (*claims.Claims, error)
 }
 
 // PatientService defines methods to interact with patient data
@@ -61,102 +58,108 @@ func NewAppointmentHandler(as AppointmentService, us UserService, ps PatientServ
 }
 
 // GetAppointments retrieves all appointments for the authenticated user's clinic
-func (h *AppointmentHandler) GetAppointments(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (h *AppointmentHandler) GetAppointments(c *fiber.Ctx) error {
+	ctx := c.Context()
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
-		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid token",
+		})
 	}
 
 	authenticatedUser, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		log.Error().Err(err).Msg("User not found")
-		helpers.WriteJSONError(w, "User not found", http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "User not found",
+		})
 	}
 
 	appointments, err := h.appointmentService.GetAppointments(ctx, authenticatedUser.ClinicID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to fetch appointments")
-		helpers.WriteJSONError(w, "Failed to fetch appointments", http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to fetch appointments",
+		})
 	}
 
-	helpers.WriteJSONResponse(w, appointments, http.StatusOK)
+	return c.Status(fiber.StatusOK).JSON(appointments)
 }
 
 // GetAppointment retrieves a single appointment by ID
-func (h *AppointmentHandler) GetAppointment(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	params := mux.Vars(r)
-	idStr := params["id"]
+func (h *AppointmentHandler) GetAppointment(c *fiber.Ctx) error {
+	ctx := c.Context()
+	idStr := c.Params("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id <= 0 {
 		log.Warn().Msgf("Invalid appointment ID: %s", idStr)
-		helpers.WriteJSONError(w, "Invalid appointment ID", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid appointment ID",
+		})
 	}
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
-		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid token",
+		})
 	}
 
 	authenticatedUser, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		log.Error().Err(err).Msg("User not found")
-		helpers.WriteJSONError(w, "User not found", http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "User not found",
+		})
 	}
 
 	retrievedAppointment, err := h.appointmentService.GetAppointment(ctx, uint(id))
 	if err != nil {
 		log.Error().Err(err).Msg("Appointment not found")
-		helpers.WriteJSONError(w, "Appointment not found", http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Appointment not found",
+		})
 	}
 
 	if authenticatedUser.ClinicID != retrievedAppointment.ClinicID {
 		log.Warn().Msg("Unauthorized access to appointment")
-		helpers.WriteJSONError(w, "Forbidden", http.StatusForbidden)
-		return
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "Unauthorized access to appointment",
+		})
 	}
 
-	helpers.WriteJSONResponse(w, retrievedAppointment, http.StatusOK)
+	return c.Status(fiber.StatusOK).JSON(retrievedAppointment)
 }
 
 // CreateAppointment creates a new appointment
-func (h *AppointmentHandler) CreateAppointment(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	// Limit the size of the request body to prevent resource exhaustion
-	r.Body = http.MaxBytesReader(w, r.Body, 1048576) // 1MB
+func (h *AppointmentHandler) CreateAppointment(c *fiber.Ctx) error {
+	ctx := c.Context()
 
 	var newAppointment appointment.Appointment
-	if err := json.NewDecoder(r.Body).Decode(&newAppointment); err != nil {
+	if err := c.BodyParser(&newAppointment); err != nil {
 		log.Warn().Err(err).Msg("Invalid request payload")
-		helpers.WriteJSONError(w, "Invalid request payload", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request payload",
+		})
 	}
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
-		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid token",
+		})
 	}
 
 	authenticatedUser, err := h.userService.GetUserByEmail(ctx, claims.Email)
 	if err != nil {
 		log.Error().Err(err).Msg("User not found")
-		helpers.WriteJSONError(w, "User not found", http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "User not found",
+		})
 	}
 
 	newAppointment.ClinicID = authenticatedUser.ClinicID
@@ -164,32 +167,32 @@ func (h *AppointmentHandler) CreateAppointment(w http.ResponseWriter, r *http.Re
 	createdAppointment, err := h.appointmentService.CreateAppointment(ctx, newAppointment)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create appointment")
-		helpers.WriteJSONError(w, "Failed to create appointment", http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to create appointment",
+		})
 	}
 
-	helpers.WriteJSONResponse(w, createdAppointment, http.StatusCreated)
+	return c.Status(fiber.StatusCreated).JSON(createdAppointment)
 }
 
 // UpdateAppointment updates an existing appointment
-func (h *AppointmentHandler) UpdateAppointment(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	// Limit the size of the request body
-	r.Body = http.MaxBytesReader(w, r.Body, 1048576) // 1MB
+func (h *AppointmentHandler) UpdateAppointment(c *fiber.Ctx) error {
+	ctx := c.Context()
 
 	var updatedAppointment appointment.Appointment
-	if err := json.NewDecoder(r.Body).Decode(&updatedAppointment); err != nil {
+	if err := c.BodyParser(&updatedAppointment); err != nil {
 		log.Warn().Err(err).Msg("Invalid request payload")
-		helpers.WriteJSONError(w, "Invalid request payload", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request payload",
+		})
 	}
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
-		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid token",
+		})
 	}
 
 	wg := sync.WaitGroup{}
@@ -213,20 +216,23 @@ func (h *AppointmentHandler) UpdateAppointment(w http.ResponseWriter, r *http.Re
 
 	if userErr != nil {
 		log.Error().Err(userErr).Msg("User not found")
-		helpers.WriteJSONError(w, "User not found", http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "User not found",
+		})
 	}
 
 	if appointmentErr != nil {
 		log.Error().Err(appointmentErr).Msg("Appointment not found")
-		helpers.WriteJSONError(w, "Appointment not found", http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Appointment not found",
+		})
 	}
 
 	if authenticatedUser.ClinicID != existingAppointment.ClinicID {
 		log.Warn().Msg("Unauthorized access to update appointment")
-		helpers.WriteJSONError(w, "Forbidden", http.StatusForbidden)
-		return
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "Forbidden",
+		})
 	}
 
 	// Ensure the appointment belongs to the clinic
@@ -235,31 +241,32 @@ func (h *AppointmentHandler) UpdateAppointment(w http.ResponseWriter, r *http.Re
 	updatedAppointment, err = h.appointmentService.UpdateAppointment(ctx, updatedAppointment)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to update appointment")
-		helpers.WriteJSONError(w, "Failed to update appointment", http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to update appointment",
+		})
 	}
 
-	helpers.WriteJSONResponse(w, updatedAppointment, http.StatusOK)
+	return c.Status(fiber.StatusOK).JSON(updatedAppointment)
 }
 
 // DeleteAppointment deletes an appointment by ID
-func (h *AppointmentHandler) DeleteAppointment(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	params := mux.Vars(r)
-	idStr := params["id"]
+func (h *AppointmentHandler) DeleteAppointment(c *fiber.Ctx) error {
+	ctx := c.Context()
+	idStr := c.Params("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id <= 0 {
 		log.Warn().Msgf("Invalid appointment ID: %s", idStr)
-		helpers.WriteJSONError(w, "Invalid appointment ID", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid appointment ID",
+		})
 	}
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
-		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid token",
+		})
 	}
 
 	wg := sync.WaitGroup{}
@@ -283,49 +290,55 @@ func (h *AppointmentHandler) DeleteAppointment(w http.ResponseWriter, r *http.Re
 
 	if userErr != nil {
 		log.Error().Err(userErr).Msg("User not found")
-		helpers.WriteJSONError(w, "User not found", http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "User not found",
+		})
 	}
 
 	if appointmentErr != nil {
 		log.Error().Err(appointmentErr).Msg("Appointment not found")
-		helpers.WriteJSONError(w, "Appointment not found", http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Appointment not found",
+		})
 	}
 
 	if authenticatedUser.ClinicID != existingAppointment.ClinicID {
 		log.Warn().Msg("Unauthorized access to delete appointment")
-		helpers.WriteJSONError(w, "Forbidden", http.StatusForbidden)
-		return
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "Forbidden",
+		})
 	}
 
 	if err := h.appointmentService.DeleteAppointment(ctx, uint(id)); err != nil {
 		log.Error().Err(err).Msg("Failed to delete appointment")
-		helpers.WriteJSONError(w, "Failed to delete appointment", http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to delete appointment",
+		})
 	}
 
-	w.WriteHeader(http.StatusNoContent) // 204 No Content
+	c.Status(fiber.StatusNoContent)
+	return nil
 }
 
 // GetDoctorAppointments retrieves all appointments for a specific doctor
-func (h *AppointmentHandler) GetDoctorAppointments(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (h *AppointmentHandler) GetDoctorAppointments(c *fiber.Ctx) error {
+	ctx := c.Context()
 
-	params := mux.Vars(r)
-	idStr := params["id"]
+	idStr := c.Params("id")
 	doctorID, err := strconv.Atoi(idStr)
 	if err != nil || doctorID <= 0 {
 		log.Warn().Msgf("Invalid doctor ID: %s", idStr)
-		helpers.WriteJSONError(w, "Invalid doctor ID", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid doctor ID",
+		})
 	}
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
-		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid token",
+		})
 	}
 
 	wg := sync.WaitGroup{}
@@ -349,50 +362,55 @@ func (h *AppointmentHandler) GetDoctorAppointments(w http.ResponseWriter, r *htt
 
 	if userErr != nil {
 		log.Error().Err(userErr).Msg("Authenticated user not found")
-		helpers.WriteJSONError(w, "Authenticated user not found", http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Authenticated user not found",
+		})
 	}
 
 	if doctorErr != nil {
 		log.Error().Err(doctorErr).Msg("Doctor not found")
-		helpers.WriteJSONError(w, "Doctor not found", http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Doctor not found",
+		})
 	}
 
 	if authenticatedUser.ClinicID != doctor.ClinicID {
 		log.Warn().Msg("Forbidden access to doctor's appointments")
-		helpers.WriteJSONError(w, "Forbidden", http.StatusForbidden)
-		return
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "Forbidden",
+		})
 	}
 
 	appointments, err := h.appointmentService.GetDoctorAppointments(ctx, uint(doctorID))
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to fetch doctor's appointments")
-		helpers.WriteJSONError(w, "Failed to fetch doctor's appointments", http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to fetch doctor's appointments",
+		})
 	}
 
-	helpers.WriteJSONResponse(w, appointments, http.StatusOK)
+	return c.Status(fiber.StatusOK).JSON(appointments)
 }
 
 // GetPatientAppointments retrieves all appointments for a specific patient
-func (h *AppointmentHandler) GetPatientAppointments(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (h *AppointmentHandler) GetPatientAppointments(c *fiber.Ctx) error {
+	ctx := c.Context()
 
-	params := mux.Vars(r)
-	idStr := params["id"]
+	idStr := c.Params("id")
 	patientID, err := strconv.Atoi(idStr)
 	if err != nil || patientID <= 0 {
 		log.Warn().Msgf("Invalid patient ID: %s", idStr)
-		helpers.WriteJSONError(w, "Invalid patient ID", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid patient ID",
+		})
 	}
 
-	claims, err := h.jwtService.ParseTokenFromCookie(r)
+	claims, err := h.jwtService.ParseTokenFromCookie(c)
 	if err != nil {
 		log.Error().Err(err).Msg("Invalid token")
-		helpers.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
-		return
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid token",
+		})
 	}
 
 	wg := sync.WaitGroup{}
@@ -416,28 +434,32 @@ func (h *AppointmentHandler) GetPatientAppointments(w http.ResponseWriter, r *ht
 
 	if userErr != nil {
 		log.Error().Err(userErr).Msg("Authenticated user not found")
-		helpers.WriteJSONError(w, "Authenticated user not found", http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Authenticated user not found",
+		})
 	}
 
 	if patientErr != nil {
 		log.Error().Err(patientErr).Msg("Patient not found")
-		helpers.WriteJSONError(w, "Patient not found", http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Patient not found",
+		})
 	}
 
 	if authenticatedUser.ClinicID != patientModel.ClinicID {
 		log.Warn().Msg("Forbidden access to patient's appointments")
-		helpers.WriteJSONError(w, "Forbidden", http.StatusForbidden)
-		return
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "Forbidden",
+		})
 	}
 
 	appointments, err := h.appointmentService.GetPatientAppointments(ctx, uint(patientID))
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to fetch patient's appointments")
-		helpers.WriteJSONError(w, "Failed to fetch patient's appointments", http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to fetch patient's appointments",
+		})
 	}
 
-	helpers.WriteJSONResponse(w, appointments, http.StatusOK)
+	return c.Status(fiber.StatusOK).JSON(appointments)
 }

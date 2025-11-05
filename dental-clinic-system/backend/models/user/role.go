@@ -6,6 +6,6 @@ import (
 
 type Role struct {
 	gorm.Model
-	Name  string  `json:"name"`
-	Users []*User `gorm:"many2many:user_roles;"`
+	Name  RoleName `json:"name"`
+	Users []*User  `gorm:"many2many:user_roles;"`
 }

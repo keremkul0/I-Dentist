@@ -45,7 +45,7 @@ func (repo *Repository) GetUser(ctx context.Context, id uint) (user.User, error)
 	var usr user.User
 	result := repo.DB.WithContext(ctx).Where("id = ?", id).First(&usr)
 	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			log.Warn().
 				Str("operation", "GetUser").
 				Err(result.Error).
@@ -70,7 +70,8 @@ func (repo *Repository) GetUser(ctx context.Context, id uint) (user.User, error)
 // GetUserByEmail retrieves a single user by its email
 func (repo *Repository) GetUserByEmail(ctx context.Context, email string) (user.User, error) {
 	var usr user.User
-	result := repo.DB.WithContext(ctx).Where("email = ?", email).First(&usr)
+	// Roles ilişkisini preload et - RBAC middleware için gerekli
+	result := repo.DB.WithContext(ctx).Preload("Roles").Where("email = ?", email).First(&usr)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			log.Warn().
@@ -90,6 +91,7 @@ func (repo *Repository) GetUserByEmail(ctx context.Context, email string) (user.
 	log.Info().
 		Str("operation", "GetUserByEmail").
 		Str("email", email).
+		Int("roles_count", len(usr.Roles)).
 		Msg("Retrieved user by email successfully")
 	return usr, nil
 }

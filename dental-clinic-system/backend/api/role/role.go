@@ -3,12 +3,10 @@ package role
 import (
 	"context"
 	"dental-clinic-system/models/user"
-	"encoding/json"
-	"net/http"
 	"strconv"
-	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
 )
 
 type RoleService interface {
@@ -27,97 +25,106 @@ func NewRoleController(roleService RoleService) *RoleHandler {
 	return &RoleHandler{roleService: roleService}
 }
 
-func (h *RoleHandler) GetRoles(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (h *RoleHandler) GetRoles(c *fiber.Ctx) error {
+	ctx := c.Context()
+
 	roles, err := h.roleService.GetRoles(ctx)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		log.Error().Err(err).Msg("Failed to fetch roles")
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to fetch roles",
+		})
 	}
-	err = json.NewEncoder(w).Encode(roles)
-	if err != nil {
-		return
-	}
+
+	return c.Status(fiber.StatusOK).JSON(roles)
 }
 
-func (h *RoleHandler) GetRole(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
-	defer cancelFunc()
-	params := mux.Vars(r)
-	idStr := params["id"]
+func (h *RoleHandler) GetRole(c *fiber.Ctx) error {
+	ctx := c.Context()
+
+	idStr := c.Params("id")
 	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid role ID", http.StatusBadRequest)
-		return
+	if err != nil || id <= 0 {
+		log.Warn().Msgf("Invalid role ID: %s", idStr)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid role ID",
+		})
 	}
+
 	role, err := h.roleService.GetRole(ctx, uint(id))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		log.Error().Err(err).Msg("Role not found")
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Role not found",
+		})
 	}
-	err = json.NewEncoder(w).Encode(role)
-	if err != nil {
-		return
-	}
+
+	return c.Status(fiber.StatusOK).JSON(role)
 }
 
-func (h *RoleHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
-	defer cancelFunc()
+func (h *RoleHandler) CreateRole(c *fiber.Ctx) error {
+	ctx := c.Context()
+
 	var role user.Role
-	err := json.NewDecoder(r.Body).Decode(&role)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	if err := c.BodyParser(&role); err != nil {
+		log.Warn().Err(err).Msg("Invalid request payload")
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request payload",
+		})
 	}
-	role, err = h.roleService.CreateRole(ctx, role)
+
+	createdRole, err := h.roleService.CreateRole(ctx, role)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		log.Error().Err(err).Msg("Failed to create role")
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to create role",
+		})
 	}
-	err = json.NewEncoder(w).Encode(role)
-	if err != nil {
-		return
-	}
+
+	return c.Status(fiber.StatusCreated).JSON(createdRole)
 }
 
-func (h *RoleHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
-	defer cancelFunc()
+func (h *RoleHandler) UpdateRole(c *fiber.Ctx) error {
+	ctx := c.Context()
+
 	var role user.Role
-	err := json.NewDecoder(r.Body).Decode(&role)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	if err := c.BodyParser(&role); err != nil {
+		log.Warn().Err(err).Msg("Invalid request payload")
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request payload",
+		})
 	}
-	role, err = h.roleService.UpdateRole(ctx, role)
+
+	updatedRole, err := h.roleService.UpdateRole(ctx, role)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		log.Error().Err(err).Msg("Failed to update role")
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to update role",
+		})
 	}
-	err = json.NewEncoder(w).Encode(role)
-	if err != nil {
-		return
-	}
+
+	return c.Status(fiber.StatusOK).JSON(updatedRole)
 }
 
-func (h *RoleHandler) DeleteRole(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	ctx, cancelFunc := context.WithTimeout(ctx, 2*time.Second)
-	defer cancelFunc()
-	params := mux.Vars(r)
-	idStr := params["id"]
+func (h *RoleHandler) DeleteRole(c *fiber.Ctx) error {
+	ctx := c.Context()
+
+	idStr := c.Params("id")
 	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid role ID", http.StatusBadRequest)
-		return
+	if err != nil || id <= 0 {
+		log.Warn().Msgf("Invalid role ID: %s", idStr)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid role ID",
+		})
 	}
+
 	err = h.roleService.DeleteRole(ctx, uint(id))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		log.Error().Err(err).Msg("Failed to delete role")
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Role not found",
+		})
 	}
+
+	return c.SendStatus(fiber.StatusNoContent)
 }

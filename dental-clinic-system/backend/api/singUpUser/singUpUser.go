@@ -3,8 +3,8 @@ package singUpUser
 import (
 	"context"
 	"dental-clinic-system/models/user"
-	"encoding/json"
-	"net/http"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type SignUpUserService interface {
@@ -21,26 +21,22 @@ func NewSignUpUserHandler(signUpUserService SignUpUserService) *SignUpUserHandle
 	}
 }
 
-func (s *SignUpUserHandler) SignUpUser(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (s *SignUpUserHandler) SignUpUser(c *fiber.Ctx) error {
+	ctx := c.Context()
 	var user user.User
-	err := json.NewDecoder(r.Body).Decode(&user)
+	err := c.BodyParser(&user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
 	cacheKey, err := s.signUpUserService.SignUpUser(ctx, user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(cacheKey)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	return c.Status(fiber.StatusOK).JSON(cacheKey)
 }

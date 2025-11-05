@@ -1,10 +1,10 @@
 package role
 
 import (
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 )
 
-func RegisterRoleRoutes(router *mux.Router, handler *RoleHandler) {
-	router.HandleFunc("/roles", handler.GetRoles).Methods("GET")
-	router.HandleFunc("/roles/{id}", handler.GetRole).Methods("GET")
+func RegisterRoleRoutes(router fiber.Router, handler *RoleHandler) {
+	router.Get("/roles", handler.GetRoles)
+	router.Get("/roles/:id", handler.GetRole)
 }

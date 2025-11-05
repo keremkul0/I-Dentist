@@ -1,15 +1,17 @@
 package emailService
 
 import (
-	"bytes"
 	"context"
 	"dental-clinic-system/models/user"
-	"html/template"
-	"log"
 	"time"
 
-	"gopkg.in/gomail.v2"
+	"github.com/rs/zerolog/log"
 )
+
+type EmailProducer interface {
+	SendVerificationEmail(email string, token string) error
+	SendPasswordResetEmail(email string, token string) error
+}
 
 type UserRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (user.User, error)
@@ -21,30 +23,28 @@ type TokenRepository interface {
 	AddTokenToBlacklist(ctx context.Context, token string, expireTime time.Time) error
 }
 
-type Mailer interface {
-	SendMail(massage gomail.Message) error
-}
-
 type emailService struct {
 	userRepository  UserRepository
 	tokenRepository TokenRepository
-	mailer          Mailer
+	emailProducer   EmailProducer
 }
 
-func NewEmailService(userRepository UserRepository, tokenRepository TokenRepository, mailer Mailer) *emailService {
+func NewEmailService(userRepository UserRepository, tokenRepository TokenRepository, emailProducer EmailProducer) *emailService {
 	return &emailService{
 		userRepository:  userRepository,
 		tokenRepository: tokenRepository,
-		mailer:          mailer,
+		emailProducer:   emailProducer,
 	}
 }
 
-func (s *emailService) SendVerificationEmail(ctx context.Context, email, token string) error {
-	m, err := s.createVerificationEmail(email, token)
-	if err != nil {
-		return err
-	}
-	return s.mailer.SendMail(*m)
+func (s *emailService) SendVerificationEmail(email, token string) error {
+	log.Info().Str("email", email).Msg("Sending verification email to Kafka")
+	return s.emailProducer.SendVerificationEmail(email, token)
+}
+
+func (s *emailService) SendPasswordResetEmail(email, token string) error {
+	log.Info().Str("email", email).Msg("Sending password reset email to Kafka")
+	return s.emailProducer.SendPasswordResetEmail(email, token)
 }
 
 func (s *emailService) VerifyUserEmail(ctx context.Context, token string, email string) bool {
@@ -52,13 +52,13 @@ func (s *emailService) VerifyUserEmail(ctx context.Context, token string, email 
 		return false
 	}
 
-	user, err := s.userRepository.GetUserByEmail(ctx, email)
+	foundUser, err := s.userRepository.GetUserByEmail(ctx, email)
 	if err != nil {
 		return false
 	}
 
-	user.EmailVerified = true
-	_, err = s.userRepository.UpdateUser(ctx, user)
+	foundUser.EmailVerified = true
+	_, err = s.userRepository.UpdateUser(ctx, foundUser)
 	if err != nil {
 		return false
 	}
@@ -68,29 +68,4 @@ func (s *emailService) VerifyUserEmail(ctx context.Context, token string, email 
 		return false
 	}
 	return true
-}
-
-func (s *emailService) createVerificationEmail(email, token string) (*gomail.Message, error) {
-
-	tmpl, err := template.ParseFiles("..\\Email_HTMLs\\verification_email_html.html")
-	if err != nil {
-		log.Println("Şablon dosyası hatası:", err)
-		return nil, err
-	}
-
-	var body bytes.Buffer
-	err = tmpl.Execute(&body, map[string]string{
-		"VERIFY_LINK": "http://localhost:8080/verify-email?token=" + token,
-	})
-	if err != nil {
-		log.Fatalf("Şablon işleme hatası: %v", err)
-	}
-
-	m := gomail.NewMessage()
-	m.SetHeader("From", "noreply@i-dentist.com")
-	m.SetHeader("To", email)
-	m.SetHeader("Subject", "E-posta Doğrulama")
-	m.SetBody("text/html", body.String())
-
-	return m, nil
 }
